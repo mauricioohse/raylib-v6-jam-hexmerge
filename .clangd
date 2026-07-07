@@ -1,0 +1,8 @@
+CompileFlags:
+  Add:
+    - -Isrc
+    - -Isrc/external
+    - -IC:/dev/raylib/include
+    - -DPLATFORM_DESKTOP
+    - -std=c99
+CompilationDatabase: .

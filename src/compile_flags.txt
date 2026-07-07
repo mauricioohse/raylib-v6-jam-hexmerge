@@ -1,0 +1,5 @@
+-I.
+-Iexternal
+-IC:/dev/raylib/include
+-DPLATFORM_DESKTOP
+-std=c99

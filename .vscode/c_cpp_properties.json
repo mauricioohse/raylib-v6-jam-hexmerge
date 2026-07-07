@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/src/external",
+                "C:/dev/raylib/include",
+                "C:/dev/emsdk/upstream/emscripten/cache/sysroot/include"
+            ],
+            "defines": [
+                "PLATFORM_DESKTOP",
+                "GRAPHICS_API_OPENGL_33"
+            ],
+            "compilerPath": "C:/Program Files/mingw64/bin/gcc.exe",
+            "cStandard": "c99",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
