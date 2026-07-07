@@ -32,6 +32,53 @@
 static int framesCounter = 0;
 static int finishScreen = 0;
 
+
+
+//----------------------------------------------------------------------------------
+// My render/draw Functions Definition
+//----------------------------------------------------------------------------------
+
+Animation CreateAnimation(const char* filepath, float scale, int frameCnt, int speed)
+{
+  Animation rtn = {0};
+  rtn.filepath =  filepath;
+  rtn.scale = scale;
+  rtn.frameCnt = frameCnt;
+  rtn.speed = speed;
+  rtn.text = LoadTexture(filepath);
+
+  // note: assumes vertical spritesheet
+  rtn.src = (Rectangle){0,0,rtn.text.width, (float)rtn.text.height/(rtn.frameCnt)};
+  rtn.dst = (Rectangle){0, 0, rtn.scale * rtn.text.width,
+                        (float)rtn.scale * rtn.text.height / rtn.frameCnt};
+
+  return rtn;
+}
+
+// should be called every frame, assumes 60 frames per second
+void UpdateAnimation(Animation* anim)
+{
+    anim->countdown--;
+    if(anim->countdown <=0)
+    {
+      anim->frame = (anim->frame + 1) % (anim->frameCnt+1);
+      anim->countdown=anim->speed;
+    }
+
+    // currently assumes the spritesheet is a vertical one
+    anim->src = (Rectangle){
+        0, (float)anim->text.height * anim->frame / anim->frameCnt,
+        (float)anim->text.height / anim->frameCnt, anim->text.width};
+}
+
+
+void DrawAnimation(Animation* anim, Vector2 position)
+{
+  DrawTexturePro(anim->text, anim->src, anim->dst, anim->origin,
+                 anim->rotation, WHITE);
+}
+
+
 //----------------------------------------------------------------------------------
 // Gameplay Screen Functions Definition
 //----------------------------------------------------------------------------------
@@ -42,6 +89,11 @@ void InitGameplayScreen(void)
     // TODO: Initialize GAMEPLAY screen variables here!
     framesCounter = 0;
     finishScreen = 0;
+
+    // bee sprite init
+    
+    UpdateAnimation(&beeAnim);
+    
 }
 
 // Gameplay Screen Update logic
@@ -55,6 +107,8 @@ void UpdateGameplayScreen(void)
         finishScreen = 1;
         PlaySound(fxCoin);
     }
+
+    UpdateAnimation(&beeAnim);
 }
 
 // Gameplay Screen Draw logic
@@ -65,6 +119,8 @@ void DrawGameplayScreen(void)
     Vector2 pos = { 20, 10 };
     DrawTextEx(font, "GAMEPLAY SCREEN", pos, font.baseSize*3.0f, 4, MAROON);
     DrawText("PRESS ENTER or TAP to JUMP to ENDING SCREEN", 130, 220, 20, MAROON);
+
+    DrawAnimation(&beeAnim, (Vector2){0.0f,0.0f});
 }
 
 // Gameplay Screen Unload logic

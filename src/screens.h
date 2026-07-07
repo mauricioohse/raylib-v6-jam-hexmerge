@@ -26,6 +26,8 @@
 #ifndef SCREENS_H
 #define SCREENS_H
 
+#include "raylib.h"
+
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
@@ -37,6 +39,25 @@ typedef enum GameScreen {
   ENDING
 } GameScreen;
 
+typedef struct
+{
+    const char *filepath;
+    Texture2D text;
+    Rectangle src;
+    Rectangle dst;
+    float scale;
+    float rotation;
+    Vector2 origin;
+    int frame;     // goes from 0 to frameCnt - 1
+    int frameCnt;  
+    int countdown; // measured in remaining frames before next animation frames
+    int speed;     // Number of spritesheet frames shown by second
+} Animation;
+
+Animation CreateAnimation(const char* filepath, float scale, int frameCnt, int speed);
+void UpdateAnimation(Animation* anim);
+void DrawAnimation(Animation* animation, Vector2 position);
+
 //----------------------------------------------------------------------------------
 // Global Variables Declaration (shared by several modules)
 //----------------------------------------------------------------------------------
@@ -44,6 +65,10 @@ extern GameScreen currentScreen;
 extern Font font;
 extern Music music;
 extern Sound fxCoin;
+extern Animation beeAnim;
+
+
+
 
 #ifdef __cplusplus
 extern "C" {            // Prevents name mangling of functions

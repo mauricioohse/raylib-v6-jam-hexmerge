@@ -37,10 +37,11 @@
 // Shared Variables Definition (global)
 // NOTE: Those variables are shared between modules through screens.h
 //----------------------------------------------------------------------------------
-GameScreen currentScreen = TITLE;
+GameScreen currentScreen = GAMEPLAY;
 Font font = { 0 };
 Music music = { 0 };
 Sound fxCoin = { 0 };
+Animation beeAnim = {0};
 
 //----------------------------------------------------------------------------------
 // Global Variables Definition (local to this module)
@@ -81,13 +82,14 @@ int main(void)
     font = LoadFont("resources/mecha.png");
     //music = LoadMusicStream("resources/ambient.ogg"); // TODO: Load music
     fxCoin = LoadSound("resources/coin.wav");
+    beeAnim = CreateAnimation("resources/bee.png", 4, 4, 30);
 
     SetMusicVolume(music, 1.0f);
     PlayMusicStream(music);
 
     // Setup and init first screen
-    currentScreen = TITLE;
-    InitLogoScreen();
+    currentScreen = GAMEPLAY;
+    InitGameplayScreen();
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 60, 1);

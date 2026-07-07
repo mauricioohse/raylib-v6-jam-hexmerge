@@ -34,7 +34,6 @@ PROJECT_VERSION       ?= 1.0
 PROJECT_BUILD_PATH    ?= .
 PROJECT_SOURCE_FILES  ?= \
     raylib_game.c \
-    screen_logo.c \
     screen_title.c \
     screen_options.c \
     screen_gameplay.c \
