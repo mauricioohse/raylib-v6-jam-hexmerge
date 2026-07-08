@@ -1,4 +1,4 @@
-/**********************************************************************************************
+﻿/**********************************************************************************************
 *
 *   raylib - Advance Game template
 *
@@ -6,25 +6,12 @@
 *
 *   Copyright (c) 2014-2022 Ramon Santamaria (@raysan5)
 *
-*   This software is provided "as-is", without any express or implied warranty. In no event
-*   will the authors be held liable for any damages arising from the use of this software.
-*
-*   Permission is granted to anyone to use this software for any purpose, including commercial
-*   applications, and to alter it and redistribute it freely, subject to the following restrictions:
-*
-*     1. The origin of this software must not be misrepresented; you must not claim that you
-*     wrote the original software. If you use this software in a product, an acknowledgment
-*     in the product documentation would be appreciated but is not required.
-*
-*     2. Altered source versions must be plainly marked as such, and must not be misrepresented
-*     as being the original software.
-*
-*     3. This notice may not be removed or altered from any source distribution.
-*
 **********************************************************************************************/
 
 #include "raylib.h"
 #include "screens.h"
+#include "hex_grid.h"
+#include "hex_trail.h"
 
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
@@ -32,104 +19,131 @@
 static int framesCounter = 0;
 static int finishScreen = 0;
 
-
+static HexGrid hexGrid = { 0 };
+static HexBee bee = { 0 };
+static HexTrail trail = { 0 };
+static Texture2D hexTexture = { 0 };
 
 //----------------------------------------------------------------------------------
-// My render/draw Functions Definition
+// Animation helpers
 //----------------------------------------------------------------------------------
-
-Animation CreateAnimation(const char* filepath, float scale, int frameCnt, int speed)
+Animation CreateAnimation(const char *filepath, float scale, int frameCnt, int speed)
 {
-  Animation rtn = {0};
-  rtn.filepath =  filepath;
-  rtn.scale = scale;
-  rtn.frameCnt = frameCnt;
-  rtn.speed = speed;
-  rtn.text = LoadTexture(filepath);
+    Animation rtn = { 0 };
+    rtn.filepath = filepath;
+    rtn.scale = scale;
+    rtn.frameCnt = frameCnt;
+    rtn.speed = speed;
+    rtn.text = LoadTexture(filepath);
+    rtn.frame = 0;
+    rtn.countdown = speed;
 
-  // note: assumes vertical spritesheet
-  rtn.src = (Rectangle){0,0,rtn.text.width, (float)rtn.text.height/(rtn.frameCnt)};
-  rtn.dst = (Rectangle){0, 0, rtn.scale * rtn.text.width,
-                        (float)rtn.scale * rtn.text.height / rtn.frameCnt};
+    // Vertical spritesheet
+    float frameH = (float)rtn.text.height/(float)rtn.frameCnt;
+    float frameW = (float)rtn.text.width;
+    rtn.src = (Rectangle){ 0, 0, frameW, frameH };
+    rtn.dst = (Rectangle){ 0, 0, frameW*scale, frameH*scale };
+    rtn.origin = (Vector2){ rtn.dst.width*0.5f, rtn.dst.height*0.5f };
+    rtn.rotation = 0.0f;
 
-  return rtn;
+    return rtn;
 }
 
-// should be called every frame, assumes 60 frames per second
-void UpdateAnimation(Animation* anim)
+void UpdateAnimation(Animation *anim)
 {
     anim->countdown--;
-    if(anim->countdown <=0)
+    if (anim->countdown <= 0)
     {
-      anim->frame = (anim->frame + 1) % (anim->frameCnt+1);
-      anim->countdown=anim->speed;
+        anim->frame = (anim->frame + 1)%anim->frameCnt;
+        anim->countdown = anim->speed;
     }
 
-    // currently assumes the spritesheet is a vertical one
-    anim->src = (Rectangle){
-        0, (float)anim->text.height * anim->frame / anim->frameCnt,
-        (float)anim->text.height / anim->frameCnt, anim->text.width};
+    float frameH = (float)anim->text.height/(float)anim->frameCnt;
+    float frameW = (float)anim->text.width;
+    anim->src = (Rectangle){ 0, frameH*(float)anim->frame, frameW, frameH };
 }
 
-
-void DrawAnimation(Animation* anim, Vector2 position)
+void DrawAnimation(Animation *anim, Vector2 position)
 {
-  DrawTexturePro(anim->text, anim->src, anim->dst, anim->origin,
-                 anim->rotation, WHITE);
+    anim->dst.x = position.x;
+    anim->dst.y = position.y;
+    DrawTexturePro(anim->text, anim->src, anim->dst, anim->origin, anim->rotation, WHITE);
 }
-
 
 //----------------------------------------------------------------------------------
 // Gameplay Screen Functions Definition
 //----------------------------------------------------------------------------------
-
-// Gameplay Screen Initialization logic
 void InitGameplayScreen(void)
 {
-    // TODO: Initialize GAMEPLAY screen variables here!
     framesCounter = 0;
     finishScreen = 0;
 
-    // bee sprite init
-    
+    hexTexture = LoadTexture("resources/hexagon.png");
+    HexGridInit(&hexGrid, (Vector2){ 360.0f, 360.0f }, hexTexture);
+
+    int startVertex = HexFindLeftmostVertex(&hexGrid);
+    HexBeeInit(&bee, &hexGrid, startVertex, 120.0f);
+    HexTrailInit(&trail, startVertex);
+
     UpdateAnimation(&beeAnim);
-    
 }
 
-// Gameplay Screen Update logic
 void UpdateGameplayScreen(void)
 {
-    // TODO: Update GAMEPLAY screen variables here!
+    float dt = GetFrameTime();
 
-    // Press enter or tap to change to ENDING screen
-    if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
+    if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) HexBeeSetTurn(&bee, -1);
+    if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) HexBeeSetTurn(&bee, 1);
+
+    HexBeeUpdate(&bee, &hexGrid, dt);
+
+    for (int i = 0; i < bee.arrivalCount; i++)
+    {
+        int filled = HexTrailAdvance(&trail, &hexGrid, bee.arrivalEdges[i], bee.arrivalVerts[i]);
+        if (filled > 0) PlaySound(fxCoin);
+    }
+
+    beeAnim.rotation = HexBeeRotationDeg(&bee, &hexGrid);
+    UpdateAnimation(&beeAnim);
+
+    if (IsKeyPressed(KEY_ENTER))
     {
         finishScreen = 1;
         PlaySound(fxCoin);
     }
-
-    UpdateAnimation(&beeAnim);
 }
 
-// Gameplay Screen Draw logic
 void DrawGameplayScreen(void)
 {
-    // TODO: Draw GAMEPLAY screen here!
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), PURPLE);
-    Vector2 pos = { 20, 10 };
-    DrawTextEx(font, "GAMEPLAY SCREEN", pos, font.baseSize*3.0f, 4, MAROON);
-    DrawText("PRESS ENTER or TAP to JUMP to ENDING SCREEN", 130, 220, 20, MAROON);
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
 
-    DrawAnimation(&beeAnim, (Vector2){0.0f,0.0f});
+    HexGridDraw(&hexGrid);
+
+    int toVertex = HexEdgeOtherVertex(&hexGrid, bee.edge, bee.fromVertex);
+    if (toVertex >= 0)
+    {
+        DrawCircleV(hexGrid.vertices[toVertex].pos, 4.0f, (Color){ 255, 220, 80, 200 });
+
+        int nextEdge = HexBeePeekNextEdge(&bee, &hexGrid);
+        if (nextEdge >= 0)
+        {
+            int nextVert = HexEdgeOtherVertex(&hexGrid, nextEdge, toVertex);
+            DrawLineEx(hexGrid.vertices[toVertex].pos, hexGrid.vertices[nextVert].pos, 3.0f, YELLOW);
+        }
+    }
+
+    Vector2 beePos = HexBeePosition(&bee, &hexGrid);
+    DrawAnimation(&beeAnim, beePos);
+
+    DrawText("A/D turn left/right  |  ENTER end", 16, 16, 20, LIGHTGRAY);
 }
 
-// Gameplay Screen Unload logic
 void UnloadGameplayScreen(void)
 {
-    // TODO: Unload GAMEPLAY screen variables here!
+    UnloadTexture(hexTexture);
+    hexTexture = (Texture2D){ 0 };
 }
 
-// Gameplay Screen should finish?
 int FinishGameplayScreen(void)
 {
     return finishScreen;

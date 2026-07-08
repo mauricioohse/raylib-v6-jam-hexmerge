@@ -1,3 +1,4 @@
+--target=x86_64-w64-mingw32
 -I.
 -Iexternal
 -IC:/dev/raylib/include

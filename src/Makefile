@@ -1,4 +1,4 @@
-#**************************************************************************************************
+﻿#**************************************************************************************************
 #
 #   raylib makefile for Desktop platforms, Web (Wasm), Raspberry Pi (DRM mode) and Android
 #
@@ -37,7 +37,9 @@ PROJECT_SOURCE_FILES  ?= \
     screen_title.c \
     screen_options.c \
     screen_gameplay.c \
-    screen_ending.c
+    screen_ending.c \
+    hex_grid.c \
+    hex_trail.c
 
 # raylib library variables
 RAYLIB_PATH           ?= C:\dev\raylib
