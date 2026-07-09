@@ -12,17 +12,22 @@
 #include "screens.h"
 #include "hex_grid.h"
 #include "hex_trail.h"
+#include "hex_enemy.h"
 
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
+#define ENEMY_COUNT 3
+
 static int framesCounter = 0;
 static int finishScreen = 0;
 
 static HexGrid hexGrid = { 0 };
 static HexBee bee = { 0 };
 static HexTrail trail = { 0 };
+static HexEnemy enemies[ENEMY_COUNT] = { 0 };
 static Texture2D hexTexture = { 0 };
+static Texture2D spiderTexture = { 0 };
 
 //----------------------------------------------------------------------------------
 // Animation helpers
@@ -85,6 +90,19 @@ void InitGameplayScreen(void)
     HexBeeInit(&bee, &hexGrid, startVertex, 120.0f);
     HexTrailInit(&trail, startVertex);
 
+    // Spawn spiders spread out, away from the bee's leftmost start
+    spiderTexture = LoadTexture("resources/spider.png");
+    int rightmost = 0, topmost = 0, bottommost = 0;
+    for (int i = 1; i < hexGrid.vertexCount; i++)
+    {
+        if (hexGrid.vertices[i].pos.x > hexGrid.vertices[rightmost].pos.x) rightmost = i;
+        if (hexGrid.vertices[i].pos.y < hexGrid.vertices[topmost].pos.y) topmost = i;
+        if (hexGrid.vertices[i].pos.y > hexGrid.vertices[bottommost].pos.y) bottommost = i;
+    }
+    HexEnemyInit(&enemies[0], HEX_ENEMY_RED_RANDOM, &hexGrid, rightmost, 120.0f);
+    HexEnemyInit(&enemies[1], HEX_ENEMY_PURPLE_CHASER, &hexGrid, topmost, 120.0f);
+    HexEnemyInit(&enemies[2], HEX_ENEMY_GREEN_MIXED, &hexGrid, bottommost, 120.0f);
+
     UpdateAnimation(&beeAnim);
 }
 
@@ -101,6 +119,12 @@ void UpdateGameplayScreen(void)
     {
         int filled = HexTrailAdvance(&trail, &hexGrid, bee.arrivalEdges[i], bee.arrivalVerts[i]);
         if (filled > 0) PlaySound(fxCoin);
+    }
+
+    Vector2 beePos = HexBeePosition(&bee, &hexGrid);
+    for (int i = 0; i < ENEMY_COUNT; i++)
+    {
+        HexEnemyUpdate(&enemies[i], &hexGrid, beePos, dt);
     }
 
     beeAnim.rotation = HexBeeRotationDeg(&bee, &hexGrid);
@@ -132,6 +156,11 @@ void DrawGameplayScreen(void)
         }
     }
 
+    for (int i = 0; i < ENEMY_COUNT; i++)
+    {
+        HexEnemyDraw(&enemies[i], &hexGrid, spiderTexture);
+    }
+
     Vector2 beePos = HexBeePosition(&bee, &hexGrid);
     DrawAnimation(&beeAnim, beePos);
 
@@ -142,6 +171,8 @@ void UnloadGameplayScreen(void)
 {
     UnloadTexture(hexTexture);
     hexTexture = (Texture2D){ 0 };
+    UnloadTexture(spiderTexture);
+    spiderTexture = (Texture2D){ 0 };
 }
 
 int FinishGameplayScreen(void)

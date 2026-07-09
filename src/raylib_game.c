@@ -82,7 +82,7 @@ int main(void)
     font = LoadFont("resources/mecha.png");
     //music = LoadMusicStream("resources/ambient.ogg"); // TODO: Load music
     fxCoin = LoadSound("resources/coin.wav");
-    beeAnim = CreateAnimation("resources/bee.png", 4, 4, 30);
+    beeAnim = CreateAnimation("resources/bee.png", 2, 4, 30);
 
     SetMusicVolume(music, 1.0f);
     PlayMusicStream(music);

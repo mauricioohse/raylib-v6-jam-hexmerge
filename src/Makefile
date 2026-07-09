@@ -39,7 +39,8 @@ PROJECT_SOURCE_FILES  ?= \
     screen_gameplay.c \
     screen_ending.c \
     hex_grid.c \
-    hex_trail.c
+    hex_trail.c \
+    hex_enemy.c
 
 # raylib library variables
 RAYLIB_PATH           ?= C:\dev\raylib
