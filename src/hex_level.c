@@ -58,6 +58,21 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 3,
         .hint = "Three wasps, three seeds. Sprout them all and merge their gardens.",
     },
+    // 5: radius 3, introduce black rim patrols (1.5x speed) + interior red/purple
+    {
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seeds = { { 2, -1 }, { -1, 2 }, { 0, -2 } },
+        .seedCount = 3,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
+        },
+        .enemyCount = 4,
+        .hint = "Black wasps race the outer rim. Stay off the edge when they pass!",
+    },
 };
 
 //----------------------------------------------------------------------------------

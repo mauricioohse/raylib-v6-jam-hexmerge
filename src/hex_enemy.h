@@ -19,6 +19,7 @@ typedef enum HexEnemyType
     HEX_ENEMY_RED_RANDOM = 0,   // full speed, picks a random fork at every junction
     HEX_ENEMY_PURPLE_CHASER,    // half speed, always takes the fork nearest the bee
     HEX_ENEMY_GREEN_MIXED,      // half speed, coin flip per junction: chase or wander
+    HEX_ENEMY_BLACK_EDGE,       // 1.5x bee speed, only walks rim edges (faceCount == 1)
     HEX_ENEMY_TYPE_COUNT
 } HexEnemyType;
 
@@ -27,7 +28,8 @@ typedef enum HexEnemySpawn
     HEX_SPAWN_LEFTMOST = 0,
     HEX_SPAWN_RIGHTMOST,
     HEX_SPAWN_TOPMOST,
-    HEX_SPAWN_BOTTOMMOST
+    HEX_SPAWN_BOTTOMMOST,
+    HEX_SPAWN_INNER             // interior vertex (3 edges), away from the leftmost rim
 } HexEnemySpawn;
 
 typedef struct HexEnemy

@@ -17,6 +17,7 @@ static const Color ENEMY_TINTS[HEX_ENEMY_TYPE_COUNT] = {
     { 235, 90, 80, 255 },       // HEX_ENEMY_RED_RANDOM
     { 185, 105, 255, 255 },     // HEX_ENEMY_PURPLE_CHASER
     { 110, 220, 120, 255 },     // HEX_ENEMY_GREEN_MIXED
+    { 40, 40, 48, 255 },        // HEX_ENEMY_BLACK_EDGE
 };
 
 Color HexEnemyTint(HexEnemyType type)
@@ -30,6 +31,11 @@ static float Dist2(Vector2 a, Vector2 b)
     float dx = a.x - b.x;
     float dy = a.y - b.y;
     return dx*dx + dy*dy;
+}
+
+static bool IsRimEdge(const HexGrid *grid, int edge)
+{
+    return (edge >= 0) && (edge < grid->edgeCount) && (grid->edges[edge].faceCount == 1);
 }
 
 //----------------------------------------------------------------------------------
@@ -60,11 +66,14 @@ static int PickExit(const HexEnemy *enemy, const HexGrid *grid, int vertex, int 
     int n = 0;
     for (int i = 0; i < v->edgeCount; i++)
     {
-        if (v->edges[i] != fromEdge) exits[n++] = v->edges[i];
+        int e = v->edges[i];
+        if (e == fromEdge) continue;
+        if ((enemy->type == HEX_ENEMY_BLACK_EDGE) && !IsRimEdge(grid, e)) continue;
+        exits[n++] = e;
     }
 
-    if (n == 0) return fromEdge;    // dead end: U-turn (cannot happen on this board)
-    if (n == 1) return exits[0];    // rim: forced
+    if (n == 0) return fromEdge;    // dead end / no legal rim exit: U-turn
+    if (n == 1) return exits[0];
 
     bool chase = false;
     switch (enemy->type)
@@ -72,6 +81,7 @@ static int PickExit(const HexEnemy *enemy, const HexGrid *grid, int vertex, int 
         case HEX_ENEMY_RED_RANDOM: chase = false; break;
         case HEX_ENEMY_PURPLE_CHASER: chase = true; break;
         case HEX_ENEMY_GREEN_MIXED: chase = (GetRandomValue(0, 1) == 0); break;
+        case HEX_ENEMY_BLACK_EDGE: chase = false; break;   // patrol the rim randomly
         default: break;
     }
 
@@ -86,11 +96,29 @@ void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int s
 {
     memset(enemy, 0, sizeof(*enemy));
     enemy->type = type;
-    enemy->speed = (type == HEX_ENEMY_RED_RANDOM)? baseSpeed : baseSpeed*0.5f;
+
+    if (type == HEX_ENEMY_BLACK_EDGE) enemy->speed = baseSpeed*1.5f;
+    else if (type == HEX_ENEMY_RED_RANDOM) enemy->speed = baseSpeed;
+    else enemy->speed = baseSpeed*0.5f;
+
     enemy->fromVertex = startVertex;
 
     const HexVertex *v = &grid->vertices[startVertex];
-    enemy->edge = v->edges[GetRandomValue(0, v->edgeCount - 1)];
+    int rimChoices[3] = { 0 };
+    int rimN = 0;
+    for (int i = 0; i < v->edgeCount; i++)
+    {
+        if (IsRimEdge(grid, v->edges[i])) rimChoices[rimN++] = v->edges[i];
+    }
+
+    if ((type == HEX_ENEMY_BLACK_EDGE) && (rimN > 0))
+    {
+        enemy->edge = rimChoices[GetRandomValue(0, rimN - 1)];
+    }
+    else
+    {
+        enemy->edge = v->edges[GetRandomValue(0, v->edgeCount - 1)];
+    }
 }
 
 void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt)
@@ -151,6 +179,31 @@ bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, fl
     return Dist2(HexEnemyPosition(enemy, grid), pos) <= radius*radius;
 }
 
+static int FindInnerVertex(const HexGrid *grid)
+{
+    // Prefer a degree-3 junction near the board center, not on the left rim
+    int best = -1;
+    float bestScore = 1.0e30f;
+    Vector2 origin = grid->origin;
+
+    for (int i = 0; i < grid->vertexCount; i++)
+    {
+        if (grid->vertices[i].edgeCount < 3) continue;
+        float dx = grid->vertices[i].pos.x - origin.x;
+        float dy = grid->vertices[i].pos.y - origin.y;
+        float score = dx*dx + dy*dy;
+        // Bias away from the bee's usual leftmost start
+        if (grid->vertices[i].pos.x < origin.x - grid->size) score += 100000.0f;
+        if (score < bestScore)
+        {
+            bestScore = score;
+            best = i;
+        }
+    }
+
+    return (best >= 0)? best : HexFindRightmostVertex(grid);
+}
+
 int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn)
 {
     switch (spawn)
@@ -159,6 +212,7 @@ int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn)
         case HEX_SPAWN_RIGHTMOST: return HexFindRightmostVertex(grid);
         case HEX_SPAWN_TOPMOST: return HexFindTopmostVertex(grid);
         case HEX_SPAWN_BOTTOMMOST: return HexFindBottommostVertex(grid);
+        case HEX_SPAWN_INNER: return FindInnerVertex(grid);
         default: return HexFindRightmostVertex(grid);
     }
 }

@@ -17,7 +17,7 @@
 #include "hex_trail.h"
 
 #define HEX_LEVEL_SLOT_COUNT 9
-#define HEX_LEVEL_IMPLEMENTED 4
+#define HEX_LEVEL_IMPLEMENTED 5
 #define HEX_LEVEL_MAX_SEEDS 8
 #define HEX_LEVEL_MAX_ENEMIES 8
 

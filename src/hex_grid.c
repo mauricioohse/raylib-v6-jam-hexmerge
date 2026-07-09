@@ -22,7 +22,7 @@
 
 // Unpainted tiles are dry dirt; painted (alive) tiles show the sprite's true colors
 static const Color HEX_DEAD_TINT = { 150, 105, 70, 255 };
-static const Color EDGE_TRAIL_COLOR = { 80, 160, 255, 255 };
+static const Color EDGE_TRAIL_COLOR = { 255, 220, 70, 255 };   // pollen yellow
 static const Color EDGE_BASE_COLOR = { 40, 40, 40, 80 };
 
 //----------------------------------------------------------------------------------
