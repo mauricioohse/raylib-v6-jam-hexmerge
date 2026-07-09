@@ -34,9 +34,13 @@
     - [x] level five introduces the edge moving wasps. same 3 radius but with 2 wasps on the edge and 2 wasps inside (one random, one chase). the black should move 1.5 times faster than the bee.
     - [x] change the bee trail to be yellow instead of blue
     - [x] level 6 "Tight squeeze": radius 2, 2 opposite seeds, 1 black + 1 purple + 1 green
-    - [x] level 7 "Full swarm": radius 3, 4 diamond seeds, one of each wasp (red/purple/green/black)
-    - [x] level 8: radius 4, 4-5 seeds, 5 wasps (2 black opposite rim + red + purple + green)
-    - [x] level 9: radius 4, 12 seeds spread out
+    - [x] level 7 twin seeds intro: radius 2, one twin pair, no wasps, bubbly bond trail
+    - [x] level 8: two twin pairs, radius 3, 1 black + 1 chaser + 1 random
+    - [x] level 9 "Full swarm": radius 3, 4 diamond seeds, one of each wasp (red/purple/green/black)
+    - [x] level 10: radius 4, 4-5 seeds, 5 wasps (2 black opposite rim + red + purple + green)
+    - [x] level 11: radius 4, 12 seeds (one twin pair among them)
 - [x] add run timer; ending shows time, saves sorted best times to file, lists top times center (works on emscripten/web too)
-- [ ] discuss/add map mechanics beyond wasp AI (seed variants, blocked hexes, wrap bridges)
+- [x] twin seeds: pair tint + bubble trail; fill fails if exactly one twin enclosed
+- [x] DEBUG: ,/< previous level, ./> next level
+- [ ] discuss/add map mechanics beyond wasp AI (blocked hexes, wrap bridges)
 

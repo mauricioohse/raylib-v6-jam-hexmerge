@@ -12,6 +12,7 @@
 #include "screens.h"
 #include "hex_level.h"
 #include "hex_scores.h"
+#include "hex_trail.h"
 
 #include <stdio.h>
 
@@ -32,6 +33,7 @@ static Texture2D hexTexture = { 0 };
 static Texture2D waspTexture = { 0 };
 static Texture2D heartsTexture = { 0 };
 static Texture2D flowerTexture = { 0 };
+static Texture2D bubbleTexture = { 0 };
 static int lives = PLAYER_MAX_LIVES;
 static float runTimer = 0.0f;
 static bool runActive = false;
@@ -88,7 +90,7 @@ void DrawAnimation(Animation *anim, Vector2 position)
 //----------------------------------------------------------------------------------
 static void LoadCurrentLevel(void)
 {
-    HexLevelLoad(&level, currentLevelIndex, hexTexture, flowerTexture, BEE_SPEED);
+    HexLevelLoad(&level, currentLevelIndex, hexTexture, flowerTexture, bubbleTexture, BEE_SPEED);
     levelPaused = true;
     beeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
     UpdateAnimation(&beeAnim);
@@ -100,6 +102,7 @@ static void FinishRun(void)
     lastRunTime = runTimer;
     HexScoresSubmit(lastRunTime);
     finishScreen = 1;
+    PlaySound(fxWin);
 }
 
 static void DrawLives(void)
@@ -139,6 +142,8 @@ void InitGameplayScreen(void)
     waspTexture = LoadTexture("resources/wasp.png");
     heartsTexture = LoadTexture("resources/hearts.png");
     flowerTexture = LoadTexture("resources/flower.png");
+    bubbleTexture = LoadTexture("resources/bubbles.png");
+    SetTextureFilter(bubbleTexture, TEXTURE_FILTER_POINT);
 
     LoadCurrentLevel();
 }
@@ -159,6 +164,35 @@ void UpdateGameplayScreen(void)
             PlaySound(fxCoin);
             return;
         }
+    }
+    if (IsKeyPressed(KEY_ZERO))
+    {
+        currentLevelIndex = 9;  // level 10
+        lives = PLAYER_MAX_LIVES;
+        finishScreen = 0;
+        LoadCurrentLevel();
+        PlaySound(fxCoin);
+        return;
+    }
+    // < / , previous   > / . next
+    if (IsKeyPressed(KEY_COMMA))
+    {
+        if (currentLevelIndex > 0) currentLevelIndex--;
+        else currentLevelIndex = HexLevelCount() - 1;
+        lives = PLAYER_MAX_LIVES;
+        finishScreen = 0;
+        LoadCurrentLevel();
+        PlaySound(fxCoin);
+        return;
+    }
+    if (IsKeyPressed(KEY_PERIOD))
+    {
+        currentLevelIndex = (currentLevelIndex + 1)%HexLevelCount();
+        lives = PLAYER_MAX_LIVES;
+        finishScreen = 0;
+        LoadCurrentLevel();
+        PlaySound(fxCoin);
+        return;
     }
 #endif
 
@@ -189,11 +223,13 @@ void UpdateGameplayScreen(void)
     if (runActive) runTimer += dt;
 
     int filled = HexLevelUpdate(&level, dt);
-    if (filled > 0) PlaySound(fxCoin);
+    if (filled == HEX_TRAIL_TWIN_FAIL) PlaySound(fxFail);
+    else if (filled > 0) PlaySound(fxPaint);
 
     if (HexLevelBeeHit(&level, HIT_RADIUS))
     {
         lives--;
+        PlaySound(fxLife);
         if (lives <= 0)
         {
             // All lives lost: restart campaign + timer
@@ -203,7 +239,6 @@ void UpdateGameplayScreen(void)
             runActive = true;
         }
         LoadCurrentLevel();
-        PlaySound(fxCoin);
         return;
     }
 
@@ -216,12 +251,11 @@ void UpdateGameplayScreen(void)
         {
             currentLevelIndex++;
             LoadCurrentLevel();
-            PlaySound(fxCoin);
+            PlaySound(fxWin);
         }
         else
         {
             FinishRun();
-            PlaySound(fxCoin);
         }
     }
 
@@ -230,7 +264,6 @@ void UpdateGameplayScreen(void)
     if (IsKeyPressed(KEY_ENTER))
     {
         FinishRun();
-        PlaySound(fxCoin);
     }
 #endif
 }
@@ -265,7 +298,7 @@ void DrawGameplayScreen(void)
     }
 
 #if defined(_DEBUG)
-    DrawText("DEBUG: 1-9 switch level", 16, GetScreenHeight() - 28, 16, (Color){ 120, 140, 160, 255 });
+    DrawText("DEBUG: 1-9/0 jump  </, >/ . step", 16, GetScreenHeight() - 28, 16, (Color){ 120, 140, 160, 255 });
 #endif
 }
 
@@ -279,6 +312,8 @@ void UnloadGameplayScreen(void)
     heartsTexture = (Texture2D){ 0 };
     UnloadTexture(flowerTexture);
     flowerTexture = (Texture2D){ 0 };
+    UnloadTexture(bubbleTexture);
+    bubbleTexture = (Texture2D){ 0 };
 }
 
 int FinishGameplayScreen(void)

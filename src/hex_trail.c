@@ -4,7 +4,7 @@
 *
 **********************************************************************************************/
 
-#include "hex_trail.h"       // includes hex_grid.h
+#include "hex_trail.h"
 
 #include <string.h>
 
@@ -12,18 +12,15 @@
 // Fill
 //----------------------------------------------------------------------------------
 
-// Exterior flood fill: walk face-to-face from the outside of the board, treating
-// loop edges as walls. Faces the flood never reaches are enclosed by the loop.
-// Handles any loop shape, including loops that touch the board rim.
-static int FillEnclosedFaces(HexGrid *grid, const bool loopEdges[HEX_MAX_EDGES])
+// Compute which faces would be enclosed by loopEdges (without mutating the grid).
+static void ComputeEnclosed(const HexGrid *grid, const bool loopEdges[HEX_MAX_EDGES],
+                            bool enclosed[HEX_MAX_FACES])
 {
     bool reachable[HEX_MAX_FACES] = { false };
     int queue[HEX_MAX_FACES] = { 0 };
     int head = 0;
     int tail = 0;
 
-    // Seed: faces open to the outside through a rim edge (only one adjacent face)
-    // that is not part of the loop
     for (int f = 0; f < grid->faceCount; f++)
     {
         const HexFace *face = &grid->faces[f];
@@ -40,7 +37,6 @@ static int FillEnclosedFaces(HexGrid *grid, const bool loopEdges[HEX_MAX_EDGES])
         }
     }
 
-    // BFS across shared non-loop edges
     while (head < tail)
     {
         int f = queue[head++];
@@ -60,16 +56,23 @@ static int FillEnclosedFaces(HexGrid *grid, const bool loopEdges[HEX_MAX_EDGES])
         }
     }
 
+    for (int f = 0; f < grid->faceCount; f++)
+    {
+        enclosed[f] = !reachable[f] && !grid->faces[f].filled;
+    }
+}
+
+static int ApplyEnclosed(HexGrid *grid, const bool enclosed[HEX_MAX_FACES])
+{
     int filled = 0;
     for (int f = 0; f < grid->faceCount; f++)
     {
-        if (!reachable[f] && !grid->faces[f].filled)
+        if (enclosed[f])
         {
             grid->faces[f].filled = true;
             filled++;
         }
     }
-
     return filled;
 }
 
@@ -83,13 +86,13 @@ void HexTrailInit(HexTrail *trail, int startVertex)
     trail->vertexCount = 1;
 }
 
-int HexTrailAdvance(HexTrail *trail, HexGrid *grid, int viaEdge, int toVertex)
+int HexTrailAdvance(HexTrail *trail, HexGrid *grid, HexFlowerField *flowers,
+                    int viaEdge, int toVertex)
 {
     if ((viaEdge < 0) || (viaEdge >= grid->edgeCount)) return 0;
     if ((toVertex < 0) || (toVertex >= grid->vertexCount)) return 0;
     if (trail->vertexCount <= 0) { HexTrailInit(trail, toVertex); return 0; }
 
-    // Does the arrival close a loop?
     int loopStart = -1;
     for (int i = 0; i < trail->vertexCount; i++)
     {
@@ -98,14 +101,12 @@ int HexTrailAdvance(HexTrail *trail, HexGrid *grid, int viaEdge, int toVertex)
 
     if (loopStart < 0)
     {
-        // No loop: append and keep walking
-        if (trail->vertexCount >= HEX_TRAIL_MAX) return 0;   // can't happen, see header
+        if (trail->vertexCount >= HEX_TRAIL_MAX) return 0;
         trail->edges[trail->vertexCount - 1] = viaEdge;
         trail->vertices[trail->vertexCount++] = toVertex;
         return 0;
     }
 
-    // Loop closed: edges[loopStart .. vertexCount-2] plus the closing edge
     bool loopEdges[HEX_MAX_EDGES] = { false };
     for (int i = loopStart; i < trail->vertexCount - 1; i++)
     {
@@ -114,17 +115,27 @@ int HexTrailAdvance(HexTrail *trail, HexGrid *grid, int viaEdge, int toVertex)
     }
     loopEdges[viaEdge] = true;
 
-    int filled = FillEnclosedFaces(grid, loopEdges);
+    bool enclosed[HEX_MAX_FACES] = { false };
+    ComputeEnclosed(grid, loopEdges, enclosed);
 
-    // Consume the loop: unpaint its edges and truncate the path back to the closing
-    // vertex; the stem before the loop stays painted and stays on the path
+    int result = 0;
+    if (HexFlowerTwinsAllowFill(flowers, grid, enclosed))
+    {
+        result = ApplyEnclosed(grid, enclosed);
+    }
+    else
+    {
+        HexFlowerFieldOnTwinFail(flowers, enclosed);
+        result = HEX_TRAIL_TWIN_FAIL;
+    }
+
     for (int e = 0; e < grid->edgeCount; e++)
     {
         if (loopEdges[e]) grid->edges[e].painted = false;
     }
     trail->vertexCount = loopStart + 1;
 
-    return filled;
+    return result;
 }
 
 //----------------------------------------------------------------------------------

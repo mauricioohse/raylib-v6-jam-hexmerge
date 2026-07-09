@@ -56,4 +56,7 @@ bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, fl
 
 int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn);
 
+// Like HexEnemySpawnVertex, but skips any vertex in avoid[] (e.g. bee start / other wasps).
+int HexEnemySpawnVertexAvoid(const HexGrid *grid, HexEnemySpawn spawn, const int *avoid, int avoidCount);
+
 #endif // HEX_ENEMY_H

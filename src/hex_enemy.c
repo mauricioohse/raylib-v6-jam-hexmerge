@@ -179,9 +179,8 @@ bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, fl
     return Dist2(HexEnemyPosition(enemy, grid), pos) <= radius*radius;
 }
 
-static int FindInnerVertex(const HexGrid *grid)
+static int FindInnerVertexAvoid(const HexGrid *grid, const int *avoid, int avoidCount)
 {
-    // Prefer a degree-3 junction near the board center, not on the left rim
     int best = -1;
     float bestScore = 1.0e30f;
     Vector2 origin = grid->origin;
@@ -189,10 +188,16 @@ static int FindInnerVertex(const HexGrid *grid)
     for (int i = 0; i < grid->vertexCount; i++)
     {
         if (grid->vertices[i].edgeCount < 3) continue;
+        bool skip = false;
+        for (int a = 0; a < avoidCount; a++)
+        {
+            if (avoid[a] == i) { skip = true; break; }
+        }
+        if (skip) continue;
+
         float dx = grid->vertices[i].pos.x - origin.x;
         float dy = grid->vertices[i].pos.y - origin.y;
         float score = dx*dx + dy*dy;
-        // Bias away from the bee's usual leftmost start
         if (grid->vertices[i].pos.x < origin.x - grid->size) score += 100000.0f;
         if (score < bestScore)
         {
@@ -201,18 +206,54 @@ static int FindInnerVertex(const HexGrid *grid)
         }
     }
 
-    return (best >= 0)? best : HexFindRightmostVertex(grid);
+    return best;
+}
+
+static bool VertexAvoided(int v, const int *avoid, int avoidCount)
+{
+    for (int a = 0; a < avoidCount; a++)
+    {
+        if (avoid[a] == v) return true;
+    }
+    return false;
 }
 
 int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn)
 {
+    return HexEnemySpawnVertexAvoid(grid, spawn, NULL, 0);
+}
+
+int HexEnemySpawnVertexAvoid(const HexGrid *grid, HexEnemySpawn spawn, const int *avoid, int avoidCount)
+{
+    int preferred = -1;
     switch (spawn)
     {
-        case HEX_SPAWN_LEFTMOST: return HexFindLeftmostVertex(grid);
-        case HEX_SPAWN_RIGHTMOST: return HexFindRightmostVertex(grid);
-        case HEX_SPAWN_TOPMOST: return HexFindTopmostVertex(grid);
-        case HEX_SPAWN_BOTTOMMOST: return HexFindBottommostVertex(grid);
-        case HEX_SPAWN_INNER: return FindInnerVertex(grid);
-        default: return HexFindRightmostVertex(grid);
+        case HEX_SPAWN_LEFTMOST: preferred = HexFindLeftmostVertex(grid); break;
+        case HEX_SPAWN_RIGHTMOST: preferred = HexFindRightmostVertex(grid); break;
+        case HEX_SPAWN_TOPMOST: preferred = HexFindTopmostVertex(grid); break;
+        case HEX_SPAWN_BOTTOMMOST: preferred = HexFindBottommostVertex(grid); break;
+        case HEX_SPAWN_INNER: preferred = FindInnerVertexAvoid(grid, avoid, avoidCount); break;
+        default: preferred = HexFindRightmostVertex(grid); break;
     }
+
+    if ((preferred >= 0) && !VertexAvoided(preferred, avoid, avoidCount)) return preferred;
+
+    // Fallback: farthest vertex from origin that isn't avoided (rim for black, any for others)
+    int best = -1;
+    float bestScore = -1.0f;
+    Vector2 origin = grid->origin;
+    for (int i = 0; i < grid->vertexCount; i++)
+    {
+        if (VertexAvoided(i, avoid, avoidCount)) continue;
+        if ((spawn == HEX_SPAWN_INNER) && (grid->vertices[i].edgeCount < 3)) continue;
+        float dx = grid->vertices[i].pos.x - origin.x;
+        float dy = grid->vertices[i].pos.y - origin.y;
+        float score = dx*dx + dy*dy;
+        if (score > bestScore)
+        {
+            bestScore = score;
+            best = i;
+        }
+    }
+    return (best >= 0)? best : HexFindRightmostVertex(grid);
 }

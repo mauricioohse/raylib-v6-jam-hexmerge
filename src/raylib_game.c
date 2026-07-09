@@ -41,6 +41,10 @@ GameScreen currentScreen = TITLE;
 Font font = { 0 };
 Music music = { 0 };
 Sound fxCoin = { 0 };
+Sound fxFail = { 0 };
+Sound fxPaint = { 0 };
+Sound fxWin = { 0 };
+Sound fxLife = { 0 };
 Animation beeAnim = {0};
 int volumeLevel = 5;
 float lastRunTime = 0.0f;
@@ -84,6 +88,10 @@ int main(void)
     font = LoadFont("resources/mecha.png");
     //music = LoadMusicStream("resources/ambient.ogg"); // TODO: Load music
     fxCoin = LoadSound("resources/coin.wav");
+    fxFail = LoadSound("resources/fail.wav");
+    fxPaint = LoadSound("resources/paint.wav");
+    fxWin = LoadSound("resources/win.wav");
+    fxLife = LoadSound("resources/life.wav");
     beeAnim = CreateAnimation("resources/bee.png", 2, 4, 30);
 
     SetMasterVolume((float)volumeLevel/10.0f);
@@ -123,6 +131,10 @@ int main(void)
     UnloadFont(font);
     UnloadMusicStream(music);
     UnloadSound(fxCoin);
+    UnloadSound(fxFail);
+    UnloadSound(fxPaint);
+    UnloadSound(fxWin);
+    UnloadSound(fxLife);
 
     CloseAudioDevice();     // Close audio context
 

@@ -16,7 +16,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
     {
         .radius = 1,
         .beeStart = { -1, 0 },
-        .seeds = { { 0, 0 } },
+        .seeds = { { { 0, 0 }, -1 } },
         .seedCount = 1,
         .enemies = { { 0 } },
         .enemyCount = 0,
@@ -26,7 +26,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
     {
         .radius = 2,
         .beeStart = { -2, 0 },
-        .seeds = { { -2, 1 }, { 2, -1 } },
+        .seeds = { { { -2, 1 }, -1 }, { { 2, -1 }, -1 } },
         .seedCount = 2,
         .enemies = { { 0 } },
         .enemyCount = 0,
@@ -36,7 +36,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
     {
         .radius = 2,
         .beeStart = { -2, 0 },
-        .seeds = { { -1, 2 }, { 1, -2 } },
+        .seeds = { { { -1, 2 }, -1 }, { { 1, -2 }, -1 } },
         .seedCount = 2,
         .enemies = {
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
@@ -48,7 +48,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
     {
         .radius = 3,
         .beeStart = { -3, 0 },
-        .seeds = { { 2, -1 }, { -1, 2 }, { 0, -2 } },
+        .seeds = { { { 2, -1 }, -1 }, { { -1, 2 }, -1 }, { { 0, -2 }, -1 } },
         .seedCount = 3,
         .enemies = {
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
@@ -58,11 +58,11 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 3,
         .hint = NULL,
     },
-    // 5: radius 3, introduce black rim patrols (1.5x speed) + interior red/purple
+    // 5: radius 3, black rim patrols + interior red/purple
     {
         .radius = 3,
         .beeStart = { -3, 0 },
-        .seeds = { { 2, -1 }, { -1, 2 }, { 0, -2 } },
+        .seeds = { { { 2, -1 }, -1 }, { { -1, 2 }, -1 }, { { 0, -2 }, -1 } },
         .seedCount = 3,
         .enemies = {
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
@@ -73,11 +73,11 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 4,
         .hint = NULL,
     },
-    // 6: Tight squeeze — small board, dense danger
+    // 6: Tight squeeze
     {
         .radius = 2,
         .beeStart = { -2, 0 },
-        .seeds = { { -2, 1 }, { 2, -1 } },
+        .seeds = { { { -2, 1 }, -1 }, { { 2, -1 }, -1 } },
         .seedCount = 2,
         .enemies = {
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
@@ -87,45 +87,76 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 3,
         .hint = NULL,
     },
-    // 7: Full swarm — one of each wasp, diamond seeds
+    // 7: Twin seeds intro — no wasps
+    {
+        .radius = 2,
+        .beeStart = { -2, 0 },
+        .seeds = { { { -2, 1 }, 0 }, { { 2, -1 }, 0 } },
+        .seedCount = 2,
+        .enemies = { { 0 } },
+        .enemyCount = 0,
+        .hint = "Twin seeds share a bond! Encircle both together, painting only one fails.",
+    },
+    // 8: two twin pairs + black / chaser / random
     {
         .radius = 3,
         .beeStart = { -3, 0 },
-        .seeds = { { 0, -2 }, { 2, -1 }, { 0, 2 }, { -2, 1 } },
+        .seeds = {
+            { { -2, 1 }, 0 }, { { 2, -1 }, 0 },
+            { { 0, -2 }, 1 }, { { 0, 2 }, 1 },
+        },
+        .seedCount = 4,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_BOTTOMMOST },
+        },
+        .enemyCount = 3,
+        .hint = NULL,
+    },
+    // 9: Full swarm
+    {
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seeds = { { { 0, -2 }, -1 }, { { 2, -1 }, -1 }, { { 0, 2 }, -1 }, { { -2, 1 }, -1 } },
         .seedCount = 4,
         .enemies = {
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
             { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_TOPMOST },
-            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
-            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_LEFTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_INNER },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
         },
         .enemyCount = 4,
         .hint = NULL,
     },
-    // 8: radius 4 climax board
+    // 10: radius 4
     {
         .radius = 4,
         .beeStart = { -4, 0 },
-        .seeds = { { -3, 2 }, { 3, -2 }, { 0, -3 }, { 2, 1 }, { -2, -1 } },
+        .seeds = {
+            { { -3, 2 }, -1 }, { { 3, -2 }, -1 }, { { 0, -3 }, -1 },
+            { { 2, 1 }, -1 }, { { -2, -1 }, -1 },
+        },
         .seedCount = 5,
         .enemies = {
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
             { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
-            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_LEFTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_INNER },
         },
         .enemyCount = 5,
         .hint = NULL,
     },
-    // 9: radius 4, twelve seeds spread out
+    // 11: radius 4, twelve seeds + one twin pair
     {
         .radius = 4,
         .beeStart = { -4, 0 },
         .seeds = {
-            { -4, 0 }, { -4, 2 }, { -2, 4 }, { 0, 4 },
-            { 2, 2 }, { 4, 0 }, { 4, -2 }, { 2, -4 },
-            { 0, -4 }, { -2, -2 }, { -3, 1 }, { 3, -1 },
+            { { -4, 0 }, -1 }, { { -4, 2 }, -1 }, { { -2, 4 }, -1 }, { { 0, 4 }, -1 },
+            { { 2, 2 }, -1 }, { { 4, 0 }, -1 }, { { 4, -2 }, -1 }, { { 2, -4 }, -1 },
+            { { 0, -4 }, -1 }, { { -2, -2 }, -1 },
+            { { -3, 1 }, 0 }, { { 3, -1 }, 0 },
         },
         .seedCount = 12,
         .enemies = {
@@ -133,7 +164,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
             { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
-            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_LEFTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_INNER },
         },
         .enemyCount = 5,
         .hint = NULL,
@@ -151,7 +182,7 @@ int HexLevelCount(void)
 const HexLevelDef *HexLevelGetDef(int index)
 {
     if (index < 0) index = 0;
-    if (index >= HEX_LEVEL_IMPLEMENTED) index = 0;   // unimplemented slots -> tutorial
+    if (index >= HEX_LEVEL_IMPLEMENTED) index = 0;
     return &LEVELS[index];
 }
 
@@ -171,7 +202,8 @@ static int FaceLeftmostVertex(const HexGrid *grid, int face)
     return best;
 }
 
-void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D flowerTexture, float beeSpeed)
+void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D flowerTexture,
+                  Texture2D bubbleTexture, float beeSpeed)
 {
     memset(level, 0, sizeof(*level));
     if (index < 0) index = 0;
@@ -189,19 +221,29 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D fl
     HexTrailInit(&level->trail, startVertex);
 
     int seedFaces[HEX_LEVEL_MAX_SEEDS] = { 0 };
+    int twinPairs[HEX_LEVEL_MAX_SEEDS] = { 0 };
     int seedCount = 0;
     for (int i = 0; i < level->def->seedCount; i++)
     {
-        int face = HexFindFace(&level->grid, level->def->seeds[i].q, level->def->seeds[i].r);
-        if (face >= 0) seedFaces[seedCount++] = face;
+        int face = HexFindFace(&level->grid, level->def->seeds[i].coord.q, level->def->seeds[i].coord.r);
+        if (face < 0) continue;
+        seedFaces[seedCount] = face;
+        twinPairs[seedCount] = level->def->seeds[i].twinPair;
+        seedCount++;
     }
-    HexFlowerFieldInit(&level->flowers, flowerTexture, seedFaces, seedCount);
+    HexFlowerFieldInit(&level->flowers, flowerTexture, bubbleTexture, seedFaces, twinPairs, seedCount);
 
     level->enemyCount = level->def->enemyCount;
     if (level->enemyCount > HEX_LEVEL_MAX_ENEMIES) level->enemyCount = HEX_LEVEL_MAX_ENEMIES;
+
+    int avoid[HEX_LEVEL_MAX_ENEMIES + 1];
+    int avoidCount = 0;
+    avoid[avoidCount++] = startVertex;     // never spawn on the bee
+
     for (int i = 0; i < level->enemyCount; i++)
     {
-        int v = HexEnemySpawnVertex(&level->grid, level->def->enemies[i].spawn);
+        int v = HexEnemySpawnVertexAvoid(&level->grid, level->def->enemies[i].spawn, avoid, avoidCount);
+        avoid[avoidCount++] = v;
         HexEnemyInit(&level->enemies[i], level->def->enemies[i].type, &level->grid, v, beeSpeed);
     }
 }
@@ -213,14 +255,15 @@ int HexLevelUpdate(HexLevel *level, float dt)
 {
     HexBeeUpdate(&level->bee, &level->grid, dt);
 
-    int filledTotal = 0;
+    int result = 0;
     for (int i = 0; i < level->bee.arrivalCount; i++)
     {
-        int filled = HexTrailAdvance(&level->trail, &level->grid,
+        int filled = HexTrailAdvance(&level->trail, &level->grid, &level->flowers,
                                      level->bee.arrivalEdges[i], level->bee.arrivalVerts[i]);
-        if (filled > 0)
+        if (filled == HEX_TRAIL_TWIN_FAIL) result = HEX_TRAIL_TWIN_FAIL;
+        else if ((filled > 0) && (result != HEX_TRAIL_TWIN_FAIL))
         {
-            filledTotal += filled;
+            result += filled;
             HexFlowerFieldOnFill(&level->flowers, &level->grid);
         }
     }
@@ -232,7 +275,7 @@ int HexLevelUpdate(HexLevel *level, float dt)
     }
 
     HexFlowerFieldUpdate(&level->flowers, dt);
-    return filledTotal;
+    return result;
 }
 
 bool HexLevelBeeHit(const HexLevel *level, float hitRadius)
@@ -285,7 +328,6 @@ void HexLevelDrawHint(const HexLevel *level)
     const int boxY = 56;
     const int maxChars = 22;
 
-    // Word-wrap into a fixed-width panel
     const char *text = level->def->hint;
     char line[64];
     int lineCount = 0;
@@ -293,7 +335,6 @@ void HexLevelDrawHint(const HexLevel *level)
     int i = 0;
     int len = (int)strlen(text);
 
-    // Measure height first
     int tmpI = 0;
     while (tmpI < len)
     {

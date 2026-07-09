@@ -2,8 +2,8 @@
 *
 *   Beehold - Level definitions (fixed layouts, load/unload via HexLevelLoad)
 *
-*   Up to HEX_LEVEL_SLOT_COUNT slots (keys 1-9 in DEBUG). Only the first
-*   HEX_LEVEL_IMPLEMENTED levels are fully authored; the rest fall back to level 1.
+*   Up to HEX_LEVEL_SLOT_COUNT slots. DEBUG: 1-9 jump to levels 1-9, 0 = level 10,
+*   ,/< previous level, ./> next level.
 *
 **********************************************************************************************/
 
@@ -16,8 +16,8 @@
 #include "hex_flower.h"
 #include "hex_trail.h"
 
-#define HEX_LEVEL_SLOT_COUNT 9
-#define HEX_LEVEL_IMPLEMENTED 9
+#define HEX_LEVEL_SLOT_COUNT 11
+#define HEX_LEVEL_IMPLEMENTED 11
 #define HEX_LEVEL_MAX_SEEDS 16
 #define HEX_LEVEL_MAX_ENEMIES 8
 
@@ -27,11 +27,17 @@ typedef struct HexLevelEnemyDef
     HexEnemySpawn spawn;
 } HexLevelEnemyDef;
 
+typedef struct HexLevelSeedDef
+{
+    HexCoord coord;
+    int twinPair;       // -1 = normal; matching ids form a twin bond
+} HexLevelSeedDef;
+
 typedef struct HexLevelDef
 {
     int radius;
     HexCoord beeStart;                      // axial face; bee starts on that face's leftmost vertex
-    HexCoord seeds[HEX_LEVEL_MAX_SEEDS];
+    HexLevelSeedDef seeds[HEX_LEVEL_MAX_SEEDS];
     int seedCount;
     HexLevelEnemyDef enemies[HEX_LEVEL_MAX_ENEMIES];
     int enemyCount;
@@ -50,19 +56,17 @@ typedef struct HexLevel
     int enemyCount;
 } HexLevel;
 
-const HexLevelDef *HexLevelGetDef(int index);   // clamps / falls back for unimplemented slots
-int HexLevelCount(void);                        // HEX_LEVEL_IMPLEMENTED
+const HexLevelDef *HexLevelGetDef(int index);
+int HexLevelCount(void);
 
-// Build grid + bee + seeds + wasps from a definition. Textures must already be loaded.
-void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D flowerTexture, float beeSpeed);
+void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D flowerTexture,
+                  Texture2D bubbleTexture, float beeSpeed);
 
-// Returns faces newly filled this frame (for SFX).
+// Returns faces filled this frame, or HEX_TRAIL_TWIN_FAIL on twin-rule reject.
 int HexLevelUpdate(HexLevel *level, float dt);
 void HexLevelDraw(const HexLevel *level, Texture2D waspTexture);
 bool HexLevelWon(const HexLevel *level);
 bool HexLevelBeeHit(const HexLevel *level, float hitRadius);
-
-// Wrap text into a right-side hint panel (no-op if hint is NULL/empty).
 void HexLevelDrawHint(const HexLevel *level);
 
 #endif // HEX_LEVEL_H
