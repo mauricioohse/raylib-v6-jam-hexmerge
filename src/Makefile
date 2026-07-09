@@ -41,7 +41,8 @@ PROJECT_SOURCE_FILES  ?= \
     hex_grid.c \
     hex_trail.c \
     hex_enemy.c \
-    hex_flower.c
+    hex_flower.c \
+    hex_level.c
 
 # raylib library variables
 RAYLIB_PATH           ?= C:\dev\raylib

@@ -17,8 +17,8 @@
 // Handles any loop shape, including loops that touch the board rim.
 static int FillEnclosedFaces(HexGrid *grid, const bool loopEdges[HEX_MAX_EDGES])
 {
-    bool reachable[HEX_FACE_COUNT] = { false };
-    int queue[HEX_FACE_COUNT] = { 0 };
+    bool reachable[HEX_MAX_FACES] = { false };
+    int queue[HEX_MAX_FACES] = { 0 };
     int head = 0;
     int tail = 0;
 

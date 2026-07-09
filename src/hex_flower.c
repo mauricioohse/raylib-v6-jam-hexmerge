@@ -131,8 +131,8 @@ bool HexFlowerFieldWon(const HexFlowerField *field, const HexGrid *grid)
     }
 
     // BFS over filled faces from the first flower; every flower face must be reached
-    bool visited[HEX_FACE_COUNT] = { false };
-    int queue[HEX_FACE_COUNT] = { 0 };
+    bool visited[HEX_MAX_FACES] = { false };
+    int queue[HEX_MAX_FACES] = { 0 };
     int head = 0;
     int tail = 0;
 

@@ -1,10 +1,10 @@
 /**********************************************************************************************
 *
-*   hexman - Spider enemies walking the hex lattice edges
+*   hexman - Wasp enemies walking the hex lattice edges
 *
 *   Enemies move like the bee (edge to edge, continuous) but never stop and never
 *   paint. Each type is a color + junction behavior pairing; the tint is applied to
-*   the shared spider.png spritesheet (16x64, 4 vertical frames, faces up).
+*   the shared wasp.png spritesheet (16x64, 4 vertical frames, faces up).
 *
 **********************************************************************************************/
 
@@ -21,6 +21,14 @@ typedef enum HexEnemyType
     HEX_ENEMY_GREEN_MIXED,      // half speed, coin flip per junction: chase or wander
     HEX_ENEMY_TYPE_COUNT
 } HexEnemyType;
+
+typedef enum HexEnemySpawn
+{
+    HEX_SPAWN_LEFTMOST = 0,
+    HEX_SPAWN_RIGHTMOST,
+    HEX_SPAWN_TOPMOST,
+    HEX_SPAWN_BOTTOMMOST
+} HexEnemySpawn;
 
 typedef struct HexEnemy
 {
@@ -43,5 +51,7 @@ void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture)
 
 // Touch check against a point (the bee), for kill-on-touch
 bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, float radius);
+
+int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn);
 
 #endif // HEX_ENEMY_H

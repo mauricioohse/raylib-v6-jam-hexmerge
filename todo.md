@@ -20,7 +20,7 @@
     - the sprite is a top down view of a dandelion, please generate the PNG in anyway you have to do it
     - the level is won if the bee is able to sprout all the level seeds and have them meet (the hexagons need to be in the same "painted" alive shape)
 - [x] the game starts with a main menu having "START GAME" button, a small "speaker" symbol with a number indicating volume (default 5), two arrows on the left and right of the volume number to increase or decrease.
-- [ ] the game will have multiple levels with set seed (they are not random)
+- [x] the game will have multiple levels with set seed (they are not random)
     - create a flexible hex struct archtecture so that I can load and unload levels (considering bee starting positioning and different number of HEX radius. see other points to have clear goal)
     - first level will be just a hex grid of radius 1 (so it will be 7 hexagons). no enemies, just the bee and a seed on the center. add a text box on the right saying "the plants are suffering and need bee pollen to sprout, encircle the seed to help!". you may adjust this text
     - second level make it radius 2,  2 seeds on oposite sides with a text mentioning that all seeds must sprout and must connect. 

@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   hexman - Spider enemies implementation
+*   hexman - Wasp enemies implementation
 *
 **********************************************************************************************/
 
@@ -149,4 +149,16 @@ void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture)
 bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, float radius)
 {
     return Dist2(HexEnemyPosition(enemy, grid), pos) <= radius*radius;
+}
+
+int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn)
+{
+    switch (spawn)
+    {
+        case HEX_SPAWN_LEFTMOST: return HexFindLeftmostVertex(grid);
+        case HEX_SPAWN_RIGHTMOST: return HexFindRightmostVertex(grid);
+        case HEX_SPAWN_TOPMOST: return HexFindTopmostVertex(grid);
+        case HEX_SPAWN_BOTTOMMOST: return HexFindBottommostVertex(grid);
+        default: return HexFindRightmostVertex(grid);
+    }
 }

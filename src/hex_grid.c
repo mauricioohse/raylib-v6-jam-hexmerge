@@ -16,9 +16,9 @@
 #define SIDE_E 0
 #define SIDE_W 1
 
-// Owner coords reach one hex beyond the board on each side
-#define VMAP_OFF (HEX_RADIUS + 1)
-#define VMAP_DIM (2*HEX_RADIUS + 3)
+// Owner coords reach one hex beyond the board on each side (sized for HEX_MAX_RADIUS)
+#define VMAP_OFF (HEX_MAX_RADIUS + 1)
+#define VMAP_DIM (2*HEX_MAX_RADIUS + 3)
 
 // Unpainted tiles are dry dirt; painted (alive) tiles show the sprite's true colors
 static const Color HEX_DEAD_TINT = { 150, 105, 70, 255 };
@@ -109,9 +109,12 @@ static int GetOrCreateEdge(HexGrid *grid, int va, int vb, int face)
     return index;
 }
 
-void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture)
+void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, int radius)
 {
     memset(grid, 0, sizeof(*grid));
+    if (radius < 1) radius = 1;
+    if (radius > HEX_MAX_RADIUS) radius = HEX_MAX_RADIUS;
+    grid->radius = radius;
     grid->size = HEX_SIZE;
     grid->origin = origin;
     grid->hexTexture = hexTexture;
@@ -131,13 +134,13 @@ void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture)
     };
 
     // Hex-shaped board of radius R around (0, 0)
-    for (int q = -HEX_RADIUS; q <= HEX_RADIUS; q++)
+    for (int q = -radius; q <= radius; q++)
     {
-        int r1 = (-q - HEX_RADIUS > -HEX_RADIUS)? -q - HEX_RADIUS : -HEX_RADIUS;
-        int r2 = (-q + HEX_RADIUS < HEX_RADIUS)? -q + HEX_RADIUS : HEX_RADIUS;
+        int r1 = (-q - radius > -radius)? -q - radius : -radius;
+        int r2 = (-q + radius < radius)? -q + radius : radius;
         for (int r = r1; r <= r2; r++)
         {
-            if (grid->faceCount >= HEX_FACE_COUNT) break;
+            if (grid->faceCount >= HEX_MAX_FACES) break;
 
             int faceIndex = grid->faceCount++;
             HexFace *face = &grid->faces[faceIndex];
@@ -222,6 +225,36 @@ int HexFindLeftmostVertex(const HexGrid *grid)
     for (int i = 1; i < grid->vertexCount; i++)
     {
         if (grid->vertices[i].pos.x < grid->vertices[best].pos.x) best = i;
+    }
+    return best;
+}
+
+int HexFindRightmostVertex(const HexGrid *grid)
+{
+    int best = 0;
+    for (int i = 1; i < grid->vertexCount; i++)
+    {
+        if (grid->vertices[i].pos.x > grid->vertices[best].pos.x) best = i;
+    }
+    return best;
+}
+
+int HexFindTopmostVertex(const HexGrid *grid)
+{
+    int best = 0;
+    for (int i = 1; i < grid->vertexCount; i++)
+    {
+        if (grid->vertices[i].pos.y < grid->vertices[best].pos.y) best = i;
+    }
+    return best;
+}
+
+int HexFindBottommostVertex(const HexGrid *grid)
+{
+    int best = 0;
+    for (int i = 1; i < grid->vertexCount; i++)
+    {
+        if (grid->vertices[i].pos.y > grid->vertices[best].pos.y) best = i;
     }
     return best;
 }

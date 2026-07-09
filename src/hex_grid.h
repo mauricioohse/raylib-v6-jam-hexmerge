@@ -6,6 +6,8 @@
 *   form the lattice the bee walks on; the trail/encircle mechanic lives in
 *   hex_trail.h and operates on the same indices.
 *
+*   Board radius is chosen per level (see hex_level.h). Arrays are sized for HEX_MAX_RADIUS.
+*
 **********************************************************************************************/
 
 #ifndef hex_grid_H
@@ -13,10 +15,10 @@
 
 #include "raylib.h"
 
-#define HEX_RADIUS 3
-#define HEX_FACE_COUNT 37               // 3*R*(R+1) + 1
-#define HEX_MAX_VERTICES 128
-#define HEX_MAX_EDGES 192
+#define HEX_MAX_RADIUS 4
+#define HEX_MAX_FACES (3*HEX_MAX_RADIUS*(HEX_MAX_RADIUS + 1) + 1)   // 61
+#define HEX_MAX_VERTICES 192
+#define HEX_MAX_EDGES 288
 #define HEX_TEX_WIDTH 73.0f
 #define HEX_SIZE (HEX_TEX_WIDTH*0.5f)   // center-to-vertex radius
 
@@ -57,10 +59,11 @@ typedef struct HexGrid
 {
     HexVertex vertices[HEX_MAX_VERTICES];
     HexEdge edges[HEX_MAX_EDGES];
-    HexFace faces[HEX_FACE_COUNT];
+    HexFace faces[HEX_MAX_FACES];
     int vertexCount;
     int edgeCount;
     int faceCount;
+    int radius;
     float size;
     Vector2 origin;
     Texture2D hexTexture;
@@ -81,7 +84,7 @@ typedef struct HexBee
     int arrivalCount;
 } HexBee;
 
-void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture);
+void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, int radius);
 void HexGridDraw(const HexGrid *grid);
 
 int HexEdgeOtherVertex(const HexGrid *grid, int edge, int vertex);
@@ -89,6 +92,9 @@ float HexEdgeLength(const HexGrid *grid, int edge);
 Vector2 HexEdgePoint(const HexGrid *grid, int edge, int fromVertex, float t);
 
 int HexFindLeftmostVertex(const HexGrid *grid);
+int HexFindRightmostVertex(const HexGrid *grid);
+int HexFindTopmostVertex(const HexGrid *grid);
+int HexFindBottommostVertex(const HexGrid *grid);
 
 void HexBeeInit(HexBee *bee, HexGrid *grid, int startVertex, float speed);
 void HexBeeSetTurn(HexBee *bee, int dir);   // -1 left, +1 right; consumed at next junction
