@@ -13,6 +13,7 @@
 #include "hex_grid.h"
 #include "hex_trail.h"
 #include "hex_enemy.h"
+#include "hex_flower.h"
 
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
@@ -21,6 +22,7 @@
 #define PLAYER_MAX_LIVES 3
 #define HIT_RADIUS 14.0f
 #define HEART_SCALE 2.0f
+#define LEVEL_SEED_COUNT 3
 
 static int framesCounter = 0;
 static int finishScreen = 0;
@@ -29,9 +31,11 @@ static HexGrid hexGrid = { 0 };
 static HexBee bee = { 0 };
 static HexTrail trail = { 0 };
 static HexEnemy enemies[ENEMY_COUNT] = { 0 };
+static HexFlowerField flowers = { 0 };
 static Texture2D hexTexture = { 0 };
 static Texture2D spiderTexture = { 0 };
 static Texture2D heartsTexture = { 0 };
+static Texture2D flowerTexture = { 0 };
 static int lives = PLAYER_MAX_LIVES;
 
 //----------------------------------------------------------------------------------
@@ -91,6 +95,17 @@ static void ResetRound(void)
     HexBeeInit(&bee, &hexGrid, startVertex, 120.0f);
     HexTrailInit(&trail, startVertex);
 
+    // Three seeds spread across the board (not on the bee's leftmost start face)
+    int seedFaces[LEVEL_SEED_COUNT];
+    seedFaces[0] = HexFindFace(&hexGrid, 2, -1);
+    seedFaces[1] = HexFindFace(&hexGrid, -1, 2);
+    seedFaces[2] = HexFindFace(&hexGrid, 0, -2);
+    for (int i = 0; i < LEVEL_SEED_COUNT; i++)
+    {
+        if (seedFaces[i] < 0) seedFaces[i] = (i + 1)%hexGrid.faceCount;
+    }
+    HexFlowerFieldInit(&flowers, flowerTexture, seedFaces, LEVEL_SEED_COUNT);
+
     // Spawn spiders spread out, away from the bee's leftmost start
     int rightmost = 0, topmost = 0, bottommost = 0;
     for (int i = 1; i < hexGrid.vertexCount; i++)
@@ -139,6 +154,7 @@ void InitGameplayScreen(void)
     hexTexture = LoadTexture("resources/hexfield.png");
     spiderTexture = LoadTexture("resources/spider.png");
     heartsTexture = LoadTexture("resources/hearts.png");
+    flowerTexture = LoadTexture("resources/flower.png");
 
     ResetRound();
 }
@@ -155,7 +171,11 @@ void UpdateGameplayScreen(void)
     for (int i = 0; i < bee.arrivalCount; i++)
     {
         int filled = HexTrailAdvance(&trail, &hexGrid, bee.arrivalEdges[i], bee.arrivalVerts[i]);
-        if (filled > 0) PlaySound(fxCoin);
+        if (filled > 0)
+        {
+            PlaySound(fxCoin);
+            HexFlowerFieldOnFill(&flowers, &hexGrid);
+        }
     }
 
     Vector2 beePos = HexBeePosition(&bee, &hexGrid);
@@ -163,6 +183,8 @@ void UpdateGameplayScreen(void)
     {
         HexEnemyUpdate(&enemies[i], &hexGrid, beePos, dt);
     }
+
+    HexFlowerFieldUpdate(&flowers, dt);
 
     for (int i = 0; i < ENEMY_COUNT; i++)
     {
@@ -179,6 +201,12 @@ void UpdateGameplayScreen(void)
     beeAnim.rotation = HexBeeRotationDeg(&bee, &hexGrid);
     UpdateAnimation(&beeAnim);
 
+    if (HexFlowerFieldWon(&flowers, &hexGrid))
+    {
+        finishScreen = 1;
+        PlaySound(fxCoin);
+    }
+
     if (IsKeyPressed(KEY_ENTER))
     {
         finishScreen = 1;
@@ -191,6 +219,7 @@ void DrawGameplayScreen(void)
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
 
     HexGridDraw(&hexGrid);
+    HexFlowerFieldDraw(&flowers, &hexGrid);
 
     int toVertex = HexEdgeOtherVertex(&hexGrid, bee.edge, bee.fromVertex);
     if (toVertex >= 0)
@@ -225,6 +254,8 @@ void UnloadGameplayScreen(void)
     spiderTexture = (Texture2D){ 0 };
     UnloadTexture(heartsTexture);
     heartsTexture = (Texture2D){ 0 };
+    UnloadTexture(flowerTexture);
+    flowerTexture = (Texture2D){ 0 };
 }
 
 int FinishGameplayScreen(void)
