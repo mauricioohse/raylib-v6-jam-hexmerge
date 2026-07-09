@@ -11,6 +11,7 @@
 #include "raylib.h"
 #include "screens.h"
 
+#include <math.h>
 #include <stdio.h>
 
 //----------------------------------------------------------------------------------
@@ -22,6 +23,50 @@
 #define SPEAKER_FRAME_COUNT 4
 #define SPEAKER_SCALE 2.0f
 
+#define FALL_HEX_MAX 20
+#define FALL_SPAWN_MIN 0.5f
+#define FALL_SPAWN_MAX 2.5f
+#define FALL_SPEED_MIN 28.0f
+#define FALL_SPEED_MAX 55.0f
+#define FALL_SCALE_MIN 0.70f
+#define FALL_SCALE_MAX 1.30f
+
+#define FLY_BEE_MAX 6
+#define FLY_BEE_FRAMES 4
+#define FLY_BEE_FRAME_TIME 0.08f
+#define FLY_BEE_SPAWN_MIN 1.5f
+#define FLY_BEE_SPAWN_MAX 4.0f
+#define FLY_BEE_SPEED_MIN 40.0f
+#define FLY_BEE_SPEED_MAX 90.0f
+#define FLY_BEE_SCALE_MIN 1.5f
+#define FLY_BEE_SCALE_MAX 2.4f
+
+typedef struct FallHex
+{
+    bool active;
+    Vector2 pos;        // top-left of drawn sprite
+    float speed;        // px/sec downward
+    float scale;
+    float rotation;
+    float rotSpeed;
+    unsigned char alpha;
+} FallHex;
+
+typedef struct FlyBee
+{
+    bool active;
+    Vector2 pos;
+    float speedX;       // signed: left or right
+    float bobAmp;
+    float bobSpeed;
+    float bobPhase;
+    float baseY;
+    float scale;
+    float animTimer;
+    int animFrame;
+    Color tint;
+} FlyBee;
+
 static int framesCounter = 0;
 static int finishScreen = 0;
 
@@ -29,6 +74,22 @@ static Rectangle startBtn = { 0 };
 static Rectangle volDownBtn = { 0 };
 static Rectangle volUpBtn = { 0 };
 static Texture2D speakerTexture = { 0 };
+static Texture2D fallHexTexture = { 0 };
+static Texture2D flyBeeTexture = { 0 };
+
+static FallHex fallHexes[FALL_HEX_MAX] = { 0 };
+static float fallSpawnTimer = 0.0f;
+
+static FlyBee flyBees[FLY_BEE_MAX] = { 0 };
+static float flyBeeSpawnTimer = 0.0f;
+
+static const Color FLY_BEE_TINTS[] = {
+    { 255, 220, 90, 160 },      // honey
+    { 255, 240, 180, 140 },     // cream
+    { 255, 200, 70, 150 },      // amber
+    { 230, 230, 200, 130 },     // pale
+    { 255, 170, 60, 145 },      // warm orange
+};
 
 //----------------------------------------------------------------------------------
 // Helpers
@@ -81,6 +142,219 @@ static void DrawMenuButton(Rectangle r, const char *label, bool hovered)
     DrawText(label, (int)(r.x + (r.width - tw)*0.5f), (int)(r.y + (r.height - fontSize)*0.5f), fontSize, text);
 }
 
+static float RandRange(float a, float b)
+{
+    return a + (b - a)*((float)GetRandomValue(0, 10000)/10000.0f);
+}
+
+static int FallHexCount(void)
+{
+    int n = 0;
+    for (int i = 0; i < FALL_HEX_MAX; i++)
+    {
+        if (fallHexes[i].active) n++;
+    }
+    return n;
+}
+
+static void SpawnFallHex(void)
+{
+    if (fallHexTexture.id == 0) return;
+    if (FallHexCount() >= FALL_HEX_MAX) return;
+
+    int slot = -1;
+    for (int i = 0; i < FALL_HEX_MAX; i++)
+    {
+        if (!fallHexes[i].active) { slot = i; break; }
+    }
+    if (slot < 0) return;
+
+    float scale = RandRange(FALL_SCALE_MIN, FALL_SCALE_MAX);
+    float w = (float)fallHexTexture.width*scale;
+    float h = (float)fallHexTexture.height*scale;
+    float sw = (float)GetScreenWidth();
+
+    FallHex *hex = &fallHexes[slot];
+    hex->active = true;
+    hex->scale = scale;
+    hex->speed = RandRange(FALL_SPEED_MIN, FALL_SPEED_MAX);
+    hex->rotation = RandRange(0.0f, 360.0f);
+    hex->rotSpeed = RandRange(-18.0f, 18.0f);
+    hex->alpha = (unsigned char)GetRandomValue(40, 90);
+    hex->pos.x = RandRange(-w*0.25f, sw - w*0.75f);
+    hex->pos.y = -h - RandRange(0.0f, 40.0f);
+}
+
+static void ResetFallSpawnTimer(void)
+{
+    fallSpawnTimer = RandRange(FALL_SPAWN_MIN, FALL_SPAWN_MAX);
+}
+
+static void UpdateFallHexes(float dt)
+{
+    fallSpawnTimer -= dt;
+    if (fallSpawnTimer <= 0.0f)
+    {
+        SpawnFallHex();
+        ResetFallSpawnTimer();
+    }
+
+    float sh = (float)GetScreenHeight();
+    for (int i = 0; i < FALL_HEX_MAX; i++)
+    {
+        FallHex *hex = &fallHexes[i];
+        if (!hex->active) continue;
+
+        hex->pos.y += hex->speed*dt;
+        hex->rotation += hex->rotSpeed*dt;
+
+        float h = (float)fallHexTexture.height*hex->scale;
+        if (hex->pos.y > sh + h) hex->active = false;
+    }
+}
+
+static void DrawFallHexes(void)
+{
+    if (fallHexTexture.id == 0) return;
+
+    float tw = (float)fallHexTexture.width;
+    float th = (float)fallHexTexture.height;
+    Rectangle src = { 0, 0, tw, th };
+
+    for (int i = 0; i < FALL_HEX_MAX; i++)
+    {
+        const FallHex *hex = &fallHexes[i];
+        if (!hex->active) continue;
+
+        float dw = tw*hex->scale;
+        float dh = th*hex->scale;
+        Rectangle dst = { hex->pos.x + dw*0.5f, hex->pos.y + dh*0.5f, dw, dh };
+        Vector2 origin = { dw*0.5f, dh*0.5f };
+        // Soft dirt look so they stay in the background
+        Color tint = (Color){ 150, 105, 70, hex->alpha };
+        DrawTexturePro(fallHexTexture, src, dst, origin, hex->rotation, tint);
+    }
+}
+
+//----------------------------------------------------------------------------------
+// Flying bees (background)
+//----------------------------------------------------------------------------------
+static int FlyBeeCount(void)
+{
+    int n = 0;
+    for (int i = 0; i < FLY_BEE_MAX; i++)
+    {
+        if (flyBees[i].active) n++;
+    }
+    return n;
+}
+
+static void ResetFlyBeeSpawnTimer(void)
+{
+    flyBeeSpawnTimer = RandRange(FLY_BEE_SPAWN_MIN, FLY_BEE_SPAWN_MAX);
+}
+
+static void SpawnFlyBee(bool fromEdge)
+{
+    if (flyBeeTexture.id == 0) return;
+    if (FlyBeeCount() >= FLY_BEE_MAX) return;
+
+    int slot = -1;
+    for (int i = 0; i < FLY_BEE_MAX; i++)
+    {
+        if (!flyBees[i].active) { slot = i; break; }
+    }
+    if (slot < 0) return;
+
+    float sw = (float)GetScreenWidth();
+    float sh = (float)GetScreenHeight();
+    float scale = RandRange(FLY_BEE_SCALE_MIN, FLY_BEE_SCALE_MAX);
+    float frameH = (float)flyBeeTexture.height/(float)FLY_BEE_FRAMES;
+    float drawH = frameH*scale;
+    float drawW = (float)flyBeeTexture.width*scale;
+
+    bool goRight = (GetRandomValue(0, 1) == 0);
+    float speed = RandRange(FLY_BEE_SPEED_MIN, FLY_BEE_SPEED_MAX);
+    float y = RandRange(drawH, sh - drawH*2.0f);
+
+    FlyBee *bee = &flyBees[slot];
+    bee->active = true;
+    bee->scale = scale;
+    bee->speedX = goRight? speed : -speed;
+    bee->bobAmp = RandRange(8.0f, 22.0f);
+    bee->bobSpeed = RandRange(1.2f, 2.6f);
+    bee->bobPhase = RandRange(0.0f, 6.28f);
+    bee->baseY = y;
+    bee->animTimer = 0.0f;
+    bee->animFrame = GetRandomValue(0, FLY_BEE_FRAMES - 1);
+    bee->tint = FLY_BEE_TINTS[GetRandomValue(0, (int)(sizeof(FLY_BEE_TINTS)/sizeof(FLY_BEE_TINTS[0])) - 1)];
+
+    if (fromEdge)
+    {
+        bee->pos.x = goRight? (-drawW - 8.0f) : (sw + 8.0f);
+    }
+    else
+    {
+        bee->pos.x = RandRange(0.0f, sw - drawW);
+    }
+    bee->pos.y = y;
+}
+
+static void UpdateFlyBees(float dt)
+{
+    flyBeeSpawnTimer -= dt;
+    if (flyBeeSpawnTimer <= 0.0f)
+    {
+        SpawnFlyBee(true);
+        ResetFlyBeeSpawnTimer();
+    }
+
+    float sw = (float)GetScreenWidth();
+    for (int i = 0; i < FLY_BEE_MAX; i++)
+    {
+        FlyBee *bee = &flyBees[i];
+        if (!bee->active) continue;
+
+        bee->pos.x += bee->speedX*dt;
+        bee->bobPhase += bee->bobSpeed*dt;
+        bee->pos.y = bee->baseY + sinf(bee->bobPhase)*bee->bobAmp;
+
+        bee->animTimer += dt;
+        while (bee->animTimer >= FLY_BEE_FRAME_TIME)
+        {
+            bee->animTimer -= FLY_BEE_FRAME_TIME;
+            bee->animFrame = (bee->animFrame + 1)%FLY_BEE_FRAMES;
+        }
+
+        float drawW = (float)flyBeeTexture.width*bee->scale;
+        if ((bee->speedX > 0.0f) && (bee->pos.x > sw + drawW)) bee->active = false;
+        if ((bee->speedX < 0.0f) && (bee->pos.x < -drawW)) bee->active = false;
+    }
+}
+
+static void DrawFlyBees(void)
+{
+    if (flyBeeTexture.id == 0) return;
+
+    float frameW = (float)flyBeeTexture.width;
+    float frameH = (float)flyBeeTexture.height/(float)FLY_BEE_FRAMES;
+
+    for (int i = 0; i < FLY_BEE_MAX; i++)
+    {
+        const FlyBee *bee = &flyBees[i];
+        if (!bee->active) continue;
+
+        float drawW = frameW*bee->scale;
+        float drawH = frameH*bee->scale;
+        // Sprite faces up (-y); rotate so it points along flight direction
+        float rotation = (bee->speedX >= 0.0f)? 90.0f : -90.0f;
+        Rectangle src = { 0, frameH*(float)bee->animFrame, frameW, frameH };
+        Rectangle dst = { bee->pos.x + drawW*0.5f, bee->pos.y + drawH*0.5f, drawW, drawH };
+        Vector2 origin = { drawW*0.5f, drawH*0.5f };
+        DrawTexturePro(flyBeeTexture, src, dst, origin, rotation, bee->tint);
+    }
+}
+
 //----------------------------------------------------------------------------------
 // Title Screen Functions Definition
 //----------------------------------------------------------------------------------
@@ -91,6 +365,27 @@ void InitTitleScreen(void)
 
     speakerTexture = LoadTexture("resources/speaker.png");
     SetTextureFilter(speakerTexture, TEXTURE_FILTER_POINT);
+
+    fallHexTexture = LoadTexture("resources/hexfield.png");
+    for (int i = 0; i < FALL_HEX_MAX; i++) fallHexes[i].active = false;
+    // Seed a few so the menu isn't empty on first frame
+    int seedCount = GetRandomValue(6, 10);
+    for (int i = 0; i < seedCount; i++) SpawnFallHex();
+    for (int i = 0; i < FALL_HEX_MAX; i++)
+    {
+        if (fallHexes[i].active)
+        {
+            fallHexes[i].pos.y = RandRange(-40.0f, (float)GetScreenHeight()*0.7f);
+        }
+    }
+    ResetFallSpawnTimer();
+
+    flyBeeTexture = LoadTexture("resources/bee.png");
+    SetTextureFilter(flyBeeTexture, TEXTURE_FILTER_POINT);
+    for (int i = 0; i < FLY_BEE_MAX; i++) flyBees[i].active = false;
+    int beeSeed = GetRandomValue(2, 4);
+    for (int i = 0; i < beeSeed; i++) SpawnFlyBee(false);
+    ResetFlyBeeSpawnTimer();
 
     float sw = (float)GetScreenWidth();
     float sh = (float)GetScreenHeight();
@@ -107,6 +402,9 @@ void InitTitleScreen(void)
 void UpdateTitleScreen(void)
 {
     framesCounter++;
+    float dt = GetFrameTime();
+    UpdateFallHexes(dt);
+    UpdateFlyBees(dt);
 
     if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
     {
@@ -138,6 +436,8 @@ void UpdateTitleScreen(void)
 void DrawTitleScreen(void)
 {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
+    DrawFallHexes();
+    DrawFlyBees();
 
     const char *title = "BEEHOLD";
     int titleSize = 64;
@@ -181,6 +481,10 @@ void UnloadTitleScreen(void)
 {
     UnloadTexture(speakerTexture);
     speakerTexture = (Texture2D){ 0 };
+    UnloadTexture(fallHexTexture);
+    fallHexTexture = (Texture2D){ 0 };
+    UnloadTexture(flyBeeTexture);
+    flyBeeTexture = (Texture2D){ 0 };
 }
 
 int FinishTitleScreen(void)
