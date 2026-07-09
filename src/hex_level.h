@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   hexman - Level definitions (fixed layouts, load/unload via HexLevelLoad)
+*   Beehold - Level definitions (fixed layouts, load/unload via HexLevelLoad)
 *
 *   Up to HEX_LEVEL_SLOT_COUNT slots (keys 1-9 in DEBUG). Only the first
 *   HEX_LEVEL_IMPLEMENTED levels are fully authored; the rest fall back to level 1.
@@ -17,8 +17,8 @@
 #include "hex_trail.h"
 
 #define HEX_LEVEL_SLOT_COUNT 9
-#define HEX_LEVEL_IMPLEMENTED 5
-#define HEX_LEVEL_MAX_SEEDS 8
+#define HEX_LEVEL_IMPLEMENTED 9
+#define HEX_LEVEL_MAX_SEEDS 16
 #define HEX_LEVEL_MAX_ENEMIES 8
 
 typedef struct HexLevelEnemyDef

@@ -1,4 +1,4 @@
-﻿#**************************************************************************************************
+#**************************************************************************************************
 #
 #   raylib makefile for Desktop platforms, Web (Wasm), Raspberry Pi (DRM mode) and Android
 #
@@ -29,7 +29,7 @@
 PLATFORM              ?= PLATFORM_DESKTOP
 
 # Define project variables
-PROJECT_NAME          ?= raylib_game
+PROJECT_NAME          ?= beehold
 PROJECT_VERSION       ?= 1.0
 PROJECT_BUILD_PATH    ?= .
 PROJECT_SOURCE_FILES  ?= \
@@ -42,7 +42,8 @@ PROJECT_SOURCE_FILES  ?= \
     hex_trail.c \
     hex_enemy.c \
     hex_flower.c \
-    hex_level.c
+    hex_level.c \
+    hex_scores.c
 
 # raylib library variables
 RAYLIB_PATH           ?= C:\dev\raylib

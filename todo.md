@@ -30,13 +30,13 @@
     - on DEBUG builds, we should be able to change between levels by pressing number 1-9 on keyboard. this should also reset the lives to three 
 
     
-- [ ] implement the remaining levels
+- [x] implement the remaining levels
     - [x] level five introduces the edge moving wasps. same 3 radius but with 2 wasps on the edge and 2 wasps inside (one random, one chase). the black should move 1.5 times faster than the bee.
     - [x] change the bee trail to be yellow instead of blue
-    - level 6 "Tight squeeze": radius 2, 2 opposite seeds, 1 black + 1 purple + 1 green
-    - level 7 "Full swarm": radius 3, 4 diamond seeds, one of each wasp (red/purple/green/black)
-    - level 8: radius 4, 4-5 seeds, 5 wasps (2 black opposite rim + red + purple + green)
-    - level 9: radius 4, 12 seeds spread out
-- [ ] add run timer; ending shows time, saves sorted best times to file, lists top times center (works on emscripten/web too)
+    - [x] level 6 "Tight squeeze": radius 2, 2 opposite seeds, 1 black + 1 purple + 1 green
+    - [x] level 7 "Full swarm": radius 3, 4 diamond seeds, one of each wasp (red/purple/green/black)
+    - [x] level 8: radius 4, 4-5 seeds, 5 wasps (2 black opposite rim + red + purple + green)
+    - [x] level 9: radius 4, 12 seeds spread out
+- [x] add run timer; ending shows time, saves sorted best times to file, lists top times center (works on emscripten/web too)
 - [ ] discuss/add map mechanics beyond wasp AI (seed variants, blocked hexes, wrap bridges)
 

@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   hexman - Level definitions + load/unload
+*   Beehold - Level definitions + load/unload
 *
 **********************************************************************************************/
 
@@ -56,7 +56,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
         },
         .enemyCount = 3,
-        .hint = "Three wasps, three seeds. Sprout them all and merge their gardens.",
+        .hint = NULL,
     },
     // 5: radius 3, introduce black rim patrols (1.5x speed) + interior red/purple
     {
@@ -71,7 +71,72 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
         },
         .enemyCount = 4,
-        .hint = "Black wasps race the outer rim. Stay off the edge when they pass!",
+        .hint = NULL,
+    },
+    // 6: Tight squeeze — small board, dense danger
+    {
+        .radius = 2,
+        .beeStart = { -2, 0 },
+        .seeds = { { -2, 1 }, { 2, -1 } },
+        .seedCount = 2,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
+        },
+        .enemyCount = 3,
+        .hint = NULL,
+    },
+    // 7: Full swarm — one of each wasp, diamond seeds
+    {
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seeds = { { 0, -2 }, { 2, -1 }, { 0, 2 }, { -2, 1 } },
+        .seedCount = 4,
+        .enemies = {
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_LEFTMOST },
+        },
+        .enemyCount = 4,
+        .hint = NULL,
+    },
+    // 8: radius 4 climax board
+    {
+        .radius = 4,
+        .beeStart = { -4, 0 },
+        .seeds = { { -3, 2 }, { 3, -2 }, { 0, -3 }, { 2, 1 }, { -2, -1 } },
+        .seedCount = 5,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_LEFTMOST },
+        },
+        .enemyCount = 5,
+        .hint = NULL,
+    },
+    // 9: radius 4, twelve seeds spread out
+    {
+        .radius = 4,
+        .beeStart = { -4, 0 },
+        .seeds = {
+            { -4, 0 }, { -4, 2 }, { -2, 4 }, { 0, 4 },
+            { 2, 2 }, { 4, 0 }, { 4, -2 }, { 2, -4 },
+            { 0, -4 }, { -2, -2 }, { -3, 1 }, { 3, -1 },
+        },
+        .seedCount = 12,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_LEFTMOST },
+        },
+        .enemyCount = 5,
+        .hint = NULL,
     },
 };
 

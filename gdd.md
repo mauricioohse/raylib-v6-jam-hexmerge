@@ -1,8 +1,8 @@
-# hexman GDD
+# Beehold GDD
 
 ![First Concept Drawing](./@gdd-images/first-concept-drawing.png)
 
-Hexman will be a color-painting domination pacman-like in a hex grid. Game developed for raylib jam!
+Beehold will be a color-painting domination pacman-like in a hex grid. Game developed for raylib jam!
 
 ## Gameplay
 

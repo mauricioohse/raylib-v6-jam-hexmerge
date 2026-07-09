@@ -1,6 +1,6 @@
-﻿/**********************************************************************************************
+/**********************************************************************************************
 *
-*   hexman - Hex grid mesh (flat-top faces, walkable edges/vertices) + bee movement
+*   Beehold - Hex grid mesh (flat-top faces, walkable edges/vertices) + bee movement
 *
 *   Faces are drawn as hexagon.png sprites centered on face.center. Vertices and edges
 *   form the lattice the bee walks on; the trail/encircle mechanic lives in

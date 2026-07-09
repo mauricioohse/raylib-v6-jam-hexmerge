@@ -11,6 +11,7 @@
 #include "raylib.h"
 #include "screens.h"
 #include "hex_level.h"
+#include "hex_scores.h"
 
 #include <stdio.h>
 
@@ -32,6 +33,9 @@ static Texture2D waspTexture = { 0 };
 static Texture2D heartsTexture = { 0 };
 static Texture2D flowerTexture = { 0 };
 static int lives = PLAYER_MAX_LIVES;
+static float runTimer = 0.0f;
+static bool runActive = false;
+static bool levelPaused = true;     // wait for A/D (or arrows) before bee/wasps move
 
 //----------------------------------------------------------------------------------
 // Animation helpers
@@ -85,8 +89,17 @@ void DrawAnimation(Animation *anim, Vector2 position)
 static void LoadCurrentLevel(void)
 {
     HexLevelLoad(&level, currentLevelIndex, hexTexture, flowerTexture, BEE_SPEED);
+    levelPaused = true;
     beeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
     UpdateAnimation(&beeAnim);
+}
+
+static void FinishRun(void)
+{
+    runActive = false;
+    lastRunTime = runTimer;
+    HexScoresSubmit(lastRunTime);
+    finishScreen = 1;
 }
 
 static void DrawLives(void)
@@ -118,6 +131,9 @@ void InitGameplayScreen(void)
     finishScreen = 0;
     lives = PLAYER_MAX_LIVES;
     currentLevelIndex = 0;
+    runTimer = 0.0f;
+    runActive = true;
+    lastRunTime = 0.0f;
 
     hexTexture = LoadTexture("resources/hexfield.png");
     waspTexture = LoadTexture("resources/wasp.png");
@@ -146,8 +162,31 @@ void UpdateGameplayScreen(void)
     }
 #endif
 
-    if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) HexBeeSetTurn(&level.bee, -1);
-    if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) HexBeeSetTurn(&level.bee, 1);
+    bool turnLeft = IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT);
+    bool turnRight = IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT);
+
+    if (levelPaused)
+    {
+        if (turnLeft || turnRight)
+        {
+            if (turnLeft) HexBeeSetTurn(&level.bee, -1);
+            if (turnRight) HexBeeSetTurn(&level.bee, 1);
+            levelPaused = false;
+        }
+        else
+        {
+            // Idle anim only; bee/wasps/timer stay frozen until first steer
+            UpdateAnimation(&beeAnim);
+            return;
+        }
+    }
+    else
+    {
+        if (turnLeft) HexBeeSetTurn(&level.bee, -1);
+        if (turnRight) HexBeeSetTurn(&level.bee, 1);
+    }
+
+    if (runActive) runTimer += dt;
 
     int filled = HexLevelUpdate(&level, dt);
     if (filled > 0) PlaySound(fxCoin);
@@ -157,9 +196,11 @@ void UpdateGameplayScreen(void)
         lives--;
         if (lives <= 0)
         {
-            // All lives lost: restart from the beginning of the campaign
+            // All lives lost: restart campaign + timer
             lives = PLAYER_MAX_LIVES;
             currentLevelIndex = 0;
+            runTimer = 0.0f;
+            runActive = true;
         }
         LoadCurrentLevel();
         PlaySound(fxCoin);
@@ -179,16 +220,19 @@ void UpdateGameplayScreen(void)
         }
         else
         {
-            finishScreen = 1;
+            FinishRun();
             PlaySound(fxCoin);
         }
     }
 
+#if defined(_DEBUG)
+    // Skip to ending with current timer (does not count as a real win unless you want it to)
     if (IsKeyPressed(KEY_ENTER))
     {
-        finishScreen = 1;
+        FinishRun();
         PlaySound(fxCoin);
     }
+#endif
 }
 
 void DrawGameplayScreen(void)
@@ -206,7 +250,19 @@ void DrawGameplayScreen(void)
     char levelLabel[32];
     snprintf(levelLabel, sizeof(levelLabel), "Level %d", currentLevelIndex + 1);
     DrawText(levelLabel, 16, 16, 20, LIGHTGRAY);
-    DrawText("A/D turn", 16, 40, 18, (Color){ 160, 170, 180, 255 });
+    DrawText(levelPaused? "A/D to start" : "A/D turn", 16, 40, 18, (Color){ 160, 170, 180, 255 });
+
+    char timeBuf[16];
+    HexScoresFormat(runTimer, timeBuf, (int)sizeof(timeBuf));
+    int tw = MeasureText(timeBuf, 22);
+    DrawText(timeBuf, (GetScreenWidth() - tw)/2, 16, 22, (Color){ 255, 220, 70, 255 });
+
+    if (levelPaused)
+    {
+        const char *prompt = "Press A/D or arrows to start";
+        int pw = MeasureText(prompt, 24);
+        DrawText(prompt, (GetScreenWidth() - pw)/2, GetScreenHeight() - 56, 24, (Color){ 255, 220, 70, 255 });
+    }
 
 #if defined(_DEBUG)
     DrawText("DEBUG: 1-9 switch level", 16, GetScreenHeight() - 28, 16, (Color){ 120, 140, 160, 255 });

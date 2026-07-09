@@ -1,6 +1,6 @@
-﻿/**********************************************************************************************
+/**********************************************************************************************
 *
-*   hexman - Trail path + encircle fill (loop detection on the hex mesh)
+*   Beehold - Trail path + encircle fill (loop detection on the hex mesh)
 *
 *   Tracks the ordered path of vertices the bee has walked. When the bee arrives at a
 *   vertex already on the path, the slice from that vertex to the end plus the closing

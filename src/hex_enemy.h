@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   hexman - Wasp enemies walking the hex lattice edges
+*   Beehold - Wasp enemies walking the hex lattice edges
 *
 *   Enemies move like the bee (edge to edge, continuous) but never stop and never
 *   paint. Each type is a color + junction behavior pairing; the tint is applied to

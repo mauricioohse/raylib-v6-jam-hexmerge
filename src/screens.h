@@ -67,6 +67,7 @@ extern Music music;
 extern Sound fxCoin;
 extern Animation beeAnim;
 extern int volumeLevel;     // 0..10, default 5; drives SetMasterVolume
+extern float lastRunTime;   // seconds for the run that just finished (0 if none)
 
 
 

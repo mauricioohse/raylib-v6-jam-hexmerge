@@ -1,6 +1,6 @@
-﻿/**********************************************************************************************
+/**********************************************************************************************
 *
-*   hexman - Hex grid mesh implementation
+*   Beehold - Hex grid mesh implementation
 *
 *   Mesh construction is deterministic: every vertex of the lattice is the East or West
 *   corner of exactly one hex (possibly a hex just outside the board), so vertices are

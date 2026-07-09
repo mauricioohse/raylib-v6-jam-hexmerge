@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   hexman - Flower / seed objectives on hex faces
+*   Beehold - Flower / seed objectives on hex faces
 *
 *   Seeds sit on faces. When a face is filled (encircled), the seed sprouts through a
 *   short grow animation into an idle bloom. The level is won when every seed has

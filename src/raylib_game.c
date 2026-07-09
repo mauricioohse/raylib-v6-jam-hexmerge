@@ -43,6 +43,7 @@ Music music = { 0 };
 Sound fxCoin = { 0 };
 Animation beeAnim = {0};
 int volumeLevel = 5;
+float lastRunTime = 0.0f;
 
 //----------------------------------------------------------------------------------
 // Global Variables Definition (local to this module)
@@ -75,7 +76,7 @@ int main(void)
 {
     // Initialization
     //---------------------------------------------------------
-    InitWindow(screenWidth, screenHeight, "hexman");
+    InitWindow(screenWidth, screenHeight, "Beehold");
 
     InitAudioDevice();      // Initialize audio device
 

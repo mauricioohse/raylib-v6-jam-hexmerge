@@ -139,7 +139,7 @@ void DrawTitleScreen(void)
 {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
 
-    const char *title = "HEXMAN";
+    const char *title = "BEEHOLD";
     int titleSize = 64;
     int tw = MeasureText(title, titleSize);
     DrawText(title, (GetScreenWidth() - tw)/2, GetScreenHeight()/2 - 160, titleSize, (Color){ 255, 179, 71, 255 });
