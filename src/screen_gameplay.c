@@ -18,6 +18,9 @@
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
 #define ENEMY_COUNT 3
+#define PLAYER_MAX_LIVES 3
+#define HIT_RADIUS 14.0f
+#define HEART_SCALE 2.0f
 
 static int framesCounter = 0;
 static int finishScreen = 0;
@@ -28,6 +31,8 @@ static HexTrail trail = { 0 };
 static HexEnemy enemies[ENEMY_COUNT] = { 0 };
 static Texture2D hexTexture = { 0 };
 static Texture2D spiderTexture = { 0 };
+static Texture2D heartsTexture = { 0 };
+static int lives = PLAYER_MAX_LIVES;
 
 //----------------------------------------------------------------------------------
 // Animation helpers
@@ -76,14 +81,10 @@ void DrawAnimation(Animation *anim, Vector2 position)
 }
 
 //----------------------------------------------------------------------------------
-// Gameplay Screen Functions Definition
+// Round / lives helpers
 //----------------------------------------------------------------------------------
-void InitGameplayScreen(void)
+static void ResetRound(void)
 {
-    framesCounter = 0;
-    finishScreen = 0;
-
-    hexTexture = LoadTexture("resources/hexagon.png");
     HexGridInit(&hexGrid, (Vector2){ 360.0f, 360.0f }, hexTexture);
 
     int startVertex = HexFindLeftmostVertex(&hexGrid);
@@ -91,7 +92,6 @@ void InitGameplayScreen(void)
     HexTrailInit(&trail, startVertex);
 
     // Spawn spiders spread out, away from the bee's leftmost start
-    spiderTexture = LoadTexture("resources/spider.png");
     int rightmost = 0, topmost = 0, bottommost = 0;
     for (int i = 1; i < hexGrid.vertexCount; i++)
     {
@@ -103,7 +103,44 @@ void InitGameplayScreen(void)
     HexEnemyInit(&enemies[1], HEX_ENEMY_PURPLE_CHASER, &hexGrid, topmost, 120.0f);
     HexEnemyInit(&enemies[2], HEX_ENEMY_GREEN_MIXED, &hexGrid, bottommost, 120.0f);
 
+    beeAnim.rotation = HexBeeRotationDeg(&bee, &hexGrid);
     UpdateAnimation(&beeAnim);
+}
+
+static void DrawLives(void)
+{
+    float frameW = (float)heartsTexture.width;
+    float frameH = (float)heartsTexture.height/2.0f;
+    float drawW = frameW*HEART_SCALE;
+    float drawH = frameH*HEART_SCALE;
+    float gap = 4.0f;
+    float totalW = PLAYER_MAX_LIVES*drawW + (PLAYER_MAX_LIVES - 1)*gap;
+    float x0 = (float)GetScreenWidth() - 16.0f - totalW;
+    float y = 16.0f;
+
+    for (int i = 0; i < PLAYER_MAX_LIVES; i++)
+    {
+        int frame = (i < lives)? 0 : 1;     // 0 = full, 1 = empty/grey
+        Rectangle src = { 0, frameH*(float)frame, frameW, frameH };
+        Rectangle dst = { x0 + (float)i*(drawW + gap), y, drawW, drawH };
+        DrawTexturePro(heartsTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+    }
+}
+
+//----------------------------------------------------------------------------------
+// Gameplay Screen Functions Definition
+//----------------------------------------------------------------------------------
+void InitGameplayScreen(void)
+{
+    framesCounter = 0;
+    finishScreen = 0;
+    lives = PLAYER_MAX_LIVES;
+
+    hexTexture = LoadTexture("resources/hexfield.png");
+    spiderTexture = LoadTexture("resources/spider.png");
+    heartsTexture = LoadTexture("resources/hearts.png");
+
+    ResetRound();
 }
 
 void UpdateGameplayScreen(void)
@@ -125,6 +162,18 @@ void UpdateGameplayScreen(void)
     for (int i = 0; i < ENEMY_COUNT; i++)
     {
         HexEnemyUpdate(&enemies[i], &hexGrid, beePos, dt);
+    }
+
+    for (int i = 0; i < ENEMY_COUNT; i++)
+    {
+        if (HexEnemyTouches(&enemies[i], &hexGrid, beePos, HIT_RADIUS))
+        {
+            lives--;
+            if (lives <= 0) lives = PLAYER_MAX_LIVES;   // all lives lost: restart from the beginning
+            ResetRound();
+            PlaySound(fxCoin);
+            break;
+        }
     }
 
     beeAnim.rotation = HexBeeRotationDeg(&bee, &hexGrid);
@@ -164,6 +213,7 @@ void DrawGameplayScreen(void)
     Vector2 beePos = HexBeePosition(&bee, &hexGrid);
     DrawAnimation(&beeAnim, beePos);
 
+    DrawLives();
     DrawText("A/D turn left/right  |  ENTER end", 16, 16, 20, LIGHTGRAY);
 }
 
@@ -173,6 +223,8 @@ void UnloadGameplayScreen(void)
     hexTexture = (Texture2D){ 0 };
     UnloadTexture(spiderTexture);
     spiderTexture = (Texture2D){ 0 };
+    UnloadTexture(heartsTexture);
+    heartsTexture = (Texture2D){ 0 };
 }
 
 int FinishGameplayScreen(void)

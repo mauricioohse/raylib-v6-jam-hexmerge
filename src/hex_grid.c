@@ -20,7 +20,8 @@
 #define VMAP_OFF (HEX_RADIUS + 1)
 #define VMAP_DIM (2*HEX_RADIUS + 3)
 
-static const Color HEX_FILL_TINT = { 255, 179, 71, 255 };   // honey
+// Unpainted tiles are dry dirt; painted (alive) tiles show the sprite's true colors
+static const Color HEX_DEAD_TINT = { 150, 105, 70, 255 };
 static const Color EDGE_TRAIL_COLOR = { 80, 160, 255, 255 };
 static const Color EDGE_BASE_COLOR = { 40, 40, 40, 80 };
 
@@ -172,7 +173,7 @@ void HexGridDraw(const HexGrid *grid)
     {
         Vector2 c = grid->faces[i].center;
         Rectangle dst = { c.x - texW*0.5f, c.y - texH*0.5f, texW, texH };
-        Color tint = grid->faces[i].filled? HEX_FILL_TINT : WHITE;
+        Color tint = grid->faces[i].filled? WHITE : HEX_DEAD_TINT;
         DrawTexturePro(grid->hexTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
     }
 
