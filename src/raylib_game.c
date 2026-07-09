@@ -37,11 +37,12 @@
 // Shared Variables Definition (global)
 // NOTE: Those variables are shared between modules through screens.h
 //----------------------------------------------------------------------------------
-GameScreen currentScreen = GAMEPLAY;
+GameScreen currentScreen = TITLE;
 Font font = { 0 };
 Music music = { 0 };
 Sound fxCoin = { 0 };
 Animation beeAnim = {0};
+int volumeLevel = 5;
 
 //----------------------------------------------------------------------------------
 // Global Variables Definition (local to this module)
@@ -74,7 +75,7 @@ int main(void)
 {
     // Initialization
     //---------------------------------------------------------
-    InitWindow(screenWidth, screenHeight, "raylib game template");
+    InitWindow(screenWidth, screenHeight, "hexman");
 
     InitAudioDevice();      // Initialize audio device
 
@@ -84,12 +85,13 @@ int main(void)
     fxCoin = LoadSound("resources/coin.wav");
     beeAnim = CreateAnimation("resources/bee.png", 2, 4, 30);
 
+    SetMasterVolume((float)volumeLevel/10.0f);
     SetMusicVolume(music, 1.0f);
-    PlayMusicStream(music);
+    //PlayMusicStream(music);   // no music asset yet
 
     // Setup and init first screen
-    currentScreen = GAMEPLAY;
-    InitGameplayScreen();
+    currentScreen = TITLE;
+    InitTitleScreen();
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 60, 1);

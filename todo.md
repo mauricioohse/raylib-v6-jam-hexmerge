@@ -19,6 +19,15 @@
     - flower sprite is 6 sprites in a vertical spritesheed, 16x(16*6): the flower_1 is an unseeded sprout, flower_2 and 3 are the seed sprouting and becoming a full flower, and the flower_4 to 6 is idle animation of the flower
     - the sprite is a top down view of a dandelion, please generate the PNG in anyway you have to do it
     - the level is won if the bee is able to sprout all the level seeds and have them meet (the hexagons need to be in the same "painted" alive shape)
-- [ ]
-- [ ] the game will have multiple levels, create the archtecture for that. you can do 
+- [x] the game starts with a main menu having "START GAME" button, a small "speaker" symbol with a number indicating volume (default 5), two arrows on the left and right of the volume number to increase or decrease.
+- [ ] the game will have multiple levels with set seed (they are not random)
+    - create a flexible hex struct archtecture so that I can load and unload levels (considering bee starting positioning and different number of HEX radius. see other points to have clear goal)
+    - first level will be just a hex grid of radius 1 (so it will be 7 hexagons). no enemies, just the bee and a seed on the center. add a text box on the right saying "the plants are suffering and need bee pollen to sprout, encircle the seed to help!". you may adjust this text
+    - second level make it radius 2,  2 seeds on oposite sides with a text mentioning that all seeds must sprout and must connect. 
+    - third level again 2 seeds, but now we introduce the enemy "wasp". also rename all mentions of spiders to wasp actually. 
+    - fourth level radius 3, three enemies and three seeds.
+    - prepare for up to 9 levels but only implement the first 4 for the moment
+    - on DEBUG builds, we should be able to change between levels by pressing number 1-9 on keyboard. this should also reset the lives to three 
+
+    
 - [ ]

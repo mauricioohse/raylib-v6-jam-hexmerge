@@ -66,6 +66,7 @@ extern Font font;
 extern Music music;
 extern Sound fxCoin;
 extern Animation beeAnim;
+extern int volumeLevel;     // 0..10, default 5; drives SetMasterVolume
 
 
 
