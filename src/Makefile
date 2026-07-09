@@ -42,6 +42,7 @@ PROJECT_SOURCE_FILES  ?= \
     hex_trail.c \
     hex_enemy.c \
     hex_flower.c \
+    hex_star.c \
     hex_level.c \
     hex_scores.c
 
@@ -53,6 +54,10 @@ RAYLIB_LIB_PATH       ?= $(RAYLIB_PATH)/lib
 RAYLIB_LIBTYPE        ?= STATIC
 
 # Build mode for project: DEBUG or RELEASE
+# Accept `make BUILD=DEBUG` as an alias for BUILD_MODE (common shorthand).
+ifdef BUILD
+    BUILD_MODE := $(BUILD)
+endif
 BUILD_MODE            ?= RELEASE
 
 # PLATFORM_WEB: Default properties

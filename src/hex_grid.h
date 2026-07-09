@@ -53,6 +53,7 @@ typedef struct HexFace
     int vertices[6];    // corners in +x CCW order (angle 0, 60, ... 300)
     int edges[6];       // edges[c] connects vertices[c] -> vertices[(c+1)%6]
     bool filled;        // fertilized/painted territory
+    bool starJail;      // center hex on star-seed levels (blue tint / wasp jail)
 } HexFace;
 
 typedef struct HexGrid

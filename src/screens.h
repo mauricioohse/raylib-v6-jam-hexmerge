@@ -57,6 +57,7 @@ typedef struct
 Animation CreateAnimation(const char* filepath, float scale, int frameCnt, int speed);
 void UpdateAnimation(Animation* anim);
 void DrawAnimation(Animation* animation, Vector2 position);
+void DrawAnimationTint(Animation* animation, Vector2 position, Color tint);
 
 //----------------------------------------------------------------------------------
 // Global Variables Declaration (shared by several modules)
@@ -64,6 +65,7 @@ void DrawAnimation(Animation* animation, Vector2 position);
 extern GameScreen currentScreen;
 extern Font font;
 extern Music music;
+extern Music musicStarPower;
 extern Sound fxCoin;
 extern Sound fxFail;
 extern Sound fxPaint;

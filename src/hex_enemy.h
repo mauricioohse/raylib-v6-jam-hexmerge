@@ -6,6 +6,10 @@
 *   paint. Each type is a color + junction behavior pairing; the tint is applied to
 *   the shared wasp.png spritesheet (16x64, 4 vertical frames, faces up).
 *
+*   During star power, living wasps flee slowly with a light-blue tint. Killed wasps
+*   are jailed on the center hex edges for HEX_ENEMY_JAIL_TIME seconds and cannot hurt
+*   the bee.
+*
 **********************************************************************************************/
 
 #ifndef HEX_ENEMY_H
@@ -13,6 +17,9 @@
 
 #include "raylib.h"
 #include "hex_grid.h"
+
+#define HEX_ENEMY_JAIL_TIME 8.0f
+#define HEX_ENEMY_FLEE_SPEED_SCALE 0.35f
 
 typedef enum HexEnemyType
 {
@@ -38,21 +45,30 @@ typedef struct HexEnemy
     int edge;
     int fromVertex;     // travel from this endpoint toward the other
     float t;            // 0..1 along current edge
-    float speed;        // pixels per second
+    float speed;        // pixels per second (current)
+    float baseSpeed;    // restored when not fleeing
     float animTimer;
     int animFrame;
+    float jailTimer;    // >0 = stuck on jail-face edges, harmless
 } HexEnemy;
 
 Color HexEnemyTint(HexEnemyType type);
 
 // baseSpeed is the bee's speed; chaser and mixed run at half of it
 void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int startVertex, float baseSpeed);
-void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt);
-Vector2 HexEnemyPosition(const HexEnemy *enemy, const HexGrid *grid);
-void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture);
 
-// Touch check against a point (the bee), for kill-on-touch
+// starPower: flee + slow + blue tint path. jailFace: center hex for jailed movement (-1 = none).
+void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt,
+                    bool starPower, int jailFace);
+
+void HexEnemySendToJail(HexEnemy *enemy, const HexGrid *grid, int jailFace);
+
+Vector2 HexEnemyPosition(const HexEnemy *enemy, const HexGrid *grid);
+void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture, bool starPower);
+
+// Touch check against a point (the bee). Jailed wasps never count as a hit.
 bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, float radius);
+bool HexEnemyIsJailed(const HexEnemy *enemy);
 
 int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn);
 

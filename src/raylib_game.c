@@ -40,6 +40,7 @@
 GameScreen currentScreen = TITLE;
 Font font = { 0 };
 Music music = { 0 };
+Music musicStarPower = { 0 };
 Sound fxCoin = { 0 };
 Sound fxFail = { 0 };
 Sound fxPaint = { 0 };
@@ -87,6 +88,7 @@ int main(void)
     // Load global data (assets that must be available in all screens, i.e. font)
     font = LoadFont("resources/mecha.png");
     //music = LoadMusicStream("resources/ambient.ogg"); // TODO: Load music
+    musicStarPower = LoadMusicStream("resources/star_power.wav");
     fxCoin = LoadSound("resources/coin.wav");
     fxFail = LoadSound("resources/fail.wav");
     fxPaint = LoadSound("resources/paint.wav");
@@ -96,6 +98,7 @@ int main(void)
 
     SetMasterVolume((float)volumeLevel/10.0f);
     SetMusicVolume(music, 1.0f);
+    SetMusicVolume(musicStarPower, 0.85f);
     //PlayMusicStream(music);   // no music asset yet
 
     // Setup and init first screen
@@ -130,6 +133,7 @@ int main(void)
     // Unload global data loaded
     UnloadFont(font);
     UnloadMusicStream(music);
+    UnloadMusicStream(musicStarPower);
     UnloadSound(fxCoin);
     UnloadSound(fxFail);
     UnloadSound(fxPaint);

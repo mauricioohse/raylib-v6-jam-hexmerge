@@ -1,4 +1,4 @@
-/**********************************************************************************************
+﻿/**********************************************************************************************
 *
 *   Beehold - Hex grid mesh implementation
 *
@@ -22,6 +22,8 @@
 
 // Unpainted tiles are dry dirt; painted (alive) tiles show the sprite's true colors
 static const Color HEX_DEAD_TINT = { 150, 105, 70, 255 };
+static const Color HEX_STAR_JAIL_TINT = { 70, 72, 78, 255 };       // unfilled jail (dark grey prison)
+static const Color HEX_STAR_JAIL_FILLED = { 110, 112, 118, 255 };  // filled jail (still grey, slightly lighter)
 static const Color EDGE_TRAIL_COLOR = { 255, 220, 70, 255 };   // pollen yellow
 static const Color EDGE_BASE_COLOR = { 40, 40, 40, 80 };
 
@@ -147,6 +149,7 @@ void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, int radius
             face->coord = (HexCoord){ q, r };
             face->center = HexCenterPixel(face->coord, grid->size, grid->origin);
             face->filled = false;
+            face->starJail = false;
 
             for (int c = 0; c < 6; c++)
             {
@@ -176,7 +179,11 @@ void HexGridDraw(const HexGrid *grid)
     {
         Vector2 c = grid->faces[i].center;
         Rectangle dst = { c.x - texW*0.5f, c.y - texH*0.5f, texW, texH };
-        Color tint = grid->faces[i].filled? WHITE : HEX_DEAD_TINT;
+        Color tint;
+        if (grid->faces[i].starJail)
+            tint = grid->faces[i].filled? HEX_STAR_JAIL_FILLED : HEX_STAR_JAIL_TINT;
+        else
+            tint = grid->faces[i].filled? WHITE : HEX_DEAD_TINT;
         DrawTexturePro(grid->hexTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
     }
 

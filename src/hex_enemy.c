@@ -20,10 +20,18 @@ static const Color ENEMY_TINTS[HEX_ENEMY_TYPE_COUNT] = {
     { 40, 40, 48, 255 },        // HEX_ENEMY_BLACK_EDGE
 };
 
+static const Color ENEMY_FLEE_TINT = { 140, 220, 255, 255 };
+static const Color ENEMY_JAIL_TINT = { 160, 190, 220, 200 };
+
 Color HexEnemyTint(HexEnemyType type)
 {
     if ((type < 0) || (type >= HEX_ENEMY_TYPE_COUNT)) return WHITE;
     return ENEMY_TINTS[type];
+}
+
+bool HexEnemyIsJailed(const HexEnemy *enemy)
+{
+    return (enemy != NULL) && (enemy->jailTimer > 0.0f);
 }
 
 static float Dist2(Vector2 a, Vector2 b)
@@ -36,6 +44,16 @@ static float Dist2(Vector2 a, Vector2 b)
 static bool IsRimEdge(const HexGrid *grid, int edge)
 {
     return (edge >= 0) && (edge < grid->edgeCount) && (grid->edges[edge].faceCount == 1);
+}
+
+static bool IsJailEdge(const HexGrid *grid, int edge, int jailFace)
+{
+    if ((jailFace < 0) || (jailFace >= grid->faceCount) || (edge < 0)) return false;
+    for (int c = 0; c < 6; c++)
+    {
+        if (grid->faces[jailFace].edges[c] == edge) return true;
+    }
+    return false;
 }
 
 //----------------------------------------------------------------------------------
@@ -58,22 +76,58 @@ static int PickChaseExit(const HexGrid *grid, const int *exits, int n, int verte
     return best;
 }
 
+static int PickFleeExit(const HexGrid *grid, const int *exits, int n, int vertex, Vector2 beePos)
+{
+    int best = exits[0];
+    float bestD = -1.0f;
+    for (int i = 0; i < n; i++)
+    {
+        int other = HexEdgeOtherVertex(grid, exits[i], vertex);
+        float d = Dist2(grid->vertices[other].pos, beePos);
+        if (d > bestD)
+        {
+            bestD = d;
+            best = exits[i];
+        }
+    }
+    return best;
+}
+
 // Exits exclude the reverse edge, so enemies keep moving and never jitter in place
-static int PickExit(const HexEnemy *enemy, const HexGrid *grid, int vertex, int fromEdge, Vector2 beePos)
+static int PickExit(const HexEnemy *enemy, const HexGrid *grid, int vertex, int fromEdge,
+                    Vector2 beePos, bool flee, int jailFace)
 {
     const HexVertex *v = &grid->vertices[vertex];
     int exits[3] = { 0 };
+    int rimExits[3] = { 0 };
     int n = 0;
+    int rimN = 0;
+    bool jailed = enemy->jailTimer > 0.0f;
+
     for (int i = 0; i < v->edgeCount; i++)
     {
         int e = v->edges[i];
         if (e == fromEdge) continue;
-        if ((enemy->type == HEX_ENEMY_BLACK_EDGE) && !IsRimEdge(grid, e)) continue;
+        if (jailed)
+        {
+            if (!IsJailEdge(grid, e, jailFace)) continue;
+        }
         exits[n++] = e;
+        if (IsRimEdge(grid, e)) rimExits[rimN++] = e;
     }
 
-    if (n == 0) return fromEdge;    // dead end / no legal rim exit: U-turn
+    // Black rim patrol: prefer rim; if none (e.g. leaving jail), take any exit
+    if (!jailed && !flee && (enemy->type == HEX_ENEMY_BLACK_EDGE) && (rimN > 0))
+    {
+        n = rimN;
+        for (int i = 0; i < rimN; i++) exits[i] = rimExits[i];
+    }
+
+    if (n == 0) return fromEdge;    // dead end / no legal exit: U-turn
     if (n == 1) return exits[0];
+
+    if (jailed) return exits[GetRandomValue(0, n - 1)];
+    if (flee) return PickFleeExit(grid, exits, n, vertex, beePos);
 
     bool chase = false;
     switch (enemy->type)
@@ -97,11 +151,13 @@ void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int s
     memset(enemy, 0, sizeof(*enemy));
     enemy->type = type;
 
-    if (type == HEX_ENEMY_BLACK_EDGE) enemy->speed = baseSpeed*1.5f;
-    else if (type == HEX_ENEMY_RED_RANDOM) enemy->speed = baseSpeed;
-    else enemy->speed = baseSpeed*0.5f;
+    if (type == HEX_ENEMY_BLACK_EDGE) enemy->baseSpeed = baseSpeed*1.5f;
+    else if (type == HEX_ENEMY_RED_RANDOM) enemy->baseSpeed = baseSpeed;
+    else enemy->baseSpeed = baseSpeed*0.5f;
+    enemy->speed = enemy->baseSpeed;
 
     enemy->fromVertex = startVertex;
+    enemy->jailTimer = 0.0f;
 
     const HexVertex *v = &grid->vertices[startVertex];
     int rimChoices[3] = { 0 };
@@ -121,13 +177,42 @@ void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int s
     }
 }
 
-void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt)
+void HexEnemySendToJail(HexEnemy *enemy, const HexGrid *grid, int jailFace)
+{
+    if ((enemy == NULL) || (grid == NULL) || (jailFace < 0) || (jailFace >= grid->faceCount)) return;
+
+    enemy->jailTimer = HEX_ENEMY_JAIL_TIME;
+    enemy->speed = enemy->baseSpeed*HEX_ENEMY_FLEE_SPEED_SCALE;
+    enemy->t = 0.0f;
+
+    int corner = GetRandomValue(0, 5);
+    enemy->fromVertex = grid->faces[jailFace].vertices[corner];
+    enemy->edge = grid->faces[jailFace].edges[corner];
+}
+
+void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt,
+                    bool starPower, int jailFace)
 {
     enemy->animTimer += dt;
     while (enemy->animTimer >= ENEMY_FRAME_TIME)
     {
         enemy->animTimer -= ENEMY_FRAME_TIME;
         enemy->animFrame = (enemy->animFrame + 1)%ENEMY_FRAME_COUNT;
+    }
+
+    if (enemy->jailTimer > 0.0f)
+    {
+        enemy->jailTimer -= dt;
+        if (enemy->jailTimer < 0.0f) enemy->jailTimer = 0.0f;
+        enemy->speed = enemy->baseSpeed*HEX_ENEMY_FLEE_SPEED_SCALE;
+    }
+    else if (starPower)
+    {
+        enemy->speed = enemy->baseSpeed*HEX_ENEMY_FLEE_SPEED_SCALE;
+    }
+    else
+    {
+        enemy->speed = enemy->baseSpeed;
     }
 
     if ((enemy->edge < 0) || (enemy->edge >= grid->edgeCount)) return;
@@ -137,12 +222,13 @@ void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float 
 
     enemy->t += (enemy->speed*dt)/len;
 
+    bool flee = starPower && (enemy->jailTimer <= 0.0f);
     while (enemy->t >= 1.0f)
     {
         float overflowPx = (enemy->t - 1.0f)*len;
         int arrived = HexEdgeOtherVertex(grid, enemy->edge, enemy->fromVertex);
 
-        enemy->edge = PickExit(enemy, grid, arrived, enemy->edge, beePos);
+        enemy->edge = PickExit(enemy, grid, arrived, enemy->edge, beePos, flee, jailFace);
         enemy->fromVertex = arrived;
 
         len = HexEdgeLength(grid, enemy->edge);
@@ -155,7 +241,7 @@ Vector2 HexEnemyPosition(const HexEnemy *enemy, const HexGrid *grid)
     return HexEdgePoint(grid, enemy->edge, enemy->fromVertex, enemy->t);
 }
 
-void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture)
+void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture, bool starPower)
 {
     Vector2 pos = HexEnemyPosition(enemy, grid);
 
@@ -171,11 +257,16 @@ void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture)
     Vector2 b = grid->vertices[toVertex].pos;
     float rotation = atan2f(b.y - a.y, b.x - a.x)*RAD2DEG + 90.0f;
 
-    DrawTexturePro(texture, src, dst, origin, rotation, HexEnemyTint(enemy->type));
+    Color tint = HexEnemyTint(enemy->type);
+    if (enemy->jailTimer > 0.0f) tint = ENEMY_JAIL_TINT;
+    else if (starPower) tint = ENEMY_FLEE_TINT;
+
+    DrawTexturePro(texture, src, dst, origin, rotation, tint);
 }
 
 bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, float radius)
 {
+    if (HexEnemyIsJailed(enemy)) return false;
     return Dist2(HexEnemyPosition(enemy, grid), pos) <= radius*radius;
 }
 

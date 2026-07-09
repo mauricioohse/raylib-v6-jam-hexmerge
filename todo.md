@@ -37,8 +37,11 @@
     - [x] level 7 twin seeds intro: radius 2, one twin pair, no wasps, bubbly bond trail
     - [x] level 8: two twin pairs, radius 3, 1 black + 1 chaser + 1 random
     - [x] level 9 "Full swarm": radius 3, 4 diamond seeds, one of each wasp (red/purple/green/black)
-    - [x] level 10: radius 4, 4-5 seeds, 5 wasps (2 black opposite rim + red + purple + green)
-    - [x] level 11: radius 4, 12 seeds (one twin pair among them)
+    - [x] level 10: star seed tutorial (blue center jail hex, eat wasps)
+    - [x] level 11: 2 stars + seeds + 5 wasps (2 black, chase, random, mixed)
+    - [x] level 12: radius 4, 4-5 seeds, 5 wasps
+    - [x] level 13: radius 4, 12 seeds (one twin pair) + 2 stars
+- [x] star seeds: 4s power, rainbow bee, flee/slow wasps, jail 8s, star_power music
 - [x] add run timer; ending shows time, saves sorted best times to file, lists top times center (works on emscripten/web too)
 - [x] twin seeds: pair tint + bubble trail; fill fails if exactly one twin enclosed
 - [x] DEBUG: ,/< previous level, ./> next level

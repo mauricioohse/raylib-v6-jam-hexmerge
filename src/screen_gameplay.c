@@ -14,6 +14,7 @@
 #include "hex_scores.h"
 #include "hex_trail.h"
 
+#include <math.h>
 #include <stdio.h>
 
 //----------------------------------------------------------------------------------
@@ -34,10 +35,12 @@ static Texture2D waspTexture = { 0 };
 static Texture2D heartsTexture = { 0 };
 static Texture2D flowerTexture = { 0 };
 static Texture2D bubbleTexture = { 0 };
+static Texture2D starTexture = { 0 };
 static int lives = PLAYER_MAX_LIVES;
 static float runTimer = 0.0f;
 static bool runActive = false;
 static bool levelPaused = true;     // wait for A/D (or arrows) before bee/wasps move
+static bool starMusicPlaying = false;
 
 //----------------------------------------------------------------------------------
 // Animation helpers
@@ -85,12 +88,76 @@ void DrawAnimation(Animation *anim, Vector2 position)
     DrawTexturePro(anim->text, anim->src, anim->dst, anim->origin, anim->rotation, WHITE);
 }
 
+void DrawAnimationTint(Animation *anim, Vector2 position, Color tint)
+{
+    anim->dst.x = position.x;
+    anim->dst.y = position.y;
+    DrawTexturePro(anim->text, anim->src, anim->dst, anim->origin, anim->rotation, tint);
+}
+
 //----------------------------------------------------------------------------------
 // Round / lives helpers
 //----------------------------------------------------------------------------------
+static void StopStarMusic(void)
+{
+    if (starMusicPlaying)
+    {
+        StopMusicStream(musicStarPower);
+        starMusicPlaying = false;
+    }
+}
+
+static void SyncStarMusic(bool powered)
+{
+    if (powered)
+    {
+        if (!starMusicPlaying)
+        {
+            musicStarPower.looping = true;
+            PlayMusicStream(musicStarPower);
+            starMusicPlaying = true;
+        }
+        UpdateMusicStream(musicStarPower);
+    }
+    else
+    {
+        StopStarMusic();
+    }
+}
+
+static Color RainbowTint(float t)
+{
+    // Cycle hue quickly while star-powered
+    float h = t*2.5f;
+    h = h - (float)((int)h);    // frac
+    float s = 0.85f;
+    float v = 1.0f;
+    float c = v*s;
+    float x = c*(1.0f - fabsf(fmodf(h*6.0f, 2.0f) - 1.0f));
+    float m = v - c;
+    float r = 0, g = 0, b = 0;
+    int sector = (int)(h*6.0f);
+    switch (sector%6)
+    {
+        case 0: r = c; g = x; b = 0; break;
+        case 1: r = x; g = c; b = 0; break;
+        case 2: r = 0; g = c; b = x; break;
+        case 3: r = 0; g = x; b = c; break;
+        case 4: r = x; g = 0; b = c; break;
+        default: r = c; g = 0; b = x; break;
+    }
+    return (Color){
+        (unsigned char)((r + m)*255.0f),
+        (unsigned char)((g + m)*255.0f),
+        (unsigned char)((b + m)*255.0f),
+        255
+    };
+}
+
 static void LoadCurrentLevel(void)
 {
-    HexLevelLoad(&level, currentLevelIndex, hexTexture, flowerTexture, bubbleTexture, BEE_SPEED);
+    StopStarMusic();
+    HexLevelLoad(&level, currentLevelIndex, hexTexture, flowerTexture, bubbleTexture, starTexture, BEE_SPEED);
     levelPaused = true;
     beeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
     UpdateAnimation(&beeAnim);
@@ -98,6 +165,7 @@ static void LoadCurrentLevel(void)
 
 static void FinishRun(void)
 {
+    StopStarMusic();
     runActive = false;
     lastRunTime = runTimer;
     HexScoresSubmit(lastRunTime);
@@ -143,7 +211,9 @@ void InitGameplayScreen(void)
     heartsTexture = LoadTexture("resources/hearts.png");
     flowerTexture = LoadTexture("resources/flower.png");
     bubbleTexture = LoadTexture("resources/bubbles.png");
+    starTexture = LoadTexture("resources/star.png");
     SetTextureFilter(bubbleTexture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(starTexture, TEXTURE_FILTER_POINT);
 
     LoadCurrentLevel();
 }
@@ -226,8 +296,11 @@ void UpdateGameplayScreen(void)
     if (filled == HEX_TRAIL_TWIN_FAIL) PlaySound(fxFail);
     else if (filled > 0) PlaySound(fxPaint);
 
+    SyncStarMusic(HexLevelStarPowered(&level));
+
     if (HexLevelBeeHit(&level, HIT_RADIUS))
     {
+        StopStarMusic();
         lives--;
         PlaySound(fxLife);
         if (lives <= 0)
@@ -247,6 +320,7 @@ void UpdateGameplayScreen(void)
 
     if (HexLevelWon(&level))
     {
+        StopStarMusic();
         if (currentLevelIndex + 1 < HexLevelCount())
         {
             currentLevelIndex++;
@@ -275,7 +349,10 @@ void DrawGameplayScreen(void)
     HexLevelDraw(&level, waspTexture);
 
     Vector2 beePos = HexBeePosition(&level.bee, &level.grid);
-    DrawAnimation(&beeAnim, beePos);
+    if (HexLevelStarPowered(&level))
+        DrawAnimationTint(&beeAnim, beePos, RainbowTint(runTimer));
+    else
+        DrawAnimation(&beeAnim, beePos);
 
     DrawLives();
     HexLevelDrawHint(&level);
@@ -304,6 +381,7 @@ void DrawGameplayScreen(void)
 
 void UnloadGameplayScreen(void)
 {
+    StopStarMusic();
     UnloadTexture(hexTexture);
     hexTexture = (Texture2D){ 0 };
     UnloadTexture(waspTexture);
@@ -314,6 +392,8 @@ void UnloadGameplayScreen(void)
     flowerTexture = (Texture2D){ 0 };
     UnloadTexture(bubbleTexture);
     bubbleTexture = (Texture2D){ 0 };
+    UnloadTexture(starTexture);
+    starTexture = (Texture2D){ 0 };
 }
 
 int FinishGameplayScreen(void)
