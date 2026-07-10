@@ -84,3 +84,6 @@ src/itch_web/
 src/beehold_web/
 tools/
 *.txt
+gdd.md
+hexman.code-workspace
+todo.md
