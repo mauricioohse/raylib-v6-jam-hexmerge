@@ -19,7 +19,7 @@
 #define HEX_STAR_MAX 8
 #define HEX_STAR_FRAME_COUNT 4
 #define HEX_STAR_SCALE 2.0f
-#define HEX_STAR_POWER_TIME 4.0f
+#define HEX_STAR_POWER_TIME 6.0f
 
 typedef struct HexStar
 {

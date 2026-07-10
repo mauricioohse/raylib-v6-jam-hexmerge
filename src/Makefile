@@ -43,6 +43,7 @@ PROJECT_SOURCE_FILES  ?= \
     hex_enemy.c \
     hex_flower.c \
     hex_star.c \
+    hex_background.c \
     hex_level.c \
     hex_scores.c
 

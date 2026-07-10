@@ -100,7 +100,7 @@ int main(void)
 
     SetMasterVolume((float)volumeLevel/10.0f);
     SetMusicVolume(music, 1.0f);
-    SetMusicVolume(musicStarPower, 0.85f);
+    SetMusicVolume(musicStarPower, 0.55f);
     //PlayMusicStream(music);   // no music asset yet
 
     // Setup and init first screen

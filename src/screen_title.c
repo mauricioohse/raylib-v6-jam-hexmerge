@@ -10,6 +10,7 @@
 
 #include "raylib.h"
 #include "screens.h"
+#include "hex_background.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -23,14 +24,6 @@
 #define SPEAKER_FRAME_COUNT 4
 #define SPEAKER_SCALE 2.0f
 
-#define FALL_HEX_MAX 20
-#define FALL_SPAWN_MIN 0.5f
-#define FALL_SPAWN_MAX 2.5f
-#define FALL_SPEED_MIN 28.0f
-#define FALL_SPEED_MAX 55.0f
-#define FALL_SCALE_MIN 0.70f
-#define FALL_SCALE_MAX 1.30f
-
 #define FLY_BEE_MAX 6
 #define FLY_BEE_FRAMES 4
 #define FLY_BEE_FRAME_TIME 0.08f
@@ -40,17 +33,6 @@
 #define FLY_BEE_SPEED_MAX 90.0f
 #define FLY_BEE_SCALE_MIN 1.5f
 #define FLY_BEE_SCALE_MAX 2.4f
-
-typedef struct FallHex
-{
-    bool active;
-    Vector2 pos;        // top-left of drawn sprite
-    float speed;        // px/sec downward
-    float scale;
-    float rotation;
-    float rotSpeed;
-    unsigned char alpha;
-} FallHex;
 
 typedef struct FlyBee
 {
@@ -77,9 +59,7 @@ static Rectangle volUpBtn = { 0 };
 static Texture2D speakerTexture = { 0 };
 static Texture2D fallHexTexture = { 0 };
 static Texture2D flyBeeTexture = { 0 };
-
-static FallHex fallHexes[FALL_HEX_MAX] = { 0 };
-static float fallSpawnTimer = 0.0f;
+static HexBackground fallBg = { 0 };
 
 static FlyBee flyBees[FLY_BEE_MAX] = { 0 };
 static float flyBeeSpawnTimer = 0.0f;
@@ -146,95 +126,6 @@ static void DrawMenuButton(Rectangle r, const char *label, bool hovered)
 static float RandRange(float a, float b)
 {
     return a + (b - a)*((float)GetRandomValue(0, 10000)/10000.0f);
-}
-
-static int FallHexCount(void)
-{
-    int n = 0;
-    for (int i = 0; i < FALL_HEX_MAX; i++)
-    {
-        if (fallHexes[i].active) n++;
-    }
-    return n;
-}
-
-static void SpawnFallHex(void)
-{
-    if (fallHexTexture.id == 0) return;
-    if (FallHexCount() >= FALL_HEX_MAX) return;
-
-    int slot = -1;
-    for (int i = 0; i < FALL_HEX_MAX; i++)
-    {
-        if (!fallHexes[i].active) { slot = i; break; }
-    }
-    if (slot < 0) return;
-
-    float scale = RandRange(FALL_SCALE_MIN, FALL_SCALE_MAX);
-    float w = (float)fallHexTexture.width*scale;
-    float h = (float)fallHexTexture.height*scale;
-    float sw = (float)GetScreenWidth();
-
-    FallHex *hex = &fallHexes[slot];
-    hex->active = true;
-    hex->scale = scale;
-    hex->speed = RandRange(FALL_SPEED_MIN, FALL_SPEED_MAX);
-    hex->rotation = RandRange(0.0f, 360.0f);
-    hex->rotSpeed = RandRange(-18.0f, 18.0f);
-    hex->alpha = (unsigned char)GetRandomValue(40, 90);
-    hex->pos.x = RandRange(-w*0.25f, sw - w*0.75f);
-    hex->pos.y = -h - RandRange(0.0f, 40.0f);
-}
-
-static void ResetFallSpawnTimer(void)
-{
-    fallSpawnTimer = RandRange(FALL_SPAWN_MIN, FALL_SPAWN_MAX);
-}
-
-static void UpdateFallHexes(float dt)
-{
-    fallSpawnTimer -= dt;
-    if (fallSpawnTimer <= 0.0f)
-    {
-        SpawnFallHex();
-        ResetFallSpawnTimer();
-    }
-
-    float sh = (float)GetScreenHeight();
-    for (int i = 0; i < FALL_HEX_MAX; i++)
-    {
-        FallHex *hex = &fallHexes[i];
-        if (!hex->active) continue;
-
-        hex->pos.y += hex->speed*dt;
-        hex->rotation += hex->rotSpeed*dt;
-
-        float h = (float)fallHexTexture.height*hex->scale;
-        if (hex->pos.y > sh + h) hex->active = false;
-    }
-}
-
-static void DrawFallHexes(void)
-{
-    if (fallHexTexture.id == 0) return;
-
-    float tw = (float)fallHexTexture.width;
-    float th = (float)fallHexTexture.height;
-    Rectangle src = { 0, 0, tw, th };
-
-    for (int i = 0; i < FALL_HEX_MAX; i++)
-    {
-        const FallHex *hex = &fallHexes[i];
-        if (!hex->active) continue;
-
-        float dw = tw*hex->scale;
-        float dh = th*hex->scale;
-        Rectangle dst = { hex->pos.x + dw*0.5f, hex->pos.y + dh*0.5f, dw, dh };
-        Vector2 origin = { dw*0.5f, dh*0.5f };
-        // Soft dirt look so they stay in the background
-        Color tint = (Color){ 150, 105, 70, hex->alpha };
-        DrawTexturePro(fallHexTexture, src, dst, origin, hex->rotation, tint);
-    }
 }
 
 //----------------------------------------------------------------------------------
@@ -368,18 +259,7 @@ void InitTitleScreen(void)
     SetTextureFilter(speakerTexture, TEXTURE_FILTER_POINT);
 
     fallHexTexture = LoadTexture("resources/hexfield.png");
-    for (int i = 0; i < FALL_HEX_MAX; i++) fallHexes[i].active = false;
-    // Seed a few so the menu isn't empty on first frame
-    int seedCount = GetRandomValue(6, 10);
-    for (int i = 0; i < seedCount; i++) SpawnFallHex();
-    for (int i = 0; i < FALL_HEX_MAX; i++)
-    {
-        if (fallHexes[i].active)
-        {
-            fallHexes[i].pos.y = RandRange(-40.0f, (float)GetScreenHeight()*0.7f);
-        }
-    }
-    ResetFallSpawnTimer();
+    HexBackgroundInit(&fallBg, fallHexTexture, HEX_BG_TITLE);
 
     flyBeeTexture = LoadTexture("resources/bee.png");
     SetTextureFilter(flyBeeTexture, TEXTURE_FILTER_POINT);
@@ -405,7 +285,7 @@ void UpdateTitleScreen(void)
 {
     framesCounter++;
     float dt = GetFrameTime();
-    UpdateFallHexes(dt);
+    HexBackgroundUpdate(&fallBg, dt);
     UpdateFlyBees(dt);
 
     if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
@@ -447,7 +327,7 @@ void UpdateTitleScreen(void)
 void DrawTitleScreen(void)
 {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
-    DrawFallHexes();
+    HexBackgroundDraw(&fallBg);
     DrawFlyBees();
 
     const char *title = "BEEHOLD";

@@ -13,6 +13,7 @@
 #include "hex_level.h"
 #include "hex_scores.h"
 #include "hex_trail.h"
+#include "hex_background.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -43,6 +44,7 @@ static bool runActive = false;
 static bool levelPaused = true;     // wait for first steer before bee/wasps move
 static bool starMusicPlaying = false;
 static bool moveModeRelative = false;   // false = WASD absolute (default), true = A/D relative
+static HexBackground fallBg = { 0 };
 
 //----------------------------------------------------------------------------------
 // Animation helpers
@@ -243,12 +245,14 @@ void InitGameplayScreen(void)
     SetTextureFilter(bubbleTexture, TEXTURE_FILTER_POINT);
     SetTextureFilter(starTexture, TEXTURE_FILTER_POINT);
 
+    HexBackgroundInit(&fallBg, hexTexture, HEX_BG_GAMEPLAY);
     LoadCurrentLevel();
 }
 
 void UpdateGameplayScreen(void)
 {
     float dt = GetFrameTime();
+    HexBackgroundUpdate(&fallBg, dt);
 
 #if defined(_DEBUG)
     for (int key = KEY_ONE; key <= KEY_NINE; key++)
@@ -397,6 +401,7 @@ void UpdateGameplayScreen(void)
 void DrawGameplayScreen(void)
 {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
+    HexBackgroundDraw(&fallBg);
 
     HexLevelDraw(&level, waspTexture);
 
