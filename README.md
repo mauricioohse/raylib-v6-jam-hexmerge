@@ -1,96 +1,54 @@
------------------------------------
-_DISCLAIMER:_
+# Beehold
 
-Welcome to the **raylib game template**!
+**Save the dried up plants by pollinating!**
 
-This template provides a base structure to start developing a small raylib game in plain C. The repo is also pre-configured with a default `LICENSE` (zlib/libpng) and a `README.md` (this one) to be properly filled by users. Feel free to change the LICENSE as required.
+In **Beehold**, play as Mr. Bee, spreading pollen through the plants. Your goal is to paint all hexes and have the regions merge so that seeds can sprout!
 
-All the sections defined by `$(Data to Fill)` are expected to be edited and filled properly. It's recommended to delete this disclaimer message after editing this `README.md` file.
+But watch out — evil wasps are trying to stop you!
 
------------------------------------
+---
 
-## Getting Started with this template
+## Controls
 
-### Windows: Visual Studio
+- **Mouse**: Interact with menus
+- Two movement schemes are available in the main menu:
+    - **Default:**  
+      - `A` / `D`: Turn the bee (directional movement)
+    - **WASD mode:**  
+      - `W` / `A` / `S` / `D`: Absolute movement (for those who prefer it)
 
-- After extracting the zip, the parent folder `raylib-game-template` should exist in the same directory as `raylib` itself.  So, your file structure should look like this:
-    - Some parent directory
-        - `raylib`
-            - the contents of https://github.com/raysan5/raylib
-        - `raylib-game-template`
-            - this `README.md` and all other raylib-game-template files
-- If using Visual Studio, open projects/VS2022/raylib-game-template.sln
-- Select on `raylib_game` in the solution explorer, then in the toolbar at the top, click `Project` > `Set as Startup Project`
-- Now you're all set up!  Click `Local Windows Debugger` with the green play arrow and the project will run.
+---
 
-### Linux
+## Socials
 
-When setting up this template on linux for the first time, install the dependencies from this page:
-([Working on GNU Linux](https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux))
+- [Discord](https://discord.gg/SGXVEwzUh)
+- [X (Twitter)](https://x.com/mohselabs)
+- [Twitch](https://www.twitch.tv/mohselabs)
 
-You can use this templates in a few ways: using Visual Studio, using CMake, or make your own build setup. This repository comes with Visual Studio and CMake already set up.
 
-Chose one of the follow setup options that fit in you development environment.
+## About the Game
 
-### CLI: Makefile
+Game developed for [Raylib#6 Jam](https://itch.io/jam/raylib-6th-jam).  
+This is my fourth game jam entry and my first time using Raylib!
 
-```sh
-mkdir ~/raylib-gamejam && cd ~/raylib-gamejam
-git clone --depth 1 --branch 6.0 https://github.com/raysan5/raylib
-make -C raylib/src
-git clone https://github.com/$(User Name)/$(Repo Name).git
-cd $(Repo Name)
-make -C src
-src/raylib_game
-```
+- **Written in:** C (by me)
+- **Sprites:** All sprites by my wife
+- **Audio:** Credits below
+- **Libraries:** Only Raylib and C standard libraries used. Used the [Raylib gamejam template](https://github.com/raysan5/raylib-gamejam-template)
+- **Web build:** Compiled with Emscripten
 
-This template has been created to be used with raylib (www.raylib.com) and it's licensed under an unmodified zlib/libpng license.
+---
 
-_Copyright (c) 2014-2026 Ramon Santamaria ([@raysan5](https://github.com/raysan5))_
+## Disclaimer
 
------------------------------------
+Disclamer: I did use GenAI for assisting in code and assets modification. Every line is reviewed and not vibecoded, but I did use for discussing ideas, generating template code and such. Using it doesnt make me happy, but with a job + kids its the only way I could finish this in time.
 
-## $(Game Title)
+---
 
-![$(Game Title)](screenshots/screenshot000.png "$(Game Title)")
+## Asset Credits
 
-### Description
-
-$(Your Game Description)
-
-### Features
-
- - $(Game Feature 01)
- - $(Game Feature 02)
- - $(Game Feature 03)
-
-### Controls
-
-Keyboard:
- - $(Game Control 01)
- - $(Game Control 02)
- - $(Game Control 03)
-
-### Screenshots
-
-_TODO: Show your game to the world, animated GIFs recommended!._
-
-### Developers
-
- - $(Developer 01) - $(Role/Tasks Developed)
- - $(Developer 02) - $(Role/Tasks Developed)
- - $(Developer 03) - $(Role/Tasks Developed)
-
-### Links
-
- - YouTube Gameplay: $(YouTube Link)
- - itch.io Release: $(itch.io Game Page)
- - Steam Release: $(Steam Game Page)
-
-### License
-
-This project sources are licensed under an unmodified zlib/libpng license, which is an OSI-certified, BSD-like license that allows static linking with closed source software. Check [LICENSE](LICENSE) for further details.
-
-$(Additional Licenses)
-
-*Copyright (c) $(Year) $(User Name) ($(User Twitter/GitHub Name))*
+- **Bee spritesheet:** AJ08Coder
+- **Strange sounds:** Aureolus_Omicron (some cut and modified)
+- **Sound inspiration:** Bfxr
+- **Music:** Created in BeepBox
+- **All other assets:** Created by me or my wife using Photoshop and Aseprite
