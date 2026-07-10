@@ -546,6 +546,27 @@ void UpdateGameplayScreen(void)
         moveModeRelative = !moveModeRelative;
         PlaySound(fxCoin);
     }
+    if (IsKeyPressed(KEY_H))
+    {
+        for (int f = 0; f < level.grid.faceCount; f++)
+        {
+            if (level.grid.faces[f].kind == HEX_FACE_FIRE)
+                level.grid.faces[f].kind = HEX_FACE_NORMAL;
+            level.grid.faces[f].filled = true;
+        }
+        for (int e = 0; e < level.grid.edgeCount; e++)
+            level.grid.edges[e].painted = true;
+
+        HexFlowerFieldOnFill(&level.flowers, &level.grid);
+        for (int i = 0; i < level.flowers.count; i++)
+        {
+            level.flowers.flowers[i].state = HEX_FLOWER_BLOOMED;
+            level.flowers.flowers[i].animFrame = 3;   // idle bloom frame
+            level.flowers.flowers[i].animTimer = 0.0f;
+        }
+        levelPaused = false;
+        PlaySound(fxPaint);
+    }
 #endif
 
     HexBeeInput steer = HEX_BEE_INPUT_NONE;
@@ -707,7 +728,7 @@ void DrawGameplayScreen(void)
     }
 
 #if defined(_DEBUG)
-    DrawText(TextFormat("DEBUG: 1-9/0 jump  </, >/ . step  G=%s",
+    DrawText(TextFormat("DEBUG: 1-9/0 jump  </, >/ . step  G=%s  H=fill",
                         moveModeRelative? "A/D" : "WASD"),
              16, GetScreenHeight() - 28, 16, (Color){ 120, 140, 160, 255 });
 #endif

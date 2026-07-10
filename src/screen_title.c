@@ -11,6 +11,7 @@
 #include "raylib.h"
 #include "screens.h"
 #include "hex_background.h"
+#include "hex_social.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -280,6 +281,7 @@ void InitTitleScreen(void)
     volDownBtn = (Rectangle){ sw*0.5f - 20.0f, volY, 36.0f, 36.0f };
     volUpBtn = (Rectangle){ sw*0.5f + 52.0f, volY, 36.0f, 36.0f };
 
+    HexSocialLayoutBottomCenter(sh - 56.0f);
     ApplyVolume();
 }
 
@@ -289,6 +291,12 @@ void UpdateTitleScreen(void)
     float dt = GetFrameTime();
     HexBackgroundUpdate(&fallBg, dt);
     UpdateFlyBees(dt);
+
+    if (HexSocialUpdate())
+    {
+        PlaySound(fxCoin);
+        return;
+    }
 
     if (Clicked(moveBtn))
     {
@@ -432,6 +440,8 @@ void DrawTitleScreen(void)
         DrawText(line2, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH, tipFont, (Color){ 220, 225, 235, 255 });
         DrawText(line3, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH*2, tipFont, (Color){ 220, 225, 235, 255 });
     }
+
+    HexSocialDraw();
 }
 
 void UnloadTitleScreen(void)

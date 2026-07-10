@@ -11,6 +11,7 @@
 #include "raylib.h"
 #include "screens.h"
 #include "hex_scores.h"
+#include "hex_social.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -31,10 +32,23 @@ void InitEndingScreen(void)
     framesCounter = 0;
     finishScreen = 0;
     bestCount = HexScoresLoad(bestTimes, HEX_SCORES_MAX, lastRun.hardcore);
+
+    float sw = (float)GetScreenWidth();
+    float iconSize = 32.0f;
+    float gap = 16.0f;
+    float total = iconSize*2.0f + gap;
+    // Under the yellow promo on the right (matches DrawEndingScreen layout)
+    HexSocialLayoutAt(sw - 48.0f - total, (float)(112 + 28 + 40 + 24*2 + 16));
 }
 
 void UpdateEndingScreen(void)
 {
+    if (HexSocialUpdate())
+    {
+        PlaySound(fxCoin);
+        return;
+    }
+
     if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
     {
         finishScreen = 1;
@@ -63,18 +77,19 @@ void DrawEndingScreen(void)
 
     const char *header = "LEVEL    TIME";
     int headerY = 112;
-    DrawText(header, (sw - MeasureText(header, 18))/2, headerY, 18, (Color){ 160, 170, 180, 255 });
+    int listX = 48;
+    DrawText(header, listX, headerY, 18, (Color){ 160, 170, 180, 255 });
 
     int n = lastRun.levelsRecorded;
+    int listTop = headerY + 28;
     if (n <= 0)
     {
         const char *empty = "No level data";
-        DrawText(empty, (sw - MeasureText(empty, 20))/2, sh/2, 20, LIGHTGRAY);
+        DrawText(empty, listX, sh/2, 20, LIGHTGRAY);
     }
     else
     {
         int lineH = 22;
-        int listTop = headerY + 28;
         int listBottom = sh - 150;
         int maxVisible = (listBottom - listTop)/lineH;
         if (maxVisible < 1) maxVisible = 1;
@@ -92,9 +107,30 @@ void DrawEndingScreen(void)
             int y = listTop + (i - start)*lineH;
             Color col = RAYWHITE;
             if (!lastRun.won && (i == n - 1)) col = (Color){ 255, 160, 140, 255 };
-            DrawText(line, (sw - MeasureText(line, 20))/2, y, 20, col);
+            DrawText(line, listX, y, 20, col);
         }
     }
+
+    {
+        const char *line1 = "Enjoyed the game?";
+        const char *line2 = "follow mohselabs on X!";
+        int fontSize = 18;
+        int lineH = fontSize + 6;
+        int rightPad = 48;
+        int x1 = sw - rightPad - MeasureText(line1, fontSize);
+        int x2 = sw - rightPad - MeasureText(line2, fontSize);
+        int y = listTop + 40;
+        Color yellow = (Color){ 255, 220, 70, 255 };
+        DrawText(line1, x1, y, fontSize, yellow);
+        DrawText(line2, x2, y + lineH, fontSize, yellow);
+
+        float iconSize = 32.0f;
+        float gap = 16.0f;
+        float total = iconSize*2.0f + gap;
+        HexSocialLayoutAt((float)sw - (float)rightPad - total, (float)(y + lineH*2 + 16));
+    }
+
+    HexSocialDraw();
 
     // Compact best-times strip near the bottom (wins only matter for board, but always show)
     const char *boardTitle = lastRun.hardcore? "BEST SPEEDRUN TIMES" : "BEST TOTAL TIMES";
@@ -124,6 +160,12 @@ void DrawEndingScreen(void)
 
     const char *hint = lastRun.won? "ENTER / TAP  return to menu" : "ENTER / TAP  try again from menu";
     DrawText(hint, (sw - MeasureText(hint, 18))/2, sh - 40, 18, LIGHTGRAY);
+
+    if (lastRun.won)
+    {
+        const char *promo = "got a good score? post in the comments!";
+        DrawText(promo, (sw - MeasureText(promo, 16))/2, sh - 68, 16, (Color){ 255, 220, 70, 255 });
+    }
 }
 
 void UnloadEndingScreen(void)

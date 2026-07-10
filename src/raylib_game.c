@@ -12,6 +12,7 @@
 
 #include "raylib.h"
 #include "screens.h"    // NOTE: Declares global (extern) variables and screens functions
+#include "hex_social.h"
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>      // Emscripten library
@@ -116,6 +117,8 @@ int main(void)
     SetSoundVolume(fxBeeZoom, 0.18f);
     beeAnim = CreateAnimation("resources/bee.png", 2, 4, 30);
 
+    HexSocialInit();
+
     SetMasterVolume((float)volumeLevel/10.0f);
     SetMusicVolume(music, 0.20f);
     SetMusicVolume(musicStarPower, 0.55f);
@@ -164,6 +167,7 @@ int main(void)
     for (int i = 0; i < ZOOM_ALIAS_COUNT; i++) UnloadSoundAlias(fxZoomAlias[i]);
     UnloadSound(fxZoom);
     UnloadSound(fxBeeZoom);
+    HexSocialUnload();
 
     CloseAudioDevice();     // Close audio context
 

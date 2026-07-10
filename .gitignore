@@ -83,3 +83,4 @@ android.*
 src/itch_web/
 src/beehold_web/
 tools/
+*.txt
