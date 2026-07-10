@@ -190,7 +190,7 @@ void HexEnemySendToJail(HexEnemy *enemy, const HexGrid *grid, int jailFace)
     enemy->edge = grid->faces[jailFace].edges[corner];
 }
 
-void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt,
+bool HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt,
                     bool starPower, int jailFace)
 {
     enemy->animTimer += dt;
@@ -215,13 +215,14 @@ void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float 
         enemy->speed = enemy->baseSpeed;
     }
 
-    if ((enemy->edge < 0) || (enemy->edge >= grid->edgeCount)) return;
+    if ((enemy->edge < 0) || (enemy->edge >= grid->edgeCount)) return false;
 
     float len = HexEdgeLength(grid, enemy->edge);
-    if (len < 0.001f) return;
+    if (len < 0.001f) return false;
 
     enemy->t += (enemy->speed*dt)/len;
 
+    bool hopped = false;
     bool flee = starPower && (enemy->jailTimer <= 0.0f);
     while (enemy->t >= 1.0f)
     {
@@ -230,10 +231,12 @@ void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float 
 
         enemy->edge = PickExit(enemy, grid, arrived, enemy->edge, beePos, flee, jailFace);
         enemy->fromVertex = arrived;
+        hopped = true;
 
         len = HexEdgeLength(grid, enemy->edge);
         enemy->t = (len > 0.001f)? overflowPx/len : 0.0f;
     }
+    return hopped;
 }
 
 Vector2 HexEnemyPosition(const HexEnemy *enemy, const HexGrid *grid)

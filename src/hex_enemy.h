@@ -58,7 +58,8 @@ Color HexEnemyTint(HexEnemyType type);
 void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int startVertex, float baseSpeed);
 
 // starPower: flee + slow + blue tint path. jailFace: center hex for jailed movement (-1 = none).
-void HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt,
+// Returns true if the wasp started at least one new edge this frame (for zoom SFX).
+bool HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float dt,
                     bool starPower, int jailFace);
 
 void HexEnemySendToJail(HexEnemy *enemy, const HexGrid *grid, int jailFace);

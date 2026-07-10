@@ -5,6 +5,7 @@
 **********************************************************************************************/
 
 #include "hex_level.h"
+#include "screens.h"
 
 #include <string.h>
 
@@ -426,7 +427,8 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
 //----------------------------------------------------------------------------------
 int HexLevelUpdate(HexLevel *level, float dt)
 {
-    HexBeeUpdate(&level->bee, &level->grid, dt);
+    if (HexBeeUpdate(&level->bee, &level->grid, dt))
+        PlayBeeZoom();
     HexGridUpdate(&level->grid, dt);
 
     int result = 0;
@@ -452,7 +454,8 @@ int HexLevelUpdate(HexLevel *level, float dt)
     for (int i = 0; i < level->enemyCount; i++)
     {
         HexEnemy *enemy = &level->enemies[i];
-        HexEnemyUpdate(enemy, &level->grid, beePos, dt, powered, level->jailFace);
+        if (HexEnemyUpdate(enemy, &level->grid, beePos, dt, powered, level->jailFace))
+            PlayWaspZoom();
 
         if (powered && !HexEnemyIsJailed(enemy) &&
             HexEnemyTouches(enemy, &level->grid, beePos, 14.0f))

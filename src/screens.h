@@ -73,7 +73,11 @@ extern Sound fxPaint;
 extern Sound fxWin;
 extern Sound fxLife;
 extern Sound fxCheckpoint;
+extern Sound fxZoom;
+extern Sound fxBeeZoom;
 extern Animation beeAnim;
+void PlayWaspZoom(void);    // quiet overlapping buzz when a wasp hops
+void PlayBeeZoom(void);     // subtle hop buzz when the bee launches
 extern int volumeLevel;     // 0..10, default 5; drives SetMasterVolume
 extern float lastRunTime;   // total seconds for the run that just finished
 extern HexRunResult lastRun; // per-level times for ending screen

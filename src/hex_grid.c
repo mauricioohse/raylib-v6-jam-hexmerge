@@ -512,16 +512,17 @@ int HexBeePeekNextEdge(const HexBee *bee, const HexGrid *grid)
     return ResolveBeeExit(bee, grid, toVertex, bee->edge);
 }
 
-void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
+bool HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
 {
     bee->arrivalCount = 0;
+    bool hopped = false;
 
-    if ((bee->edge < 0) || (bee->edge >= grid->edgeCount)) return;
+    if ((bee->edge < 0) || (bee->edge >= grid->edgeCount)) return false;
 
     // Parked at a junction: wait for a valid exit, then launch
     if (bee->waiting)
     {
-        if (bee->queuedInput == HEX_BEE_INPUT_NONE) return;
+        if (bee->queuedInput == HEX_BEE_INPUT_NONE) return false;
 
         int vertex = HexEdgeOtherVertex(grid, bee->edge, bee->fromVertex);
         int nextEdge = ResolveBeeExit(bee, grid, vertex, bee->edge);
@@ -529,7 +530,7 @@ void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
         {
             // Absolute press with no matching exit: ignore and keep waiting
             bee->queuedInput = HEX_BEE_INPUT_NONE;
-            return;
+            return false;
         }
 
         bee->queuedInput = HEX_BEE_INPUT_NONE;
@@ -538,11 +539,12 @@ void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
         bee->edge = nextEdge;
         bee->fromVertex = vertex;
         bee->t = 0.0f;
+        hopped = true;
         // Trail grows live until arrival; edge stays unpainted for now
     }
 
     float len = HexEdgeLength(grid, bee->edge);
-    if (len < 0.001f) return;
+    if (len < 0.001f) return hopped;
 
     bee->t += (bee->speed*dt)/len;
 
@@ -583,11 +585,13 @@ void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
 
         bee->edge = nextEdge;
         bee->fromVertex = arrived;
+        hopped = true;
         // Next edge paints on arrival, not on launch
 
         len = HexEdgeLength(grid, bee->edge);
         bee->t = (len > 0.001f)? overflowPx/len : 0.0f;
     }
+    return hopped;
 }
 
 void HexBeeDrawLiveTrail(const HexBee *bee, const HexGrid *grid)

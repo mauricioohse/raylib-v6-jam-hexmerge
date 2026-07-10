@@ -47,6 +47,11 @@ Sound fxPaint = { 0 };
 Sound fxWin = { 0 };
 Sound fxLife = { 0 };
 Sound fxCheckpoint = { 0 };
+Sound fxZoom = { 0 };
+Sound fxBeeZoom = { 0 };
+#define ZOOM_ALIAS_COUNT 4
+static Sound fxZoomAlias[ZOOM_ALIAS_COUNT] = { 0 };
+static int fxZoomAliasIndex = 0;
 Animation beeAnim = {0};
 int volumeLevel = 5;
 float lastRunTime = 0.0f;
@@ -99,6 +104,15 @@ int main(void)
     fxWin = LoadSound("resources/win.wav");
     fxLife = LoadSound("resources/life.wav");
     fxCheckpoint = LoadSound("resources/checkpoint.wav");
+    fxZoom = LoadSound("resources/zoom.wav");
+    SetSoundVolume(fxZoom, 0.08f);
+    for (int i = 0; i < ZOOM_ALIAS_COUNT; i++)
+    {
+        fxZoomAlias[i] = LoadSoundAlias(fxZoom);
+        SetSoundVolume(fxZoomAlias[i], 0.08f);
+    }
+    fxBeeZoom = LoadSound("resources/bee_zoom.wav");
+    SetSoundVolume(fxBeeZoom, 0.18f);
     beeAnim = CreateAnimation("resources/bee.png", 2, 4, 30);
 
     SetMasterVolume((float)volumeLevel/10.0f);
@@ -145,6 +159,9 @@ int main(void)
     UnloadSound(fxWin);
     UnloadSound(fxLife);
     UnloadSound(fxCheckpoint);
+    for (int i = 0; i < ZOOM_ALIAS_COUNT; i++) UnloadSoundAlias(fxZoomAlias[i]);
+    UnloadSound(fxZoom);
+    UnloadSound(fxBeeZoom);
 
     CloseAudioDevice();     // Close audio context
 
@@ -152,6 +169,23 @@ int main(void)
     //--------------------------------------------------------------------------------------
 
     return 0;
+}
+
+void PlayWaspZoom(void)
+{
+    // Soft rate-limit so crowded levels don't become a constant buzz
+    static double lastPlay = -1.0;
+    double now = GetTime();
+    if ((lastPlay >= 0.0) && ((now - lastPlay) < 0.07)) return;
+    lastPlay = now;
+
+    PlaySound(fxZoomAlias[fxZoomAliasIndex]);
+    fxZoomAliasIndex = (fxZoomAliasIndex + 1)%ZOOM_ALIAS_COUNT;
+}
+
+void PlayBeeZoom(void)
+{
+    PlaySound(fxBeeZoom);
 }
 
 //----------------------------------------------------------------------------------
