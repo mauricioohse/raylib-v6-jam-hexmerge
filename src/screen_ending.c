@@ -50,7 +50,7 @@ void DrawEndingScreen(void)
     DrawRectangle(0, 0, sw, sh, (Color){ 24, 28, 36, 255 });
 
     const char *title = lastRun.won? "MEADOW COMPLETE"
-                                   : (lastRun.hardcore? "HARDCORE FAILED" : "YOU LOSE! TRY AGAIN?");
+                                   : (lastRun.hardcore? "SPEEDRUN FAILED" : "YOU LOSE! TRY AGAIN?");
     Color titleCol = lastRun.won? (Color){ 255, 179, 71, 255 } : (Color){ 255, 110, 100, 255 };
     int titleSize = lastRun.won? 40 : 34;
     DrawText(title, (sw - MeasureText(title, titleSize))/2, 28, titleSize, titleCol);
@@ -97,7 +97,7 @@ void DrawEndingScreen(void)
     }
 
     // Compact best-times strip near the bottom (wins only matter for board, but always show)
-    const char *boardTitle = lastRun.hardcore? "BEST HARDCORE TIMES" : "BEST TOTAL TIMES";
+    const char *boardTitle = lastRun.hardcore? "BEST SPEEDRUN TIMES" : "BEST TOTAL TIMES";
     int boardY = sh - 130;
     DrawText(boardTitle, (sw - MeasureText(boardTitle, 16))/2, boardY, 16, (Color){ 180, 190, 200, 255 });
 

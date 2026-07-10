@@ -26,6 +26,10 @@
 #define HIT_RADIUS 14.0f
 #define HEART_SCALE 2.0f
 #define BEE_SPEED 120.0f
+#define VOLUME_MIN 0
+#define VOLUME_MAX 10
+#define SPEAKER_FRAME_COUNT 4
+#define SPEAKER_SCALE 2.0f
 
 static int framesCounter = 0;
 static int finishScreen = 0;
@@ -40,10 +44,12 @@ static Texture2D flowerTexture = { 0 };
 static Texture2D bubbleTexture = { 0 };
 static Texture2D starTexture = { 0 };
 static Texture2D fireTexture = { 0 };
+static Texture2D speakerTexture = { 0 };
 static int lives = PLAYER_MAX_LIVES;
 static float levelTimer = 0.0f;     // resets each level
 static bool runActive = false;
 static bool levelPaused = true;     // wait for first steer before bee/wasps move
+static bool gamePaused = false;     // pause menu (P / ESC)
 static bool starMusicPlaying = false;
 static bool moveModeRelative = false;   // false = WASD absolute (default), true = A/D relative
 static bool hardcore = false;
@@ -52,6 +58,82 @@ static bool levelTookDamage = false;
 static float checkpointBannerTimer = 0.0f;
 static float fireFailDelay = 0.0f;   // show red shake before applying damage
 static HexBackground fallBg = { 0 };
+static Rectangle pauseMainMenuBtn = { 0 };
+static Rectangle pauseVolDownBtn = { 0 };
+static Rectangle pauseVolUpBtn = { 0 };
+
+//----------------------------------------------------------------------------------
+// Pause menu helpers
+//----------------------------------------------------------------------------------
+static void ApplyVolume(void)
+{
+    if (volumeLevel < VOLUME_MIN) volumeLevel = VOLUME_MIN;
+    if (volumeLevel > VOLUME_MAX) volumeLevel = VOLUME_MAX;
+    SetMasterVolume((float)volumeLevel/10.0f);
+}
+
+static bool Clicked(Rectangle r)
+{
+    return IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), r);
+}
+
+static int SpeakerFrame(void)
+{
+    if (volumeLevel <= 0) return 0;
+    if (volumeLevel <= 3) return 1;
+    if (volumeLevel <= 6) return 2;
+    return 3;
+}
+
+static void DrawSpeakerIcon(float x, float y)
+{
+    float frameW = (float)speakerTexture.width;
+    float frameH = (float)speakerTexture.height/(float)SPEAKER_FRAME_COUNT;
+    float drawW = frameW*SPEAKER_SCALE;
+    float drawH = frameH*SPEAKER_SCALE;
+    int frame = SpeakerFrame();
+
+    Rectangle src = { 0, frameH*(float)frame, frameW, frameH };
+    Rectangle dst = { x, y, drawW, drawH };
+    DrawTexturePro(speakerTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+}
+
+static void DrawMenuButton(Rectangle r, const char *label, bool hovered)
+{
+    Color fill = hovered? (Color){ 255, 179, 71, 255 } : (Color){ 50, 58, 72, 255 };
+    Color border = hovered? (Color){ 255, 220, 140, 255 } : (Color){ 90, 100, 120, 255 };
+    Color text = hovered? (Color){ 30, 24, 16, 255 } : RAYWHITE;
+
+    DrawRectangleRec(r, fill);
+    DrawRectangleLinesEx(r, 2.0f, border);
+
+    int fontSize = 28;
+    int tw = MeasureText(label, fontSize);
+    DrawText(label, (int)(r.x + (r.width - tw)*0.5f), (int)(r.y + (r.height - fontSize)*0.5f), fontSize, text);
+}
+
+static void LayoutPauseMenu(void)
+{
+    float sw = (float)GetScreenWidth();
+    float sh = (float)GetScreenHeight();
+
+    pauseMainMenuBtn = (Rectangle){ sw*0.5f - 140.0f, sh*0.5f - 10.0f, 280.0f, 52.0f };
+
+    float volY = pauseMainMenuBtn.y + pauseMainMenuBtn.height + 36.0f;
+    pauseVolDownBtn = (Rectangle){ sw*0.5f - 20.0f, volY, 36.0f, 36.0f };
+    pauseVolUpBtn = (Rectangle){ sw*0.5f + 52.0f, volY, 36.0f, 36.0f };
+}
+
+static void SetGamePaused(bool paused)
+{
+    if (gamePaused == paused) return;
+    gamePaused = paused;
+    if (starMusicPlaying)
+    {
+        if (paused) PauseMusicStream(musicStarPower);
+        else ResumeMusicStream(musicStarPower);
+    }
+}
 
 //----------------------------------------------------------------------------------
 // Animation helpers
@@ -296,6 +378,7 @@ void InitGameplayScreen(void)
 {
     framesCounter = 0;
     finishScreen = 0;
+    gamePaused = false;
     hardcore = startHardcore;
     startHardcore = false;
     moveModeRelative = startHardMode;   // title MOVE: A/D vs WASD
@@ -318,10 +401,13 @@ void InitGameplayScreen(void)
     bubbleTexture = LoadTexture("resources/bubbles.png");
     starTexture = LoadTexture("resources/star.png");
     fireTexture = LoadTexture("resources/fire.png");
+    speakerTexture = LoadTexture("resources/speaker.png");
     SetTextureFilter(bubbleTexture, TEXTURE_FILTER_POINT);
     SetTextureFilter(starTexture, TEXTURE_FILTER_POINT);
     SetTextureFilter(fireTexture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(speakerTexture, TEXTURE_FILTER_POINT);
 
+    LayoutPauseMenu();
     HexBackgroundInit(&fallBg, hexTexture, HEX_BG_GAMEPLAY);
     LoadCurrentLevel();
     TryActivateCheckpoint();
@@ -331,6 +417,44 @@ void UpdateGameplayScreen(void)
 {
     float dt = GetFrameTime();
     HexBackgroundUpdate(&fallBg, dt);
+
+    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P))
+    {
+        SetGamePaused(!gamePaused);
+        PlaySound(fxCoin);
+    }
+
+    if (gamePaused)
+    {
+        if (Clicked(pauseMainMenuBtn))
+        {
+            StopStarMusic();
+            runActive = false;
+            finishScreen = 2;   // abandon run → TITLE
+            PlaySound(fxCoin);
+            return;
+        }
+
+        if (Clicked(pauseVolDownBtn) || IsKeyPressed(KEY_LEFT))
+        {
+            if (volumeLevel > VOLUME_MIN)
+            {
+                volumeLevel--;
+                ApplyVolume();
+                PlaySound(fxCoin);
+            }
+        }
+        else if (Clicked(pauseVolUpBtn) || IsKeyPressed(KEY_RIGHT))
+        {
+            if (volumeLevel < VOLUME_MAX)
+            {
+                volumeLevel++;
+                ApplyVolume();
+                PlaySound(fxCoin);
+            }
+        }
+        return;
+    }
 
     if (checkpointBannerTimer > 0.0f)
     {
@@ -531,7 +655,7 @@ void DrawGameplayScreen(void)
 
     if (hardcore)
     {
-        const char *hc = "HARDCORE";
+        const char *hc = "SPEEDRUN";
         int hw = MeasureText(hc, 18);
         DrawText(hc, GetScreenWidth() - 16 - hw, 16, 18, (Color){ 255, 110, 100, 255 });
     }
@@ -578,11 +702,58 @@ void DrawGameplayScreen(void)
                         moveModeRelative? "A/D" : "WASD"),
              16, GetScreenHeight() - 28, 16, (Color){ 120, 140, 160, 255 });
 #endif
+
+    if (gamePaused)
+    {
+        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.65f));
+
+        const char *paused = "PAUSED";
+        int pausedSize = 48;
+        int pw = MeasureText(paused, pausedSize);
+        DrawText(paused, (GetScreenWidth() - pw)/2, GetScreenHeight()/2 - 100, pausedSize,
+                 (Color){ 255, 179, 71, 255 });
+
+        Vector2 mouse = GetMousePosition();
+        DrawMenuButton(pauseMainMenuBtn, "MAIN MENU", CheckCollisionPointRec(mouse, pauseMainMenuBtn));
+
+        float volY = pauseVolDownBtn.y;
+        float speakerDrawH = 16.0f*SPEAKER_SCALE;
+        DrawSpeakerIcon((float)GetScreenWidth()*0.5f - 100.0f,
+                        volY + (pauseVolDownBtn.height - speakerDrawH)*0.5f);
+
+        bool downHover = CheckCollisionPointRec(mouse, pauseVolDownBtn);
+        bool upHover = CheckCollisionPointRec(mouse, pauseVolUpBtn);
+        Color downFill = downHover? (Color){ 70, 80, 100, 255 } : (Color){ 40, 46, 58, 255 };
+        Color upFill = upHover? (Color){ 70, 80, 100, 255 } : (Color){ 40, 46, 58, 255 };
+
+        DrawRectangleRec(pauseVolDownBtn, downFill);
+        DrawRectangleLinesEx(pauseVolDownBtn, 2.0f, (Color){ 90, 100, 120, 255 });
+        DrawText("<", (int)(pauseVolDownBtn.x + 10), (int)(pauseVolDownBtn.y + 4), 28, RAYWHITE);
+
+        char volText[8];
+        snprintf(volText, sizeof(volText), "%d", volumeLevel);
+        int vw = MeasureText(volText, 28);
+        DrawText(volText,
+                 (int)(pauseVolDownBtn.x + pauseVolDownBtn.width +
+                       (pauseVolUpBtn.x - (pauseVolDownBtn.x + pauseVolDownBtn.width) - vw)*0.5f),
+                 (int)(volY + 4), 28, RAYWHITE);
+
+        DrawRectangleRec(pauseVolUpBtn, upFill);
+        DrawRectangleLinesEx(pauseVolUpBtn, 2.0f, (Color){ 90, 100, 120, 255 });
+        DrawText(">", (int)(pauseVolUpBtn.x + 10), (int)(pauseVolUpBtn.y + 4), 28, RAYWHITE);
+
+        const char *hint = "P / ESC to resume";
+        int hw = MeasureText(hint, 18);
+        DrawText(hint, (GetScreenWidth() - hw)/2,
+                 (int)(pauseVolDownBtn.y + pauseVolDownBtn.height + 28.0f), 18,
+                 (Color){ 160, 170, 180, 255 });
+    }
 }
 
 void UnloadGameplayScreen(void)
 {
     StopStarMusic();
+    gamePaused = false;
     UnloadTexture(hexTexture);
     hexTexture = (Texture2D){ 0 };
     UnloadTexture(pondTexture);
@@ -599,6 +770,8 @@ void UnloadGameplayScreen(void)
     starTexture = (Texture2D){ 0 };
     UnloadTexture(fireTexture);
     fireTexture = (Texture2D){ 0 };
+    UnloadTexture(speakerTexture);
+    speakerTexture = (Texture2D){ 0 };
 }
 
 int FinishGameplayScreen(void)

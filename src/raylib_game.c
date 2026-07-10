@@ -119,6 +119,7 @@ int main(void)
     SetMusicVolume(music, 1.0f);
     SetMusicVolume(musicStarPower, 0.55f);
     //PlayMusicStream(music);   // no music asset yet
+    SetExitKey(KEY_NULL);       // ESC used for pause menu, not window close
 
     // Setup and init first screen
     currentScreen = TITLE;
@@ -318,7 +319,7 @@ static void UpdateDrawFrame(void)
                 UpdateGameplayScreen();
 
                 if (FinishGameplayScreen() == 1) TransitionToScreen(ENDING);
-                //else if (FinishGameplayScreen() == 2) TransitionToScreen(TITLE);
+                else if (FinishGameplayScreen() == 2) TransitionToScreen(TITLE);
 
             } break;
             case ENDING:

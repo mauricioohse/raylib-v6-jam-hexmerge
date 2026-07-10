@@ -353,7 +353,7 @@ void DrawTitleScreen(void)
     DrawMenuButton(startBtn, "START GAME", CheckCollisionPointRec(mouse, startBtn));
     DrawMenuButton(moveBtn, startHardMode? "MOVE: A/D" : "MOVE: WASD",
                    CheckCollisionPointRec(mouse, moveBtn));
-    DrawMenuButton(hardcoreBtn, "HARDCORE", CheckCollisionPointRec(mouse, hardcoreBtn));
+    DrawMenuButton(hardcoreBtn, "SPEEDRUN", CheckCollisionPointRec(mouse, hardcoreBtn));
 
     // Volume row: speaker  <  N  >
     float volY = volDownBtn.y;
@@ -410,12 +410,15 @@ void DrawTitleScreen(void)
         const int tipPad = 10;
         const int tipFont = 16;
         const int tipLineH = tipFont + 4;
-        const char *line1 = "No lives, no checkpoints. One death ends the run.";
-        const char *line2 = "Separate speedrun scores.";
+        const char *line1 = "For hardcore gamers.";
+        const char *line2 = "No lives, no checkpoints.";
+        const char *line3 = "Separate speedrun scores.";
         int tipW = MeasureText(line1, tipFont);
         int tipW2 = MeasureText(line2, tipFont);
+        int tipW3 = MeasureText(line3, tipFont);
         if (tipW2 > tipW) tipW = tipW2;
-        int tipH = tipPad*2 + tipLineH*2;
+        if (tipW3 > tipW) tipW = tipW3;
+        int tipH = tipPad*2 + tipLineH*3;
         float tipX = hardcoreBtn.x + (hardcoreBtn.width - (float)(tipW + tipPad*2))*0.5f;
         float tipY = volDownBtn.y + volDownBtn.height + 12.0f;
         if (tipX < 8.0f) tipX = 8.0f;
@@ -427,6 +430,7 @@ void DrawTitleScreen(void)
                              (Color){ 255, 110, 100, 200 });
         DrawText(line1, (int)tipX + tipPad, (int)tipY + tipPad, tipFont, (Color){ 220, 225, 235, 255 });
         DrawText(line2, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH, tipFont, (Color){ 220, 225, 235, 255 });
+        DrawText(line3, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH*2, tipFont, (Color){ 220, 225, 235, 255 });
     }
 }
 
