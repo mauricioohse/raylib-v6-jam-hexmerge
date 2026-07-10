@@ -82,3 +82,4 @@ android.*
 !src/shell.html
 src/itch_web/
 src/beehold_web/
+tools/

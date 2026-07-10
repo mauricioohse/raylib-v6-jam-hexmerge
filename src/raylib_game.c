@@ -96,7 +96,8 @@ int main(void)
 
     // Load global data (assets that must be available in all screens, i.e. font)
     font = LoadFont("resources/mecha.png");
-    //music = LoadMusicStream("resources/ambient.ogg"); // TODO: Load music
+    music = LoadMusicStream("resources/beehold_theme.wav");
+    music.looping = true;
     musicStarPower = LoadMusicStream("resources/star_power.wav");
     fxCoin = LoadSound("resources/coin.wav");
     fxFail = LoadSound("resources/fail.wav");
@@ -116,9 +117,9 @@ int main(void)
     beeAnim = CreateAnimation("resources/bee.png", 2, 4, 30);
 
     SetMasterVolume((float)volumeLevel/10.0f);
-    SetMusicVolume(music, 1.0f);
+    SetMusicVolume(music, 0.20f);
     SetMusicVolume(musicStarPower, 0.55f);
-    //PlayMusicStream(music);   // no music asset yet
+    PlayMusicStream(music);
     SetExitKey(KEY_NULL);       // ESC used for pause menu, not window close
 
     // Setup and init first screen
@@ -293,7 +294,7 @@ static void UpdateDrawFrame(void)
 {
     // Update
     //----------------------------------------------------------------------------------
-    //UpdateMusicStream(music);       // NOTE: Music keeps playing between screens
+    UpdateMusicStream(music);       // NOTE: Music keeps playing between screens
 
     if (!onTransition)
     {

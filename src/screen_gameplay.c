@@ -128,10 +128,15 @@ static void SetGamePaused(bool paused)
 {
     if (gamePaused == paused) return;
     gamePaused = paused;
-    if (starMusicPlaying)
+    if (paused)
     {
-        if (paused) PauseMusicStream(musicStarPower);
-        else ResumeMusicStream(musicStarPower);
+        PauseMusicStream(music);
+        if (starMusicPlaying) PauseMusicStream(musicStarPower);
+    }
+    else
+    {
+        if (starMusicPlaying) ResumeMusicStream(musicStarPower);
+        else ResumeMusicStream(music);
     }
 }
 
@@ -197,6 +202,7 @@ static void StopStarMusic(void)
     {
         StopMusicStream(musicStarPower);
         starMusicPlaying = false;
+        if (!gamePaused) ResumeMusicStream(music);
     }
 }
 
@@ -206,6 +212,7 @@ static void SyncStarMusic(bool powered)
     {
         if (!starMusicPlaying)
         {
+            PauseMusicStream(music);
             musicStarPower.looping = true;
             PlayMusicStream(musicStarPower);
             starMusicPlaying = true;
@@ -392,6 +399,7 @@ void InitGameplayScreen(void)
     runActive = true;
     ResetRunStats();
     lastRun.hardcore = hardcore;
+    SetMusicPitch(music, hardcore? 1.10f : 1.0f);
 
     hexTexture = LoadTexture("resources/hexfield.png");
     pondTexture = LoadTexture("resources/hexpond.png");
@@ -428,6 +436,7 @@ void UpdateGameplayScreen(void)
     {
         if (Clicked(pauseMainMenuBtn))
         {
+            SetGamePaused(false);
             StopStarMusic();
             runActive = false;
             finishScreen = 2;   // abandon run → TITLE
@@ -754,6 +763,8 @@ void UnloadGameplayScreen(void)
 {
     StopStarMusic();
     gamePaused = false;
+    SetMusicPitch(music, 1.0f);
+    ResumeMusicStream(music);
     UnloadTexture(hexTexture);
     hexTexture = (Texture2D){ 0 };
     UnloadTexture(pondTexture);
