@@ -140,7 +140,24 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 4,
         .hint = NULL,
     },
-    // 10: Star seed tutorial — radius 3, one star + seeds + wasps
+    // 10: Star seed tutorial — radius 1, one seed, two stars, three wanderers
+    {
+        .radius = 1,
+        .beeStart = { -1, 0 },
+        .seeds = { { { 1, 0 }, -1 } },
+        .seedCount = 1,
+        .stars = { { 1, -1 }, { -1, 1 } },
+        .starCount = 2,
+        .enemies = {
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_BOTTOMMOST },
+        },
+        .enemyCount = 3,
+        .hint = "Grab a star seed! For a few seconds you can eat wasps — they flee to the grey prison hex.",
+        .checkpoint = true,
+    },
+    // 11: (was 10) one star + seeds + mixed wasps
     {
         .radius = 3,
         .beeStart = { -3, 0 },
@@ -154,10 +171,9 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
         },
         .enemyCount = 3,
-        .hint = "Grab the star seed! For a few seconds you can eat wasps — they flee to the grey prison hex.",
-        .checkpoint = true,
+        .hint = NULL,
     },
-    // 11: two stars + normal seeds + 5 wasps (2 black, 1 chase, 1 random, 1 mixed)
+    // 12: (was 11) two stars + normal seeds + 5 wasps
     {
         .radius = 3,
         .beeStart = { -3, 0 },
@@ -175,7 +191,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 5,
         .hint = NULL,
     },
-    // 12: radius 4 (was old 10)
+    // 13: (was 12) radius 4
     {
         .radius = 4,
         .beeStart = { -4, 0 },
@@ -195,7 +211,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 5,
         .hint = NULL,
     },
-    // 13: radius 4, twelve seeds + one twin pair + two stars (was old 11)
+    // 14: (was 13) radius 4, twelve seeds + twin pair + two stars
     {
         .radius = 4,
         .beeStart = { -4, 0 },
@@ -218,7 +234,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 5,
         .hint = NULL,
     },
-    // 14: Fire + water tutorial — radius 1
+    // 15: (was 14) Fire + water tutorial — radius 1
     {
         .radius = 1,
         .beeStart = { -1, 0 },
@@ -235,7 +251,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .hint = "Red fire hexes kill if painted alone! Encircle fire with a blue water hex to put it out.",
         .checkpoint = true,
     },
-    // 15: twin pair + one seed + fire and water — radius 2
+    // 16: (was 15) twin pair + one seed + fire and water — radius 2
     {
         .radius = 2,
         .beeStart = { -2, 0 },
@@ -251,7 +267,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 0,
         .hint = NULL,
     },
-    // 16: fire without water + 4 seeds + star — radius 3
+    // 17: (was 16) fire without water + 4 seeds + star — radius 3
     {
         .radius = 3,
         .beeStart = { -3, 0 },
@@ -272,7 +288,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 2,
         .hint = NULL,
     },
-    // 17: radius 4 — 2 stars, twin pair, 2 fire, 1 water, 6 enemies (no chaser)
+    // 18: (was 17) radius 4 — 2 stars, twin pair, 2 fire, 1 water, 6 enemies (no chaser)
     {
         .radius = 4,
         .beeStart = { -4, 0 },

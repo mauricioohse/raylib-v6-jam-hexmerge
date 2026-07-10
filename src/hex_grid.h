@@ -64,6 +64,7 @@ typedef struct HexFace
     HexFaceKind kind;
     float fireAnimTimer;
     int fireAnimFrame;
+    float failShake;    // >0: red flash + shake (fire kill feedback, like twin fail)
 } HexFace;
 
 typedef struct HexGrid

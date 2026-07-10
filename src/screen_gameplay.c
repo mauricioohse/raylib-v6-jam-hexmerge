@@ -50,6 +50,7 @@ static bool hardcore = false;
 static int checkpointLevel = 0;
 static bool levelTookDamage = false;
 static float checkpointBannerTimer = 0.0f;
+static float fireFailDelay = 0.0f;   // show red shake before applying damage
 static HexBackground fallBg = { 0 };
 
 //----------------------------------------------------------------------------------
@@ -213,6 +214,7 @@ static void LoadCurrentLevel(void)
     levelPaused = true;
     levelTimer = 0.0f;
     levelTookDamage = false;
+    fireFailDelay = 0.0f;
     beeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
     UpdateAnimation(&beeAnim);
 }
@@ -303,6 +305,7 @@ void InitGameplayScreen(void)
     checkpointLevel = 0;
     levelTookDamage = false;
     checkpointBannerTimer = 0.0f;
+    fireFailDelay = 0.0f;
     runActive = true;
     ResetRunStats();
     lastRun.hardcore = hardcore;
@@ -333,6 +336,18 @@ void UpdateGameplayScreen(void)
     {
         checkpointBannerTimer -= dt;
         if (checkpointBannerTimer < 0.0f) checkpointBannerTimer = 0.0f;
+    }
+
+    if (fireFailDelay > 0.0f)
+    {
+        fireFailDelay -= dt;
+        HexGridUpdate(&level.grid, dt);   // keep shake/fire anim ticking
+        if (fireFailDelay <= 0.0f)
+        {
+            fireFailDelay = 0.0f;
+            ApplyDamage();
+        }
+        return;
     }
 
 #if defined(_DEBUG)
@@ -446,7 +461,8 @@ void UpdateGameplayScreen(void)
     if (filled == HEX_TRAIL_TWIN_FAIL) PlaySound(fxFail);
     else if (filled == HEX_TRAIL_FIRE_FAIL)
     {
-        if (ApplyDamage()) return;
+        PlaySound(fxFail);
+        fireFailDelay = 0.55f;   // match twin failShake duration
         return;
     }
     else if (filled > 0) PlaySound(fxPaint);

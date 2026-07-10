@@ -17,8 +17,8 @@
 #include "hex_star.h"
 #include "hex_trail.h"
 
-#define HEX_LEVEL_SLOT_COUNT 17
-#define HEX_LEVEL_IMPLEMENTED 17
+#define HEX_LEVEL_SLOT_COUNT 18
+#define HEX_LEVEL_IMPLEMENTED 18
 #define HEX_LEVEL_MAX_SEEDS 16
 #define HEX_LEVEL_MAX_STARS 4
 #define HEX_LEVEL_MAX_SPECIAL 8

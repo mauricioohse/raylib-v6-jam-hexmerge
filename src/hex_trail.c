@@ -104,7 +104,15 @@ static int ResolveFireWater(HexGrid *grid, bool enclosed[HEX_MAX_FACES], bool *a
         else if (grid->faces[f].kind == HEX_FACE_WATER) waterCount++;
     }
 
-    if ((fireCount > 0) && (waterCount == 0)) return HEX_TRAIL_FIRE_FAIL;
+    if ((fireCount > 0) && (waterCount == 0))
+    {
+        for (int f = 0; f < grid->faceCount; f++)
+        {
+            if (enclosed[f] && (grid->faces[f].kind == HEX_FACE_FIRE))
+                grid->faces[f].failShake = 0.55f;
+        }
+        return HEX_TRAIL_FIRE_FAIL;
+    }
 
     if ((waterCount > 0) && (fireCount == 0))
     {

@@ -31,6 +31,7 @@ static const Color EDGE_BASE_COLOR = { 40, 40, 40, 80 };
 #define FIRE_FRAME_COUNT 4
 #define FIRE_FRAME_TIME 0.10f
 #define FIRE_FLAME_COUNT 3
+#define FIRE_FAIL_SHAKE 0.55f
 
 //----------------------------------------------------------------------------------
 // Geometry helpers
@@ -159,6 +160,7 @@ void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, Texture2D 
             face->kind = HEX_FACE_NORMAL;
             face->fireAnimTimer = 0.0f;
             face->fireAnimFrame = 0;
+            face->failShake = 0.0f;
 
             for (int c = 0; c < 6; c++)
             {
@@ -182,6 +184,11 @@ void HexGridUpdate(HexGrid *grid, float dt)
     for (int i = 0; i < grid->faceCount; i++)
     {
         HexFace *f = &grid->faces[i];
+        if (f->failShake > 0.0f)
+        {
+            f->failShake -= dt;
+            if (f->failShake < 0.0f) f->failShake = 0.0f;
+        }
         if (f->kind != HEX_FACE_FIRE) continue;
         f->fireAnimTimer += dt;
         while (f->fireAnimTimer >= FIRE_FRAME_TIME)
@@ -197,20 +204,40 @@ void HexGridDraw(const HexGrid *grid)
     // Face sprites: grass field by default; water faces use the pond tile
     for (int i = 0; i < grid->faceCount; i++)
     {
-        Vector2 c = grid->faces[i].center;
+        const HexFace *face = &grid->faces[i];
+        Vector2 c = face->center;
+        if (face->failShake > 0.0f)
+        {
+            float shake = face->failShake*10.0f;
+            c.x += sinf(GetTime()*55.0 + (double)i*2.1)*shake;
+            c.y += cosf(GetTime()*48.0 + (double)i*1.7)*shake*0.7f;
+        }
+
         Texture2D tex = grid->hexTexture;
         Color tint = WHITE;
 
-        if (grid->faces[i].kind == HEX_FACE_WATER && grid->pondTexture.id != 0)
+        if (face->kind == HEX_FACE_WATER && grid->pondTexture.id != 0)
         {
             tex = grid->pondTexture;
-            tint = grid->faces[i].filled? HEX_POND_FILLED : WHITE;
+            tint = face->filled? HEX_POND_FILLED : WHITE;
         }
-        else if (grid->faces[i].starJail)
-            tint = grid->faces[i].filled? HEX_STAR_JAIL_FILLED : HEX_STAR_JAIL_TINT;
+        else if (face->starJail)
+            tint = face->filled? HEX_STAR_JAIL_FILLED : HEX_STAR_JAIL_TINT;
         else
             // Fire tiles use normal grass (flames drawn on top); no red wash
-            tint = grid->faces[i].filled? WHITE : HEX_DEAD_TINT;
+            tint = face->filled? WHITE : HEX_DEAD_TINT;
+
+        if (face->failShake > 0.0f)
+        {
+            // Same red flash as twin-seed fail
+            float u = face->failShake/FIRE_FAIL_SHAKE;
+            tint = (Color){
+                255,
+                (unsigned char)(60 + (int)((1.0f - u)*40)),
+                (unsigned char)(60 + (int)((1.0f - u)*40)),
+                255
+            };
+        }
 
         float texW = (float)tex.width;
         float texH = (float)tex.height;
@@ -250,6 +277,12 @@ void HexGridDrawFire(const HexGrid *grid, Texture2D fireTexture)
         if (f->kind != HEX_FACE_FIRE) continue;
 
         Vector2 c = f->center;
+        if (f->failShake > 0.0f)
+        {
+            float shake = f->failShake*10.0f;
+            c.x += sinf(GetTime()*55.0 + (double)i*2.1)*shake;
+            c.y += cosf(GetTime()*48.0 + (double)i*1.7)*shake*0.7f;
+        }
         for (int k = 0; k < FIRE_FLAME_COUNT; k++)
         {
             int frame = (f->fireAnimFrame + FLAMES[k].frameOff)%FIRE_FRAME_COUNT;
@@ -261,7 +294,18 @@ void HexGridDrawFire(const HexGrid *grid, Texture2D fireTexture)
                 c.y + FLAMES[k].oy - drawH*0.65f,
                 drawW, drawH
             };
-            DrawTexturePro(fireTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+            Color tint = WHITE;
+            if (f->failShake > 0.0f)
+            {
+                float u = f->failShake/FIRE_FAIL_SHAKE;
+                tint = (Color){
+                    255,
+                    (unsigned char)(60 + (int)((1.0f - u)*40)),
+                    (unsigned char)(60 + (int)((1.0f - u)*40)),
+                    255
+                };
+            }
+            DrawTexturePro(fireTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
         }
     }
 }
