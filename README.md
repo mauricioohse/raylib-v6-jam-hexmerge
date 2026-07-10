@@ -6,6 +6,12 @@ In **Beehold**, play as Mr. Bee, spreading pollen through the plants. Your goal 
 
 But watch out — evil wasps are trying to stop you!
 
+![Menu](gdd-images/menu.png)
+
+![Level 1](gdd-images/level_1.png)
+
+![Hard Level](gdd-images/level_hard.png)
+
 ---
 
 ## Controls
@@ -15,7 +21,7 @@ But watch out — evil wasps are trying to stop you!
     - **Default:**  
       - `A` / `D`: Turn the bee (directional movement)
     - **WASD mode:**  
-      - `W` / `A` / `S` / `D`: Absolute movement (for those who prefer it)
+      - `W` / `A` / `S` / `D`: Absolute movement 
 
 ---
 
