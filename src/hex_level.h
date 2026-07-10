@@ -17,10 +17,11 @@
 #include "hex_star.h"
 #include "hex_trail.h"
 
-#define HEX_LEVEL_SLOT_COUNT 13
-#define HEX_LEVEL_IMPLEMENTED 13
+#define HEX_LEVEL_SLOT_COUNT 17
+#define HEX_LEVEL_IMPLEMENTED 17
 #define HEX_LEVEL_MAX_SEEDS 16
 #define HEX_LEVEL_MAX_STARS 4
+#define HEX_LEVEL_MAX_SPECIAL 8
 #define HEX_LEVEL_MAX_ENEMIES 8
 
 typedef struct HexLevelEnemyDef
@@ -35,6 +36,12 @@ typedef struct HexLevelSeedDef
     int twinPair;       // -1 = normal; matching ids form a twin bond
 } HexLevelSeedDef;
 
+typedef struct HexLevelSpecialDef
+{
+    HexCoord coord;
+    HexFaceKind kind;   // HEX_FACE_FIRE or HEX_FACE_WATER
+} HexLevelSpecialDef;
+
 typedef struct HexLevelDef
 {
     int radius;
@@ -43,9 +50,12 @@ typedef struct HexLevelDef
     int seedCount;
     HexCoord stars[HEX_LEVEL_MAX_STARS];
     int starCount;
+    HexLevelSpecialDef specials[HEX_LEVEL_MAX_SPECIAL];
+    int specialCount;
     HexLevelEnemyDef enemies[HEX_LEVEL_MAX_ENEMIES];
     int enemyCount;
     const char *hint;                       // sidebar help text (may be NULL)
+    bool checkpoint;                        // teaching level: save progress here on entry
 } HexLevelDef;
 
 typedef struct HexLevel
@@ -65,12 +75,13 @@ typedef struct HexLevel
 const HexLevelDef *HexLevelGetDef(int index);
 int HexLevelCount(void);
 
-void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D flowerTexture,
-                  Texture2D bubbleTexture, Texture2D starTexture, float beeSpeed);
+void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D pondTexture,
+                  Texture2D flowerTexture, Texture2D bubbleTexture, Texture2D starTexture,
+                  float beeSpeed);
 
-// Returns faces filled this frame, or HEX_TRAIL_TWIN_FAIL on twin-rule reject.
+// Returns faces filled this frame, HEX_TRAIL_TWIN_FAIL, or HEX_TRAIL_FIRE_FAIL.
 int HexLevelUpdate(HexLevel *level, float dt);
-void HexLevelDraw(const HexLevel *level, Texture2D waspTexture);
+void HexLevelDraw(const HexLevel *level, Texture2D waspTexture, Texture2D fireTexture);
 bool HexLevelWon(const HexLevel *level);
 bool HexLevelBeeHit(const HexLevel *level, float hitRadius);
 bool HexLevelStarPowered(const HexLevel *level);

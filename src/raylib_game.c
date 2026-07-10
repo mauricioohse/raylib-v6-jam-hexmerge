@@ -46,11 +46,13 @@ Sound fxFail = { 0 };
 Sound fxPaint = { 0 };
 Sound fxWin = { 0 };
 Sound fxLife = { 0 };
+Sound fxCheckpoint = { 0 };
 Animation beeAnim = {0};
 int volumeLevel = 5;
 float lastRunTime = 0.0f;
 HexRunResult lastRun = { 0 };
 bool startHardMode = false;
+bool startHardcore = false;
 
 //----------------------------------------------------------------------------------
 // Global Variables Definition (local to this module)
@@ -96,6 +98,7 @@ int main(void)
     fxPaint = LoadSound("resources/paint.wav");
     fxWin = LoadSound("resources/win.wav");
     fxLife = LoadSound("resources/life.wav");
+    fxCheckpoint = LoadSound("resources/checkpoint.wav");
     beeAnim = CreateAnimation("resources/bee.png", 2, 4, 30);
 
     SetMasterVolume((float)volumeLevel/10.0f);
@@ -141,6 +144,7 @@ int main(void)
     UnloadSound(fxPaint);
     UnloadSound(fxWin);
     UnloadSound(fxLife);
+    UnloadSound(fxCheckpoint);
 
     CloseAudioDevice();     // Close audio context
 

@@ -53,7 +53,8 @@ static int framesCounter = 0;
 static int finishScreen = 0;
 
 static Rectangle startBtn = { 0 };
-static Rectangle hardBtn = { 0 };
+static Rectangle moveBtn = { 0 };
+static Rectangle hardcoreBtn = { 0 };
 static Rectangle volDownBtn = { 0 };
 static Rectangle volUpBtn = { 0 };
 static Texture2D speakerTexture = { 0 };
@@ -271,10 +272,11 @@ void InitTitleScreen(void)
     float sw = (float)GetScreenWidth();
     float sh = (float)GetScreenHeight();
 
-    startBtn = (Rectangle){ sw*0.5f - 140.0f, sh*0.5f - 40.0f, 280.0f, 52.0f };
-    hardBtn = (Rectangle){ sw*0.5f - 140.0f, startBtn.y + startBtn.height + 14.0f, 280.0f, 44.0f };
+    startBtn = (Rectangle){ sw*0.5f - 140.0f, sh*0.5f - 56.0f, 280.0f, 52.0f };
+    moveBtn = (Rectangle){ sw*0.5f - 140.0f, startBtn.y + startBtn.height + 14.0f, 280.0f, 44.0f };
+    hardcoreBtn = (Rectangle){ sw*0.5f - 140.0f, moveBtn.y + moveBtn.height + 14.0f, 280.0f, 44.0f };
 
-    float volY = hardBtn.y + hardBtn.height + 40.0f;
+    float volY = hardcoreBtn.y + hardcoreBtn.height + 40.0f;
     volDownBtn = (Rectangle){ sw*0.5f - 20.0f, volY, 36.0f, 36.0f };
     volUpBtn = (Rectangle){ sw*0.5f + 52.0f, volY, 36.0f, 36.0f };
 
@@ -288,18 +290,25 @@ void UpdateTitleScreen(void)
     HexBackgroundUpdate(&fallBg, dt);
     UpdateFlyBees(dt);
 
-    if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
+    if (Clicked(moveBtn))
     {
-        startHardMode = false;
-        finishScreen = 2;   // GAMEPLAY (WASD)
+        startHardMode = !startHardMode;   // toggle WASD ↔ A/D
         PlaySound(fxCoin);
         return;
     }
 
-    if (Clicked(hardBtn))
+    if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
     {
-        startHardMode = true;
-        finishScreen = 2;   // GAMEPLAY (A/D hard mode)
+        startHardcore = false;
+        finishScreen = 2;   // GAMEPLAY (uses startHardMode for controls)
+        PlaySound(fxCoin);
+        return;
+    }
+
+    if (Clicked(hardcoreBtn))
+    {
+        startHardcore = true;
+        finishScreen = 2;   // HARDCORE (uses startHardMode for controls)
         PlaySound(fxCoin);
         return;
     }
@@ -342,7 +351,9 @@ void DrawTitleScreen(void)
 
     Vector2 mouse = GetMousePosition();
     DrawMenuButton(startBtn, "START GAME", CheckCollisionPointRec(mouse, startBtn));
-    DrawMenuButton(hardBtn, "HARD MODE", CheckCollisionPointRec(mouse, hardBtn));
+    DrawMenuButton(moveBtn, startHardMode? "MOVE: A/D" : "MOVE: WASD",
+                   CheckCollisionPointRec(mouse, moveBtn));
+    DrawMenuButton(hardcoreBtn, "HARDCORE", CheckCollisionPointRec(mouse, hardcoreBtn));
 
     // Volume row: speaker  <  N  >
     float volY = volDownBtn.y;
@@ -368,20 +379,22 @@ void DrawTitleScreen(void)
     DrawRectangleLinesEx(volUpBtn, 2.0f, (Color){ 90, 100, 120, 255 });
     DrawText(">", (int)(volUpBtn.x + 10), (int)(volUpBtn.y + 4), 28, RAYWHITE);
 
-    // Tooltip last so it sits above the volume row
-    if (CheckCollisionPointRec(mouse, hardBtn))
+    // Tooltips last so they sit above the volume row
+    if (CheckCollisionPointRec(mouse, moveBtn))
     {
         const int tipPad = 10;
         const int tipFont = 16;
         const int tipLineH = tipFont + 4;
-        const char *line1 = "Hard mode uses rotational A/D controls,";
-        const char *line2 = "which are a bit harder to get used to.";
+        const char *line1 = startHardMode
+            ? "A/D: turn left/right at each junction."
+            : "WASD: move in absolute screen directions.";
+        const char *line2 = "Click to switch. Applies to Start and Hardcore.";
         int tipW = MeasureText(line1, tipFont);
         int tipW2 = MeasureText(line2, tipFont);
         if (tipW2 > tipW) tipW = tipW2;
         int tipH = tipPad*2 + tipLineH*2;
-        float tipX = hardBtn.x + (hardBtn.width - (float)(tipW + tipPad*2))*0.5f;
-        float tipY = hardBtn.y + hardBtn.height + 10.0f;
+        float tipX = moveBtn.x + (moveBtn.width - (float)(tipW + tipPad*2))*0.5f;
+        float tipY = volDownBtn.y + volDownBtn.height + 12.0f;
         if (tipX < 8.0f) tipX = 8.0f;
         if (tipX + tipW + tipPad*2 > (float)GetScreenWidth() - 8.0f)
             tipX = (float)GetScreenWidth() - 8.0f - (float)(tipW + tipPad*2);
@@ -389,6 +402,29 @@ void DrawTitleScreen(void)
         DrawRectangle((int)tipX, (int)tipY, tipW + tipPad*2, tipH, (Color){ 36, 42, 54, 235 });
         DrawRectangleLinesEx((Rectangle){ tipX, tipY, (float)(tipW + tipPad*2), (float)tipH }, 2.0f,
                              (Color){ 255, 179, 71, 200 });
+        DrawText(line1, (int)tipX + tipPad, (int)tipY + tipPad, tipFont, (Color){ 220, 225, 235, 255 });
+        DrawText(line2, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH, tipFont, (Color){ 220, 225, 235, 255 });
+    }
+    else if (CheckCollisionPointRec(mouse, hardcoreBtn))
+    {
+        const int tipPad = 10;
+        const int tipFont = 16;
+        const int tipLineH = tipFont + 4;
+        const char *line1 = "No lives, no checkpoints. One death ends the run.";
+        const char *line2 = "Separate speedrun scores.";
+        int tipW = MeasureText(line1, tipFont);
+        int tipW2 = MeasureText(line2, tipFont);
+        if (tipW2 > tipW) tipW = tipW2;
+        int tipH = tipPad*2 + tipLineH*2;
+        float tipX = hardcoreBtn.x + (hardcoreBtn.width - (float)(tipW + tipPad*2))*0.5f;
+        float tipY = volDownBtn.y + volDownBtn.height + 12.0f;
+        if (tipX < 8.0f) tipX = 8.0f;
+        if (tipX + tipW + tipPad*2 > (float)GetScreenWidth() - 8.0f)
+            tipX = (float)GetScreenWidth() - 8.0f - (float)(tipW + tipPad*2);
+
+        DrawRectangle((int)tipX, (int)tipY, tipW + tipPad*2, tipH, (Color){ 36, 42, 54, 235 });
+        DrawRectangleLinesEx((Rectangle){ tipX, tipY, (float)(tipW + tipPad*2), (float)tipH }, 2.0f,
+                             (Color){ 255, 110, 100, 200 });
         DrawText(line1, (int)tipX + tipPad, (int)tipY + tipPad, tipFont, (Color){ 220, 225, 235, 255 });
         DrawText(line2, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH, tipFont, (Color){ 220, 225, 235, 255 });
     }

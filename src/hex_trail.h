@@ -33,8 +33,10 @@ void HexTrailInit(HexTrail *trail, int startVertex);
 // Register that the bee traveled viaEdge and arrived at toVertex.
 // flowers may be NULL (no twin checks).
 // Returns: >0 faces filled, 0 no loop / empty / rejected without twin fail,
-//          HEX_TRAIL_TWIN_FAIL if a twin pair was split by the loop.
+//          HEX_TRAIL_TWIN_FAIL if a twin pair was split by the loop,
+//          HEX_TRAIL_FIRE_FAIL if fire was painted without water neutralization.
 #define HEX_TRAIL_TWIN_FAIL (-1)
+#define HEX_TRAIL_FIRE_FAIL (-2)
 int HexTrailAdvance(HexTrail *trail, HexGrid *grid, HexFlowerField *flowers,
                     int viaEdge, int toVertex);
 

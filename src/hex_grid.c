@@ -24,8 +24,13 @@
 static const Color HEX_DEAD_TINT = { 150, 105, 70, 255 };
 static const Color HEX_STAR_JAIL_TINT = { 70, 72, 78, 255 };       // unfilled jail (dark grey prison)
 static const Color HEX_STAR_JAIL_FILLED = { 110, 112, 118, 255 };  // filled jail (still grey, slightly lighter)
+static const Color HEX_POND_FILLED = { 255, 230, 140, 255 };       // pollen wash when pond is painted
 static const Color EDGE_TRAIL_COLOR = { 255, 220, 70, 255 };   // pollen yellow
 static const Color EDGE_BASE_COLOR = { 40, 40, 40, 80 };
+
+#define FIRE_FRAME_COUNT 4
+#define FIRE_FRAME_TIME 0.10f
+#define FIRE_FLAME_COUNT 3
 
 //----------------------------------------------------------------------------------
 // Geometry helpers
@@ -111,7 +116,7 @@ static int GetOrCreateEdge(HexGrid *grid, int va, int vb, int face)
     return index;
 }
 
-void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, int radius)
+void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, Texture2D pondTexture, int radius)
 {
     memset(grid, 0, sizeof(*grid));
     if (radius < 1) radius = 1;
@@ -120,6 +125,7 @@ void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, int radius
     grid->size = HEX_SIZE;
     grid->origin = origin;
     grid->hexTexture = hexTexture;
+    grid->pondTexture = pondTexture;
 
     int vmap[VMAP_DIM][VMAP_DIM][2];
     memset(vmap, -1, sizeof(vmap));
@@ -150,6 +156,9 @@ void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, int radius
             face->center = HexCenterPixel(face->coord, grid->size, grid->origin);
             face->filled = false;
             face->starJail = false;
+            face->kind = HEX_FACE_NORMAL;
+            face->fireAnimTimer = 0.0f;
+            face->fireAnimFrame = 0;
 
             for (int c = 0; c < 6; c++)
             {
@@ -168,23 +177,46 @@ void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, int radius
 //----------------------------------------------------------------------------------
 // Drawing
 //----------------------------------------------------------------------------------
+void HexGridUpdate(HexGrid *grid, float dt)
+{
+    for (int i = 0; i < grid->faceCount; i++)
+    {
+        HexFace *f = &grid->faces[i];
+        if (f->kind != HEX_FACE_FIRE) continue;
+        f->fireAnimTimer += dt;
+        while (f->fireAnimTimer >= FIRE_FRAME_TIME)
+        {
+            f->fireAnimTimer -= FIRE_FRAME_TIME;
+            f->fireAnimFrame = (f->fireAnimFrame + 1)%FIRE_FRAME_COUNT;
+        }
+    }
+}
+
 void HexGridDraw(const HexGrid *grid)
 {
-    // Face sprites: hexagon.png centered on each face, tinted when filled
-    float texW = (float)grid->hexTexture.width;
-    float texH = (float)grid->hexTexture.height;
-    Rectangle src = { 0, 0, texW, texH };
-
+    // Face sprites: grass field by default; water faces use the pond tile
     for (int i = 0; i < grid->faceCount; i++)
     {
         Vector2 c = grid->faces[i].center;
-        Rectangle dst = { c.x - texW*0.5f, c.y - texH*0.5f, texW, texH };
-        Color tint;
-        if (grid->faces[i].starJail)
+        Texture2D tex = grid->hexTexture;
+        Color tint = WHITE;
+
+        if (grid->faces[i].kind == HEX_FACE_WATER && grid->pondTexture.id != 0)
+        {
+            tex = grid->pondTexture;
+            tint = grid->faces[i].filled? HEX_POND_FILLED : WHITE;
+        }
+        else if (grid->faces[i].starJail)
             tint = grid->faces[i].filled? HEX_STAR_JAIL_FILLED : HEX_STAR_JAIL_TINT;
         else
+            // Fire tiles use normal grass (flames drawn on top); no red wash
             tint = grid->faces[i].filled? WHITE : HEX_DEAD_TINT;
-        DrawTexturePro(grid->hexTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
+
+        float texW = (float)tex.width;
+        float texH = (float)tex.height;
+        Rectangle src = { 0, 0, texW, texH };
+        Rectangle dst = { c.x - texW*0.5f, c.y - texH*0.5f, texW, texH };
+        DrawTexturePro(tex, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
     }
 
     // Edge overlays: faint lattice + wet trail
@@ -195,6 +227,42 @@ void HexGridDraw(const HexGrid *grid)
         Color col = grid->edges[i].painted? EDGE_TRAIL_COLOR : EDGE_BASE_COLOR;
         float thick = grid->edges[i].painted? 3.0f : 1.0f;
         DrawLineEx(a, b, thick, col);
+    }
+}
+
+void HexGridDrawFire(const HexGrid *grid, Texture2D fireTexture)
+{
+    if (fireTexture.id == 0) return;
+
+    float frameW = (float)fireTexture.width;
+    float frameH = (float)fireTexture.height/(float)FIRE_FRAME_COUNT;
+
+    // Three flames: main center + two smaller side flickers, phase-offset for variety
+    static const struct { float ox; float oy; float scale; int frameOff; } FLAMES[FIRE_FLAME_COUNT] = {
+        {  0.0f,  -2.0f, 2.15f, 0 },
+        { -12.0f,  4.0f, 1.45f, 2 },
+        {  11.0f,  5.0f, 1.25f, 1 },
+    };
+
+    for (int i = 0; i < grid->faceCount; i++)
+    {
+        const HexFace *f = &grid->faces[i];
+        if (f->kind != HEX_FACE_FIRE) continue;
+
+        Vector2 c = f->center;
+        for (int k = 0; k < FIRE_FLAME_COUNT; k++)
+        {
+            int frame = (f->fireAnimFrame + FLAMES[k].frameOff)%FIRE_FRAME_COUNT;
+            float drawW = frameW*FLAMES[k].scale;
+            float drawH = frameH*FLAMES[k].scale;
+            Rectangle src = { 0, frameH*(float)frame, frameW, frameH };
+            Rectangle dst = {
+                c.x + FLAMES[k].ox - drawW*0.5f,
+                c.y + FLAMES[k].oy - drawH*0.65f,
+                drawW, drawH
+            };
+            DrawTexturePro(fireTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+        }
     }
 }
 

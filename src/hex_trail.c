@@ -62,18 +62,61 @@ static void ComputeEnclosed(const HexGrid *grid, const bool loopEdges[HEX_MAX_ED
     }
 }
 
-static int ApplyEnclosed(HexGrid *grid, const bool enclosed[HEX_MAX_FACES])
+static int ApplyEnclosed(HexGrid *grid, const bool enclosed[HEX_MAX_FACES], bool allowWater)
 {
     int filled = 0;
     for (int f = 0; f < grid->faceCount; f++)
     {
-        if (enclosed[f])
+        if (!enclosed[f]) continue;
+
+        HexFace *face = &grid->faces[f];
+        if (face->kind == HEX_FACE_WATER)
         {
-            grid->faces[f].filled = true;
+            if (!allowWater) continue;
+            face->filled = true;
             filled++;
+            continue;
         }
+        if (face->kind == HEX_FACE_FIRE)
+        {
+            face->kind = HEX_FACE_NORMAL;   // extinguished
+        }
+        face->filled = true;
+        filled++;
     }
     return filled;
+}
+
+// Fire/water rules for a proposed enclosure:
+// - Water alone never fills (stripped from enclosed).
+// - Fire alone (no water in the same loop) is lethal.
+// - Fire + water together: both fill; fire becomes normal.
+// Returns HEX_TRAIL_FIRE_FAIL, or 0 if OK. Sets *allowWater when neutralizing.
+static int ResolveFireWater(HexGrid *grid, bool enclosed[HEX_MAX_FACES], bool *allowWater)
+{
+    *allowWater = false;
+    int fireCount = 0;
+    int waterCount = 0;
+    for (int f = 0; f < grid->faceCount; f++)
+    {
+        if (!enclosed[f]) continue;
+        if (grid->faces[f].kind == HEX_FACE_FIRE) fireCount++;
+        else if (grid->faces[f].kind == HEX_FACE_WATER) waterCount++;
+    }
+
+    if ((fireCount > 0) && (waterCount == 0)) return HEX_TRAIL_FIRE_FAIL;
+
+    if ((waterCount > 0) && (fireCount == 0))
+    {
+        for (int f = 0; f < grid->faceCount; f++)
+        {
+            if (enclosed[f] && (grid->faces[f].kind == HEX_FACE_WATER)) enclosed[f] = false;
+        }
+        return 0;
+    }
+
+    if ((fireCount > 0) && (waterCount > 0)) *allowWater = true;
+    return 0;
 }
 
 //----------------------------------------------------------------------------------
@@ -119,14 +162,17 @@ int HexTrailAdvance(HexTrail *trail, HexGrid *grid, HexFlowerField *flowers,
     ComputeEnclosed(grid, loopEdges, enclosed);
 
     int result = 0;
-    if (HexFlowerTwinsAllowFill(flowers, grid, enclosed))
-    {
-        result = ApplyEnclosed(grid, enclosed);
-    }
-    else
+    if (!HexFlowerTwinsAllowFill(flowers, grid, enclosed))
     {
         HexFlowerFieldOnTwinFail(flowers, enclosed);
         result = HEX_TRAIL_TWIN_FAIL;
+    }
+    else
+    {
+        bool allowWater = false;
+        int fw = ResolveFireWater(grid, enclosed, &allowWater);
+        if (fw == HEX_TRAIL_FIRE_FAIL) result = HEX_TRAIL_FIRE_FAIL;
+        else result = ApplyEnclosed(grid, enclosed, allowWater);
     }
 
     for (int e = 0; e < grid->edgeCount; e++)

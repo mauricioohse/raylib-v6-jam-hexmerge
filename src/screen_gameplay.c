@@ -22,7 +22,7 @@
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
-#define PLAYER_MAX_LIVES 3
+#define PLAYER_MAX_LIVES 5
 #define HIT_RADIUS 14.0f
 #define HEART_SCALE 2.0f
 #define BEE_SPEED 120.0f
@@ -33,17 +33,23 @@ static int finishScreen = 0;
 static HexLevel level = { 0 };
 static int currentLevelIndex = 0;
 static Texture2D hexTexture = { 0 };
+static Texture2D pondTexture = { 0 };
 static Texture2D waspTexture = { 0 };
 static Texture2D heartsTexture = { 0 };
 static Texture2D flowerTexture = { 0 };
 static Texture2D bubbleTexture = { 0 };
 static Texture2D starTexture = { 0 };
+static Texture2D fireTexture = { 0 };
 static int lives = PLAYER_MAX_LIVES;
 static float levelTimer = 0.0f;     // resets each level
 static bool runActive = false;
 static bool levelPaused = true;     // wait for first steer before bee/wasps move
 static bool starMusicPlaying = false;
 static bool moveModeRelative = false;   // false = WASD absolute (default), true = A/D relative
+static bool hardcore = false;
+static int checkpointLevel = 0;
+static bool levelTookDamage = false;
+static float checkpointBannerTimer = 0.0f;
 static HexBackground fallBg = { 0 };
 
 //----------------------------------------------------------------------------------
@@ -165,6 +171,20 @@ static void ResetRunStats(void)
     levelTimer = 0.0f;
 }
 
+// Drop recorded times for levels at/after the checkpoint (we're replaying from there).
+static void TruncateRunStatsToCheckpoint(void)
+{
+    if (checkpointLevel < 0) checkpointLevel = 0;
+    if (lastRun.levelsRecorded > checkpointLevel)
+        lastRun.levelsRecorded = checkpointLevel;
+
+    lastRun.totalTime = 0.0f;
+    for (int i = 0; i < lastRun.levelsRecorded; i++)
+        lastRun.totalTime += lastRun.levels[i].timeSec;
+    lastRunTime = lastRun.totalTime;
+    levelTimer = 0.0f;
+}
+
 static void RecordCurrentLevelStats(void)
 {
     if (lastRun.levelsRecorded >= HEX_RUN_MAX_LEVELS) return;
@@ -174,12 +194,25 @@ static void RecordCurrentLevelStats(void)
     lastRun.totalTime += levelTimer;
 }
 
+static void TryActivateCheckpoint(void)
+{
+    if (hardcore) return;
+    const HexLevelDef *def = HexLevelGetDef(currentLevelIndex);
+    if (def == NULL || !def->checkpoint) return;
+    if (currentLevelIndex < checkpointLevel) return;
+
+    checkpointLevel = currentLevelIndex;
+    PlaySound(fxCheckpoint);
+    checkpointBannerTimer = 2.0f;
+}
+
 static void LoadCurrentLevel(void)
 {
     StopStarMusic();
-    HexLevelLoad(&level, currentLevelIndex, hexTexture, flowerTexture, bubbleTexture, starTexture, BEE_SPEED);
+    HexLevelLoad(&level, currentLevelIndex, hexTexture, pondTexture, flowerTexture, bubbleTexture, starTexture, BEE_SPEED);
     levelPaused = true;
     levelTimer = 0.0f;
+    levelTookDamage = false;
     beeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
     UpdateAnimation(&beeAnim);
 }
@@ -193,13 +226,45 @@ static void FinishRun(bool won)
     RecordCurrentLevelStats();
 
     lastRun.won = won;
+    lastRun.hardcore = hardcore;
     lastRunTime = lastRun.totalTime;
 
     HexScoresAppendRunCsv(&lastRun);
-    if (won) HexScoresSubmit(lastRun.totalTime);
+    if (won) HexScoresSubmit(lastRun.totalTime, hardcore);
 
     finishScreen = 1;
     PlaySound(won? fxWin : fxLife);
+}
+
+// Returns true if the run ended (caller should return from Update).
+static bool ApplyDamage(void)
+{
+    StopStarMusic();
+    levelTookDamage = true;
+
+    if (hardcore)
+    {
+        FinishRun(false);
+        return true;
+    }
+
+    lives--;
+    PlaySound(fxLife);
+
+    if (lives <= 0)
+    {
+        // Soft fail: restart from last checkpoint with full lives
+        currentLevelIndex = checkpointLevel;
+        lives = PLAYER_MAX_LIVES;
+        TruncateRunStatsToCheckpoint();
+        LoadCurrentLevel();
+        TryActivateCheckpoint();
+        return false;
+    }
+
+    // Lives remain: retry this level
+    LoadCurrentLevel();
+    return false;
 }
 
 static void DrawLives(void)
@@ -229,24 +294,34 @@ void InitGameplayScreen(void)
 {
     framesCounter = 0;
     finishScreen = 0;
-    lives = PLAYER_MAX_LIVES;
+    hardcore = startHardcore;
+    startHardcore = false;
+    moveModeRelative = startHardMode;   // title MOVE: A/D vs WASD
+    // keep startHardMode so title remembers the choice after returning from a run
+    lives = hardcore? 1 : PLAYER_MAX_LIVES;
     currentLevelIndex = 0;
+    checkpointLevel = 0;
+    levelTookDamage = false;
+    checkpointBannerTimer = 0.0f;
     runActive = true;
-    moveModeRelative = startHardMode;   // HARD MODE = A/D relative
-    startHardMode = false;
     ResetRunStats();
+    lastRun.hardcore = hardcore;
 
     hexTexture = LoadTexture("resources/hexfield.png");
+    pondTexture = LoadTexture("resources/hexpond.png");
     waspTexture = LoadTexture("resources/wasp.png");
     heartsTexture = LoadTexture("resources/hearts.png");
     flowerTexture = LoadTexture("resources/flower.png");
     bubbleTexture = LoadTexture("resources/bubbles.png");
     starTexture = LoadTexture("resources/star.png");
+    fireTexture = LoadTexture("resources/fire.png");
     SetTextureFilter(bubbleTexture, TEXTURE_FILTER_POINT);
     SetTextureFilter(starTexture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(fireTexture, TEXTURE_FILTER_POINT);
 
     HexBackgroundInit(&fallBg, hexTexture, HEX_BG_GAMEPLAY);
     LoadCurrentLevel();
+    TryActivateCheckpoint();
 }
 
 void UpdateGameplayScreen(void)
@@ -254,16 +329,25 @@ void UpdateGameplayScreen(void)
     float dt = GetFrameTime();
     HexBackgroundUpdate(&fallBg, dt);
 
+    if (checkpointBannerTimer > 0.0f)
+    {
+        checkpointBannerTimer -= dt;
+        if (checkpointBannerTimer < 0.0f) checkpointBannerTimer = 0.0f;
+    }
+
 #if defined(_DEBUG)
     for (int key = KEY_ONE; key <= KEY_NINE; key++)
     {
         if (IsKeyPressed(key))
         {
             currentLevelIndex = key - KEY_ONE;
-            lives = PLAYER_MAX_LIVES;
+            lives = hardcore? 1 : PLAYER_MAX_LIVES;
+            checkpointLevel = currentLevelIndex;
             finishScreen = 0;
             ResetRunStats();
+            lastRun.hardcore = hardcore;
             LoadCurrentLevel();
+            TryActivateCheckpoint();
             PlaySound(fxCoin);
             return;
         }
@@ -271,10 +355,13 @@ void UpdateGameplayScreen(void)
     if (IsKeyPressed(KEY_ZERO))
     {
         currentLevelIndex = 9;  // level 10
-        lives = PLAYER_MAX_LIVES;
+        lives = hardcore? 1 : PLAYER_MAX_LIVES;
+        checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
+        lastRun.hardcore = hardcore;
         LoadCurrentLevel();
+        TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;
     }
@@ -283,20 +370,26 @@ void UpdateGameplayScreen(void)
     {
         if (currentLevelIndex > 0) currentLevelIndex--;
         else currentLevelIndex = HexLevelCount() - 1;
-        lives = PLAYER_MAX_LIVES;
+        lives = hardcore? 1 : PLAYER_MAX_LIVES;
+        checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
+        lastRun.hardcore = hardcore;
         LoadCurrentLevel();
+        TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;
     }
     if (IsKeyPressed(KEY_PERIOD))
     {
         currentLevelIndex = (currentLevelIndex + 1)%HexLevelCount();
-        lives = PLAYER_MAX_LIVES;
+        lives = hardcore? 1 : PLAYER_MAX_LIVES;
+        checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
+        lastRun.hardcore = hardcore;
         LoadCurrentLevel();
+        TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;
     }
@@ -351,22 +444,18 @@ void UpdateGameplayScreen(void)
 
     int filled = HexLevelUpdate(&level, dt);
     if (filled == HEX_TRAIL_TWIN_FAIL) PlaySound(fxFail);
+    else if (filled == HEX_TRAIL_FIRE_FAIL)
+    {
+        if (ApplyDamage()) return;
+        return;
+    }
     else if (filled > 0) PlaySound(fxPaint);
 
     SyncStarMusic(HexLevelStarPowered(&level));
 
     if (HexLevelBeeHit(&level, HIT_RADIUS))
     {
-        StopStarMusic();
-        lives--;
-        if (lives <= 0)
-        {
-            FinishRun(false);
-            return;
-        }
-        PlaySound(fxLife);
-        // Lost a life: retry this level (don't keep partial timer/hex for the failed attempt)
-        LoadCurrentLevel();
+        if (ApplyDamage()) return;
         return;
     }
 
@@ -378,9 +467,22 @@ void UpdateGameplayScreen(void)
         StopStarMusic();
         if (currentLevelIndex + 1 < HexLevelCount())
         {
+            if (!hardcore && !levelTookDamage && lives < PLAYER_MAX_LIVES)
+                lives++;
+
             RecordCurrentLevelStats();
             currentLevelIndex++;
             LoadCurrentLevel();
+            if (!hardcore)
+            {
+                const HexLevelDef *def = HexLevelGetDef(currentLevelIndex);
+                if (def != NULL && def->checkpoint && currentLevelIndex > checkpointLevel)
+                {
+                    checkpointLevel = currentLevelIndex;
+                    PlaySound(fxCheckpoint);
+                    checkpointBannerTimer = 2.0f;
+                }
+            }
             PlaySound(fxWin);
         }
         else
@@ -403,7 +505,7 @@ void DrawGameplayScreen(void)
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
     HexBackgroundDraw(&fallBg);
 
-    HexLevelDraw(&level, waspTexture);
+    HexLevelDraw(&level, waspTexture, fireTexture);
 
     Vector2 beePos = HexBeePosition(&level.bee, &level.grid);
     if (HexLevelStarPowered(&level))
@@ -411,7 +513,16 @@ void DrawGameplayScreen(void)
     else
         DrawAnimation(&beeAnim, beePos);
 
-    DrawLives();
+    if (hardcore)
+    {
+        const char *hc = "HARDCORE";
+        int hw = MeasureText(hc, 18);
+        DrawText(hc, GetScreenWidth() - 16 - hw, 16, 18, (Color){ 255, 110, 100, 255 });
+    }
+    else
+    {
+        DrawLives();
+    }
     HexLevelDrawHint(&level);
 
     char levelLabel[32];
@@ -425,6 +536,18 @@ void DrawGameplayScreen(void)
     HexScoresFormat(levelTimer, timeBuf, (int)sizeof(timeBuf));
     int tw = MeasureText(timeBuf, 22);
     DrawText(timeBuf, (GetScreenWidth() - tw)/2, 16, 22, (Color){ 255, 220, 70, 255 });
+
+    if (checkpointBannerTimer > 0.0f)
+    {
+        float t = checkpointBannerTimer/2.0f;
+        if (t > 1.0f) t = 1.0f;
+        unsigned char a = (unsigned char)(t*255.0f);
+        const char *banner = "CHECKPOINT!";
+        int fontSize = 28;
+        int bw = MeasureText(banner, fontSize);
+        DrawText(banner, (GetScreenWidth() - bw)/2, GetScreenHeight()/4 - fontSize/2, fontSize,
+                 (Color){ 255, 220, 70, a });
+    }
 
     if (levelPaused)
     {
@@ -446,6 +569,8 @@ void UnloadGameplayScreen(void)
     StopStarMusic();
     UnloadTexture(hexTexture);
     hexTexture = (Texture2D){ 0 };
+    UnloadTexture(pondTexture);
+    pondTexture = (Texture2D){ 0 };
     UnloadTexture(waspTexture);
     waspTexture = (Texture2D){ 0 };
     UnloadTexture(heartsTexture);
@@ -456,6 +581,8 @@ void UnloadGameplayScreen(void)
     bubbleTexture = (Texture2D){ 0 };
     UnloadTexture(starTexture);
     starTexture = (Texture2D){ 0 };
+    UnloadTexture(fireTexture);
+    fireTexture = (Texture2D){ 0 };
 }
 
 int FinishGameplayScreen(void)

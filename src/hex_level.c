@@ -22,6 +22,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemies = { { 0 } },
         .enemyCount = 0,
         .hint = "The plants are suffering and need bee pollen to sprout. Encircle the seed to help!",
+        .checkpoint = true,
     },
     // 2: radius 2, opposite seeds, no wasps
     {
@@ -103,6 +104,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemies = { { 0 } },
         .enemyCount = 0,
         .hint = "Twin seeds share a bond! Encircle both together, painting only one fails.",
+        .checkpoint = true,
     },
     // 8: two twin pairs + black / chaser / random
     {
@@ -153,6 +155,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         },
         .enemyCount = 3,
         .hint = "Grab the star seed! For a few seconds you can eat wasps — they flee to the grey prison hex.",
+        .checkpoint = true,
     },
     // 11: two stars + normal seeds + 5 wasps (2 black, 1 chase, 1 random, 1 mixed)
     {
@@ -215,6 +218,88 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 5,
         .hint = NULL,
     },
+    // 14: Fire + water tutorial — radius 1
+    {
+        .radius = 1,
+        .beeStart = { -1, 0 },
+        .seeds = { { { 0, 0 }, -1 } },
+        .seedCount = 1,
+        .starCount = 0,
+        .specials = {
+            { { 1, -1 }, HEX_FACE_FIRE },
+            { { -1, 1 }, HEX_FACE_WATER },
+        },
+        .specialCount = 2,
+        .enemies = { { 0 } },
+        .enemyCount = 0,
+        .hint = "Red fire hexes kill if painted alone! Encircle fire with a blue water hex to put it out.",
+        .checkpoint = true,
+    },
+    // 15: twin pair + one seed + fire and water — radius 2
+    {
+        .radius = 2,
+        .beeStart = { -2, 0 },
+        .seeds = { { { -2, 1 }, 0 }, { { 2, -1 }, 0 }, { { 0, -2 }, -1 } },
+        .seedCount = 3,
+        .starCount = 0,
+        .specials = {
+            { { 1, 0 }, HEX_FACE_FIRE },
+            { { -1, 0 }, HEX_FACE_WATER },
+        },
+        .specialCount = 2,
+        .enemies = { { 0 } },
+        .enemyCount = 0,
+        .hint = NULL,
+    },
+    // 16: fire without water + 4 seeds + star — radius 3
+    {
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seeds = {
+            { { 2, -1 }, -1 }, { { -1, 2 }, -1 }, { { 0, -2 }, -1 }, { { -2, 1 }, -1 },
+        },
+        .seedCount = 4,
+        .stars = { { 2, 0 } },
+        .starCount = 1,
+        .specials = {
+            { { 0, 1 }, HEX_FACE_FIRE },
+        },
+        .specialCount = 1,
+        .enemies = {
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
+        },
+        .enemyCount = 2,
+        .hint = NULL,
+    },
+    // 17: radius 4 — 2 stars, twin pair, 2 fire, 1 water, 6 enemies (no chaser)
+    {
+        .radius = 4,
+        .beeStart = { -4, 0 },
+        .seeds = {
+            { { -3, 2 }, -1 }, { { 3, -2 }, -1 }, { { 0, -3 }, -1 },
+            { { 2, 1 }, -1 }, { { -2, -1 }, 0 }, { { 0, 3 }, 0 },
+        },
+        .seedCount = 6,
+        .stars = { { 2, -2 }, { -2, 2 } },
+        .starCount = 2,
+        .specials = {
+            { { 1, 1 }, HEX_FACE_FIRE },
+            { { -1, -1 }, HEX_FACE_FIRE },
+            { { 3, 0 }, HEX_FACE_WATER },
+        },
+        .specialCount = 3,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_INNER },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_LEFTMOST },
+        },
+        .enemyCount = 6,
+        .hint = NULL,
+    },
 };
 
 //----------------------------------------------------------------------------------
@@ -248,8 +333,9 @@ static int FaceLeftmostVertex(const HexGrid *grid, int face)
     return best;
 }
 
-void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D flowerTexture,
-                  Texture2D bubbleTexture, Texture2D starTexture, float beeSpeed)
+void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D pondTexture,
+                  Texture2D flowerTexture, Texture2D bubbleTexture, Texture2D starTexture,
+                  float beeSpeed)
 {
     memset(level, 0, sizeof(*level));
     if (index < 0) index = 0;
@@ -259,8 +345,8 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D fl
     level->def = HexLevelGetDef(index);
     level->jailFace = -1;
 
-    Vector2 origin = { (float)GetScreenWidth()*0.5f - 40.0f, (float)GetScreenHeight()*0.5f };
-    HexGridInit(&level->grid, origin, hexTexture, level->def->radius);
+    Vector2 origin = { (float)GetScreenWidth()*0.5f, (float)GetScreenHeight()*0.5f };
+    HexGridInit(&level->grid, origin, hexTexture, pondTexture, level->def->radius);
 
     int beeFace = HexFindFace(&level->grid, level->def->beeStart.q, level->def->beeStart.r);
     int startVertex = FaceLeftmostVertex(&level->grid, beeFace);
@@ -296,6 +382,14 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D fl
         if (level->jailFace >= 0) level->grid.faces[level->jailFace].starJail = true;
     }
 
+    for (int i = 0; i < level->def->specialCount; i++)
+    {
+        int face = HexFindFace(&level->grid, level->def->specials[i].coord.q, level->def->specials[i].coord.r);
+        if (face < 0) continue;
+        level->grid.faces[face].kind = level->def->specials[i].kind;
+        level->grid.faces[face].fireAnimFrame = GetRandomValue(0, 3);
+    }
+
     level->enemyCount = level->def->enemyCount;
     if (level->enemyCount > HEX_LEVEL_MAX_ENEMIES) level->enemyCount = HEX_LEVEL_MAX_ENEMIES;
 
@@ -317,6 +411,7 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D fl
 int HexLevelUpdate(HexLevel *level, float dt)
 {
     HexBeeUpdate(&level->bee, &level->grid, dt);
+    HexGridUpdate(&level->grid, dt);
 
     int result = 0;
     for (int i = 0; i < level->bee.arrivalCount; i++)
@@ -324,7 +419,8 @@ int HexLevelUpdate(HexLevel *level, float dt)
         int filled = HexTrailAdvance(&level->trail, &level->grid, &level->flowers,
                                      level->bee.arrivalEdges[i], level->bee.arrivalVerts[i]);
         if (filled == HEX_TRAIL_TWIN_FAIL) result = HEX_TRAIL_TWIN_FAIL;
-        else if ((filled > 0) && (result != HEX_TRAIL_TWIN_FAIL))
+        else if (filled == HEX_TRAIL_FIRE_FAIL) result = HEX_TRAIL_FIRE_FAIL;
+        else if ((filled > 0) && (result != HEX_TRAIL_TWIN_FAIL) && (result != HEX_TRAIL_FIRE_FAIL))
         {
             result += filled;
             HexFlowerFieldOnFill(&level->flowers, &level->grid);
@@ -370,9 +466,10 @@ bool HexLevelStarPowered(const HexLevel *level)
     return HexStarFieldPowered(&level->stars);
 }
 
-void HexLevelDraw(const HexLevel *level, Texture2D waspTexture)
+void HexLevelDraw(const HexLevel *level, Texture2D waspTexture, Texture2D fireTexture)
 {
     HexGridDraw(&level->grid);
+    HexGridDrawFire(&level->grid, fireTexture);
     HexBeeDrawLiveTrail(&level->bee, &level->grid);
     HexFlowerFieldDraw(&level->flowers, &level->grid);
     HexStarFieldDraw(&level->stars, &level->grid);

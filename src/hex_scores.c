@@ -16,13 +16,13 @@
 #if defined(PLATFORM_WEB)
     #include <emscripten.h>
 
-    EM_JS(void, HexScoresJsSave, (const char *text), {
-        try { localStorage.setItem("beehold_scores", UTF8ToString(text)); } catch (e) {}
+    EM_JS(void, HexScoresJsSaveKey, (const char *key, const char *text), {
+        try { localStorage.setItem(UTF8ToString(key), UTF8ToString(text)); } catch (e) {}
     });
 
-    EM_JS(char *, HexScoresJsLoad, (), {
+    EM_JS(char *, HexScoresJsLoadKey, (const char *key), {
         try {
-            var s = localStorage.getItem("beehold_scores");
+            var s = localStorage.getItem(UTF8ToString(key));
             if (!s) return 0;
             var len = lengthBytesUTF8(s) + 1;
             var buf = _malloc(len);
@@ -50,12 +50,22 @@
 //----------------------------------------------------------------------------------
 // Best-times persistence
 //----------------------------------------------------------------------------------
-static char *LoadScoresText(void)
+static const char *ScoresFile(bool hardcore)
+{
+    return hardcore? HEX_SCORES_HARDCORE_FILE : HEX_SCORES_FILE;
+}
+
+static const char *ScoresWebKey(bool hardcore)
+{
+    return hardcore? "beehold_scores_hardcore" : "beehold_scores";
+}
+
+static char *LoadScoresText(bool hardcore)
 {
 #if defined(PLATFORM_WEB)
-    return HexScoresJsLoad();
+    return HexScoresJsLoadKey(ScoresWebKey(hardcore));
 #else
-    return LoadFileText(HEX_SCORES_FILE);
+    return LoadFileText(ScoresFile(hardcore));
 #endif
 }
 
@@ -69,12 +79,12 @@ static void FreeScoresText(char *text)
 #endif
 }
 
-static void SaveScoresText(const char *text)
+static void SaveScoresText(const char *text, bool hardcore)
 {
 #if defined(PLATFORM_WEB)
-    HexScoresJsSave(text);
+    HexScoresJsSaveKey(ScoresWebKey(hardcore), text);
 #else
-    SaveFileText(HEX_SCORES_FILE, (char *)text);
+    SaveFileText(ScoresFile(hardcore), (char *)text);
 #endif
 }
 
@@ -147,21 +157,21 @@ static void SaveRunsCsv(const char *text)
 //----------------------------------------------------------------------------------
 // Public API
 //----------------------------------------------------------------------------------
-int HexScoresLoad(float *outTimes, int maxCount)
+int HexScoresLoad(float *outTimes, int maxCount, bool hardcore)
 {
-    char *text = LoadScoresText();
+    char *text = LoadScoresText(hardcore);
     int count = ParseScores(text, outTimes, maxCount);
     FreeScoresText(text);
     SortAscending(outTimes, count);
     return count;
 }
 
-int HexScoresSubmit(float seconds)
+int HexScoresSubmit(float seconds, bool hardcore)
 {
     if (seconds <= 0.0f) return 0;
 
     float times[HEX_SCORES_MAX + 1] = { 0 };
-    int count = HexScoresLoad(times, HEX_SCORES_MAX);
+    int count = HexScoresLoad(times, HEX_SCORES_MAX, hardcore);
 
     int insertAt = count;
     for (int i = 0; i < count; i++)
@@ -187,7 +197,7 @@ int HexScoresSubmit(float seconds)
         pos += n;
         if (pos >= (int)sizeof(buf) - 1) break;
     }
-    SaveScoresText(buf);
+    SaveScoresText(buf, hardcore);
 
     return insertAt + 1;
 }
@@ -199,7 +209,6 @@ void HexScoresAppendRunCsv(const HexRunResult *run)
     long runId = (long)time(NULL);
     char *existing = LoadRunsCsv();
 
-    // Grow buffer: existing + header (if needed) + rows
     size_t oldLen = (existing != NULL)? strlen(existing) : 0;
     size_t cap = oldLen + 64 + (size_t)run->levelsRecorded*96 + 8;
     char *out = (char *)malloc(cap);
@@ -217,14 +226,11 @@ void HexScoresAppendRunCsv(const HexRunResult *run)
     {
         memcpy(out, existing, oldLen);
         pos = oldLen;
-        if ((pos > 0) && (out[pos - 1] != '\n'))
-        {
-            out[pos++] = '\n';
-        }
+        if ((pos > 0) && (out[pos - 1] != '\n')) out[pos++] = '\n';
     }
     else
     {
-        int n = snprintf(out, (int)cap, "run,won,level,time_sec\n");
+        int n = snprintf(out, (int)cap, "run,won,hardcore,level,time_sec\n");
         if (n > 0) pos = (size_t)n;
     }
 
@@ -233,9 +239,10 @@ void HexScoresAppendRunCsv(const HexRunResult *run)
     for (int i = 0; i < run->levelsRecorded; i++)
     {
         if (pos + 96 >= cap) break;
-        int n = snprintf(out + pos, (int)(cap - pos), "%ld,%d,%d,%.3f\n",
+        int n = snprintf(out + pos, (int)(cap - pos), "%ld,%d,%d,%d,%.3f\n",
                          runId,
                          run->won? 1 : 0,
+                         run->hardcore? 1 : 0,
                          i + 1,
                          run->levels[i].timeSec);
         if (n <= 0) break;

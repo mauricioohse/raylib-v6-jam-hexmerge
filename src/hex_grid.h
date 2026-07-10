@@ -46,6 +46,13 @@ typedef struct HexEdge
     bool painted;       // wet trail from the bee
 } HexEdge;
 
+typedef enum HexFaceKind
+{
+    HEX_FACE_NORMAL = 0,
+    HEX_FACE_FIRE,      // painting it alone kills; extinguished when filled with water
+    HEX_FACE_WATER      // cannot be filled unless neutralizing fire in the same loop
+} HexFaceKind;
+
 typedef struct HexFace
 {
     HexCoord coord;     // axial
@@ -53,7 +60,10 @@ typedef struct HexFace
     int vertices[6];    // corners in +x CCW order (angle 0, 60, ... 300)
     int edges[6];       // edges[c] connects vertices[c] -> vertices[(c+1)%6]
     bool filled;        // fertilized/painted territory
-    bool starJail;      // center hex on star-seed levels (blue tint / wasp jail)
+    bool starJail;      // center hex on star-seed levels (grey prison tint)
+    HexFaceKind kind;
+    float fireAnimTimer;
+    int fireAnimFrame;
 } HexFace;
 
 typedef struct HexGrid
@@ -68,6 +78,7 @@ typedef struct HexGrid
     float size;
     Vector2 origin;
     Texture2D hexTexture;
+    Texture2D pondTexture;  // dedicated water/pond face art
 } HexGrid;
 
 typedef enum HexBeeInput
@@ -96,8 +107,10 @@ typedef struct HexBee
     int arrivalCount;
 } HexBee;
 
-void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, int radius);
+void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, Texture2D pondTexture, int radius);
+void HexGridUpdate(HexGrid *grid, float dt);
 void HexGridDraw(const HexGrid *grid);
+void HexGridDrawFire(const HexGrid *grid, Texture2D fireTexture);
 
 int HexEdgeOtherVertex(const HexGrid *grid, int edge, int vertex);
 float HexEdgeLength(const HexGrid *grid, int edge);

@@ -72,11 +72,13 @@ extern Sound fxFail;
 extern Sound fxPaint;
 extern Sound fxWin;
 extern Sound fxLife;
+extern Sound fxCheckpoint;
 extern Animation beeAnim;
 extern int volumeLevel;     // 0..10, default 5; drives SetMasterVolume
 extern float lastRunTime;   // total seconds for the run that just finished
 extern HexRunResult lastRun; // per-level times for ending screen
-extern bool startHardMode;  // title → gameplay: true = A/D relative controls
+extern bool startHardMode;  // title → gameplay: true = A/D relative, false = WASD absolute
+extern bool startHardcore;  // title → gameplay: true = no lives / no checkpoints
 
 
 

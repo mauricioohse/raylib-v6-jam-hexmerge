@@ -46,5 +46,9 @@
 - [x] per-level timer; ending shows win/lose + per-level times; CSV history (file / localStorage); score by time only
 - [x] twin seeds: pair tint + bubble trail; fill fails if exactly one twin enclosed
 - [x] DEBUG: ,/< previous level, ./> next level
+- [x] fire + water tiles (paint fire alone = death; fire+water together extinguishes)
+- [x] levels 14–17 (fire/water tutorial + content)
+- [x] 5 lives; +1 life on clean clear (max 5); checkpoints on teaching levels
+- [x] HARDCORE mode (no lives/checkpoints, separate scoreboard)
 - [ ] discuss/add map mechanics beyond wasp AI (blocked hexes, wrap bridges)
 
