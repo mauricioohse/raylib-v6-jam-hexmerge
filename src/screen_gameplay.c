@@ -16,6 +16,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
@@ -37,7 +38,7 @@ static Texture2D flowerTexture = { 0 };
 static Texture2D bubbleTexture = { 0 };
 static Texture2D starTexture = { 0 };
 static int lives = PLAYER_MAX_LIVES;
-static float runTimer = 0.0f;
+static float levelTimer = 0.0f;     // resets each level
 static bool runActive = false;
 static bool levelPaused = true;     // wait for A/D (or arrows) before bee/wasps move
 static bool starMusicPlaying = false;
@@ -154,23 +155,48 @@ static Color RainbowTint(float t)
     };
 }
 
+static void ResetRunStats(void)
+{
+    memset(&lastRun, 0, sizeof(lastRun));
+    lastRunTime = 0.0f;
+    levelTimer = 0.0f;
+}
+
+static void RecordCurrentLevelStats(void)
+{
+    if (lastRun.levelsRecorded >= HEX_RUN_MAX_LEVELS) return;
+
+    int i = lastRun.levelsRecorded++;
+    lastRun.levels[i].timeSec = levelTimer;
+    lastRun.totalTime += levelTimer;
+}
+
 static void LoadCurrentLevel(void)
 {
     StopStarMusic();
     HexLevelLoad(&level, currentLevelIndex, hexTexture, flowerTexture, bubbleTexture, starTexture, BEE_SPEED);
     levelPaused = true;
+    levelTimer = 0.0f;
     beeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
     UpdateAnimation(&beeAnim);
 }
 
-static void FinishRun(void)
+static void FinishRun(bool won)
 {
     StopStarMusic();
     runActive = false;
-    lastRunTime = runTimer;
-    HexScoresSubmit(lastRunTime);
+
+    // Capture the level we just finished / died on (if not already recorded)
+    RecordCurrentLevelStats();
+
+    lastRun.won = won;
+    lastRunTime = lastRun.totalTime;
+
+    HexScoresAppendRunCsv(&lastRun);
+    if (won) HexScoresSubmit(lastRun.totalTime);
+
     finishScreen = 1;
-    PlaySound(fxWin);
+    PlaySound(won? fxWin : fxLife);
 }
 
 static void DrawLives(void)
@@ -202,9 +228,8 @@ void InitGameplayScreen(void)
     finishScreen = 0;
     lives = PLAYER_MAX_LIVES;
     currentLevelIndex = 0;
-    runTimer = 0.0f;
     runActive = true;
-    lastRunTime = 0.0f;
+    ResetRunStats();
 
     hexTexture = LoadTexture("resources/hexfield.png");
     waspTexture = LoadTexture("resources/wasp.png");
@@ -230,6 +255,7 @@ void UpdateGameplayScreen(void)
             currentLevelIndex = key - KEY_ONE;
             lives = PLAYER_MAX_LIVES;
             finishScreen = 0;
+            ResetRunStats();
             LoadCurrentLevel();
             PlaySound(fxCoin);
             return;
@@ -240,6 +266,7 @@ void UpdateGameplayScreen(void)
         currentLevelIndex = 9;  // level 10
         lives = PLAYER_MAX_LIVES;
         finishScreen = 0;
+        ResetRunStats();
         LoadCurrentLevel();
         PlaySound(fxCoin);
         return;
@@ -251,6 +278,7 @@ void UpdateGameplayScreen(void)
         else currentLevelIndex = HexLevelCount() - 1;
         lives = PLAYER_MAX_LIVES;
         finishScreen = 0;
+        ResetRunStats();
         LoadCurrentLevel();
         PlaySound(fxCoin);
         return;
@@ -260,6 +288,7 @@ void UpdateGameplayScreen(void)
         currentLevelIndex = (currentLevelIndex + 1)%HexLevelCount();
         lives = PLAYER_MAX_LIVES;
         finishScreen = 0;
+        ResetRunStats();
         LoadCurrentLevel();
         PlaySound(fxCoin);
         return;
@@ -290,7 +319,7 @@ void UpdateGameplayScreen(void)
         if (turnRight) HexBeeSetTurn(&level.bee, 1);
     }
 
-    if (runActive) runTimer += dt;
+    if (runActive) levelTimer += dt;
 
     int filled = HexLevelUpdate(&level, dt);
     if (filled == HEX_TRAIL_TWIN_FAIL) PlaySound(fxFail);
@@ -302,15 +331,13 @@ void UpdateGameplayScreen(void)
     {
         StopStarMusic();
         lives--;
-        PlaySound(fxLife);
         if (lives <= 0)
         {
-            // All lives lost: restart campaign + timer
-            lives = PLAYER_MAX_LIVES;
-            currentLevelIndex = 0;
-            runTimer = 0.0f;
-            runActive = true;
+            FinishRun(false);
+            return;
         }
+        PlaySound(fxLife);
+        // Lost a life: retry this level (don't keep partial timer/hex for the failed attempt)
         LoadCurrentLevel();
         return;
     }
@@ -323,21 +350,22 @@ void UpdateGameplayScreen(void)
         StopStarMusic();
         if (currentLevelIndex + 1 < HexLevelCount())
         {
+            RecordCurrentLevelStats();
             currentLevelIndex++;
             LoadCurrentLevel();
             PlaySound(fxWin);
         }
         else
         {
-            FinishRun();
+            FinishRun(true);
         }
     }
 
 #if defined(_DEBUG)
-    // Skip to ending with current timer (does not count as a real win unless you want it to)
+    // Skip to ending with current level stats
     if (IsKeyPressed(KEY_ENTER))
     {
-        FinishRun();
+        FinishRun(true);
     }
 #endif
 }
@@ -350,7 +378,7 @@ void DrawGameplayScreen(void)
 
     Vector2 beePos = HexBeePosition(&level.bee, &level.grid);
     if (HexLevelStarPowered(&level))
-        DrawAnimationTint(&beeAnim, beePos, RainbowTint(runTimer));
+        DrawAnimationTint(&beeAnim, beePos, RainbowTint(levelTimer));
     else
         DrawAnimation(&beeAnim, beePos);
 
@@ -363,7 +391,7 @@ void DrawGameplayScreen(void)
     DrawText(levelPaused? "A/D to start" : "A/D turn", 16, 40, 18, (Color){ 160, 170, 180, 255 });
 
     char timeBuf[16];
-    HexScoresFormat(runTimer, timeBuf, (int)sizeof(timeBuf));
+    HexScoresFormat(levelTimer, timeBuf, (int)sizeof(timeBuf));
     int tw = MeasureText(timeBuf, 22);
     DrawText(timeBuf, (GetScreenWidth() - tw)/2, 16, 22, (Color){ 255, 220, 70, 255 });
 

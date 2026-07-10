@@ -13,6 +13,7 @@
 #include "hex_scores.h"
 
 #include <stdio.h>
+#include <string.h>
 
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
@@ -48,45 +49,80 @@ void DrawEndingScreen(void)
 
     DrawRectangle(0, 0, sw, sh, (Color){ 24, 28, 36, 255 });
 
-    const char *title = "MEADOW COMPLETE";
-    int titleSize = 40;
-    DrawText(title, (sw - MeasureText(title, titleSize))/2, 48, titleSize, (Color){ 255, 179, 71, 255 });
+    const char *title = lastRun.won? "MEADOW COMPLETE" : "YOU LOSE! TRY AGAIN?";
+    Color titleCol = lastRun.won? (Color){ 255, 179, 71, 255 } : (Color){ 255, 110, 100, 255 };
+    int titleSize = lastRun.won? 40 : 34;
+    DrawText(title, (sw - MeasureText(title, titleSize))/2, 28, titleSize, titleCol);
 
-    char yourTime[48];
+    char totalLine[64];
     char timeBuf[16];
-    HexScoresFormat(lastRunTime, timeBuf, (int)sizeof(timeBuf));
-    snprintf(yourTime, sizeof(yourTime), "Your time  %s", timeBuf);
-    DrawText(yourTime, (sw - MeasureText(yourTime, 28))/2, 110, 28, RAYWHITE);
+    HexScoresFormat(lastRun.totalTime, timeBuf, (int)sizeof(timeBuf));
+    snprintf(totalLine, sizeof(totalLine), "Total  %s", timeBuf);
+    DrawText(totalLine, (sw - MeasureText(totalLine, 22))/2, 72, 22, RAYWHITE);
 
-    const char *boardTitle = "BEST TIMES";
-    DrawText(boardTitle, (sw - MeasureText(boardTitle, 24))/2, 170, 24, (Color){ 200, 210, 220, 255 });
+    const char *header = "LEVEL    TIME";
+    int headerY = 112;
+    DrawText(header, (sw - MeasureText(header, 18))/2, headerY, 18, (Color){ 160, 170, 180, 255 });
 
-    if (bestCount <= 0)
+    int n = lastRun.levelsRecorded;
+    if (n <= 0)
     {
-        const char *empty = "No records yet";
+        const char *empty = "No level data";
         DrawText(empty, (sw - MeasureText(empty, 20))/2, sh/2, 20, LIGHTGRAY);
     }
     else
     {
-        int lineH = 28;
-        int blockH = bestCount*lineH;
-        int y0 = (sh - blockH)/2;
-        if (y0 < 210) y0 = 210;
+        int lineH = 22;
+        int listTop = headerY + 28;
+        int listBottom = sh - 150;
+        int maxVisible = (listBottom - listTop)/lineH;
+        if (maxVisible < 1) maxVisible = 1;
 
-        for (int i = 0; i < bestCount; i++)
+        int start = 0;
+        if (n > maxVisible) start = n - maxVisible;  // show latest levels if overflow
+
+        for (int i = start; i < n; i++)
         {
-            char line[48];
             char t[16];
-            HexScoresFormat(bestTimes[i], t, (int)sizeof(t));
-            snprintf(line, sizeof(line), "%2d.  %s", i + 1, t);
+            HexScoresFormat(lastRun.levels[i].timeSec, t, (int)sizeof(t));
+            char line[64];
+            snprintf(line, sizeof(line), "%2d     %8s", i + 1, t);
 
-            Color col = (i == 0)? (Color){ 255, 220, 70, 255 } : RAYWHITE;
-            DrawText(line, (sw - MeasureText(line, 22))/2, y0 + i*lineH, 22, col);
+            int y = listTop + (i - start)*lineH;
+            Color col = RAYWHITE;
+            if (!lastRun.won && (i == n - 1)) col = (Color){ 255, 160, 140, 255 };
+            DrawText(line, (sw - MeasureText(line, 20))/2, y, 20, col);
         }
     }
 
-    const char *hint = "ENTER / TAP  return to menu";
-    DrawText(hint, (sw - MeasureText(hint, 18))/2, sh - 48, 18, LIGHTGRAY);
+    // Compact best-times strip near the bottom (wins only matter for board, but always show)
+    const char *boardTitle = "BEST TOTAL TIMES";
+    int boardY = sh - 130;
+    DrawText(boardTitle, (sw - MeasureText(boardTitle, 16))/2, boardY, 16, (Color){ 180, 190, 200, 255 });
+
+    if (bestCount <= 0)
+    {
+        const char *empty = "No records yet";
+        DrawText(empty, (sw - MeasureText(empty, 16))/2, boardY + 22, 16, LIGHTGRAY);
+    }
+    else
+    {
+        char row[128];
+        row[0] = '\0';
+        int shown = (bestCount < 5)? bestCount : 5;
+        for (int i = 0; i < shown; i++)
+        {
+            char t[16];
+            HexScoresFormat(bestTimes[i], t, (int)sizeof(t));
+            char piece[24];
+            snprintf(piece, sizeof(piece), "%s%s", (i > 0)? "  " : "", t);
+            strncat(row, piece, sizeof(row) - strlen(row) - 1);
+        }
+        DrawText(row, (sw - MeasureText(row, 16))/2, boardY + 22, 16, (Color){ 255, 220, 70, 255 });
+    }
+
+    const char *hint = lastRun.won? "ENTER / TAP  return to menu" : "ENTER / TAP  try again from menu";
+    DrawText(hint, (sw - MeasureText(hint, 18))/2, sh - 40, 18, LIGHTGRAY);
 }
 
 void UnloadEndingScreen(void)

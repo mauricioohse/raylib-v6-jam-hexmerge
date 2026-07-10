@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   Beehold - Persistent best-run times
+*   Beehold - Persistent best-run times + CSV run history
 *
 **********************************************************************************************/
 
@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #if defined(PLATFORM_WEB)
     #include <emscripten.h>
@@ -29,17 +30,32 @@
             return buf;
         } catch (e) { return 0; }
     });
+
+    EM_JS(void, HexRunsJsSave, (const char *text), {
+        try { localStorage.setItem("beehold_runs_csv", UTF8ToString(text)); } catch (e) {}
+    });
+
+    EM_JS(char *, HexRunsJsLoad, (), {
+        try {
+            var s = localStorage.getItem("beehold_runs_csv");
+            if (!s) return 0;
+            var len = lengthBytesUTF8(s) + 1;
+            var buf = _malloc(len);
+            stringToUTF8(s, buf, len);
+            return buf;
+        } catch (e) { return 0; }
+    });
 #endif
 
 //----------------------------------------------------------------------------------
-// Persistence
+// Best-times persistence
 //----------------------------------------------------------------------------------
 static char *LoadScoresText(void)
 {
 #if defined(PLATFORM_WEB)
-    return HexScoresJsLoad();   // malloc'd; free with free()
+    return HexScoresJsLoad();
 #else
-    return LoadFileText(HEX_SCORES_FILE);   // free with UnloadFileText()
+    return LoadFileText(HEX_SCORES_FILE);
 #endif
 }
 
@@ -98,6 +114,37 @@ static void SortAscending(float *times, int count)
 }
 
 //----------------------------------------------------------------------------------
+// CSV run history
+//----------------------------------------------------------------------------------
+static char *LoadRunsCsv(void)
+{
+#if defined(PLATFORM_WEB)
+    return HexRunsJsLoad();
+#else
+    return LoadFileText(HEX_RUNS_CSV_FILE);
+#endif
+}
+
+static void FreeRunsCsv(char *text)
+{
+    if (text == NULL) return;
+#if defined(PLATFORM_WEB)
+    free(text);
+#else
+    UnloadFileText(text);
+#endif
+}
+
+static void SaveRunsCsv(const char *text)
+{
+#if defined(PLATFORM_WEB)
+    HexRunsJsSave(text);
+#else
+    SaveFileText(HEX_RUNS_CSV_FILE, (char *)text);
+#endif
+}
+
+//----------------------------------------------------------------------------------
 // Public API
 //----------------------------------------------------------------------------------
 int HexScoresLoad(float *outTimes, int maxCount)
@@ -116,14 +163,13 @@ int HexScoresSubmit(float seconds)
     float times[HEX_SCORES_MAX + 1] = { 0 };
     int count = HexScoresLoad(times, HEX_SCORES_MAX);
 
-    // Insert keeping ascending order; drop anything beyond the top N
     int insertAt = count;
     for (int i = 0; i < count; i++)
     {
         if (seconds < times[i]) { insertAt = i; break; }
     }
 
-    if (insertAt >= HEX_SCORES_MAX) return 0;   // not a top score
+    if (insertAt >= HEX_SCORES_MAX) return 0;
 
     for (int i = (count < HEX_SCORES_MAX)? count : (HEX_SCORES_MAX - 1); i > insertAt; i--)
     {
@@ -144,6 +190,61 @@ int HexScoresSubmit(float seconds)
     SaveScoresText(buf);
 
     return insertAt + 1;
+}
+
+void HexScoresAppendRunCsv(const HexRunResult *run)
+{
+    if ((run == NULL) || (run->levelsRecorded <= 0)) return;
+
+    long runId = (long)time(NULL);
+    char *existing = LoadRunsCsv();
+
+    // Grow buffer: existing + header (if needed) + rows
+    size_t oldLen = (existing != NULL)? strlen(existing) : 0;
+    size_t cap = oldLen + 64 + (size_t)run->levelsRecorded*96 + 8;
+    char *out = (char *)malloc(cap);
+    if (out == NULL)
+    {
+        FreeRunsCsv(existing);
+        return;
+    }
+
+    size_t pos = 0;
+    bool needHeader = (existing == NULL) || (oldLen == 0) ||
+                      (strncmp(existing, "run,", 4) != 0);
+
+    if (!needHeader && (existing != NULL))
+    {
+        memcpy(out, existing, oldLen);
+        pos = oldLen;
+        if ((pos > 0) && (out[pos - 1] != '\n'))
+        {
+            out[pos++] = '\n';
+        }
+    }
+    else
+    {
+        int n = snprintf(out, (int)cap, "run,won,level,time_sec\n");
+        if (n > 0) pos = (size_t)n;
+    }
+
+    FreeRunsCsv(existing);
+
+    for (int i = 0; i < run->levelsRecorded; i++)
+    {
+        if (pos + 96 >= cap) break;
+        int n = snprintf(out + pos, (int)(cap - pos), "%ld,%d,%d,%.3f\n",
+                         runId,
+                         run->won? 1 : 0,
+                         i + 1,
+                         run->levels[i].timeSec);
+        if (n <= 0) break;
+        pos += (size_t)n;
+    }
+    out[pos] = '\0';
+
+    SaveRunsCsv(out);
+    free(out);
 }
 
 void HexScoresFormat(float seconds, char *buf, int bufSize)

@@ -27,6 +27,7 @@
 #define SCREENS_H
 
 #include "raylib.h"
+#include "hex_scores.h"
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -73,7 +74,8 @@ extern Sound fxWin;
 extern Sound fxLife;
 extern Animation beeAnim;
 extern int volumeLevel;     // 0..10, default 5; drives SetMasterVolume
-extern float lastRunTime;   // seconds for the run that just finished (0 if none)
+extern float lastRunTime;   // total seconds for the run that just finished
+extern HexRunResult lastRun; // per-level times / hex painted for ending screen
 
 
 

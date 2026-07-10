@@ -43,6 +43,7 @@
     - [x] level 13: radius 4, 12 seeds (one twin pair) + 2 stars
 - [x] star seeds: 4s power, rainbow bee, flee/slow wasps, jail 8s, star_power music
 - [x] add run timer; ending shows time, saves sorted best times to file, lists top times center (works on emscripten/web too)
+- [x] per-level timer; ending shows win/lose + per-level times; CSV history (file / localStorage); score by time only
 - [x] twin seeds: pair tint + bubble trail; fill fails if exactly one twin enclosed
 - [x] DEBUG: ,/< previous level, ./> next level
 - [ ] discuss/add map mechanics beyond wasp AI (blocked hexes, wrap bridges)

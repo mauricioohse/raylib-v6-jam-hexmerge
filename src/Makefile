@@ -352,6 +352,16 @@ all:
 # Project target defined by PROJECT_NAME
 $(PROJECT_NAME): $(OBJS)
 	$(CC) -o $(PROJECT_BUILD_PATH)/$(PROJECT_NAME)$(EXT) $(OBJS) $(CFLAGS) $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS) -D$(PLATFORM)
+ifeq ($(PLATFORM),PLATFORM_WEB)
+	@echo "Packaging itch.io HTML5 zip (index.html at zip root)..."
+	rm -rf itch_web
+	mkdir -p itch_web
+	cp $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).html itch_web/index.html
+	cp $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).js itch_web/$(PROJECT_NAME).js
+	cp $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).wasm itch_web/$(PROJECT_NAME).wasm
+	cp $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).data itch_web/$(PROJECT_NAME).data
+	python -c "import zipfile, os; z=zipfile.ZipFile('$(PROJECT_NAME)_web.zip','w',zipfile.ZIP_DEFLATED); files=sorted(os.listdir('itch_web')); [z.write(os.path.join('itch_web',f), f) for f in files]; z.close(); print('Wrote $(PROJECT_NAME)_web.zip:', ', '.join(files))"
+endif
 
 # Compile source files
 # NOTE: This pattern will compile every module defined on $(OBJS)
@@ -378,15 +388,8 @@ ifeq ($(PLATFORM),PLATFORM_DRM)
 	rm -fv *.o
 endif
 ifeq ($(PLATFORM),PLATFORM_WEB)
-    ifeq ($(PLATFORM_OS),WINDOWS)
-	del *.o *.html *.js
-    endif
-    ifeq ($(PLATFORM_OS),LINUX)
-	rm -fv *.o $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm
-    endif
-    ifeq ($(PLATFORM_OS),OSX)
-	rm -f *.o $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm
-    endif
+	rm -rf itch_web beehold_web
+	rm -f *.o $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm $(PROJECT_NAME)_web.zip
 endif
 	@echo Cleaning done
 

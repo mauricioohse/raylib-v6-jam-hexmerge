@@ -71,10 +71,14 @@ compile_commands.json
 *apk*
 android.*
 
-# WebAssembly release files
+# WebAssembly / release files
+*.csv
+*.zip
 *.data
 *.wasm
 *.html
 *.js
 !src/minshell.html
 !src/shell.html
+src/itch_web/
+src/beehold_web/
