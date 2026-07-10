@@ -10,7 +10,7 @@ But watch out — evil wasps are trying to stop you!
 
 ![Level 1](gdd-images/level_1.png)
 
-![Hard Level](gdd-images/level_hard.png)
+![Cover](gdd-images/cover.png)
 
 ---
 
