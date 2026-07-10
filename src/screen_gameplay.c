@@ -388,8 +388,8 @@ void InitGameplayScreen(void)
     gamePaused = false;
     hardcore = startHardcore;
     startHardcore = false;
-    moveModeRelative = startHardMode;   // title MOVE: A/D vs WASD
-    // keep startHardMode so title remembers the choice after returning from a run
+    moveModeRelative = controllerMode;  // title MOVE: A/D vs WASD
+    // keep controllerMode so title remembers the choice after returning from a run
     lives = hardcore? 1 : PLAYER_MAX_LIVES;
     currentLevelIndex = 0;
     checkpointLevel = 0;

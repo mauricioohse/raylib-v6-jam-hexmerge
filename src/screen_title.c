@@ -300,7 +300,7 @@ void UpdateTitleScreen(void)
 
     if (Clicked(moveBtn))
     {
-        startHardMode = !startHardMode;   // toggle WASD ↔ A/D
+        controllerMode = !controllerMode;   // toggle WASD ↔ A/D
         PlaySound(fxCoin);
         return;
     }
@@ -308,7 +308,7 @@ void UpdateTitleScreen(void)
     if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
     {
         startHardcore = false;
-        finishScreen = 2;   // GAMEPLAY (uses startHardMode for controls)
+        finishScreen = 2;   // GAMEPLAY (uses controllerMode for controls)
         PlaySound(fxCoin);
         return;
     }
@@ -316,7 +316,7 @@ void UpdateTitleScreen(void)
     if (Clicked(hardcoreBtn))
     {
         startHardcore = true;
-        finishScreen = 2;   // HARDCORE (uses startHardMode for controls)
+        finishScreen = 2;   // HARDCORE (uses controllerMode for controls)
         PlaySound(fxCoin);
         return;
     }
@@ -359,7 +359,7 @@ void DrawTitleScreen(void)
 
     Vector2 mouse = GetMousePosition();
     DrawMenuButton(startBtn, "START GAME", CheckCollisionPointRec(mouse, startBtn));
-    DrawMenuButton(moveBtn, startHardMode? "MOVE: A/D" : "MOVE: WASD",
+    DrawMenuButton(moveBtn, controllerMode? "MOVE: A/D" : "MOVE: WASD",
                    CheckCollisionPointRec(mouse, moveBtn));
     DrawMenuButton(hardcoreBtn, "SPEEDRUN", CheckCollisionPointRec(mouse, hardcoreBtn));
 
@@ -393,7 +393,7 @@ void DrawTitleScreen(void)
         const int tipPad = 10;
         const int tipFont = 16;
         const int tipLineH = tipFont + 4;
-        const char *line1 = startHardMode
+        const char *line1 = controllerMode
             ? "A/D: turn left/right at each junction."
             : "WASD: move in absolute screen directions.";
         const char *line2 = "Click to switch. Applies to Start and Hardcore.";

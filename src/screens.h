@@ -81,7 +81,7 @@ void PlayBeeZoom(void);     // subtle hop buzz when the bee launches
 extern int volumeLevel;     // 0..10, default 5; drives SetMasterVolume
 extern float lastRunTime;   // total seconds for the run that just finished
 extern HexRunResult lastRun; // per-level times for ending screen
-extern bool startHardMode;  // title → gameplay: true = A/D relative, false = WASD absolute
+extern bool controllerMode; // title → gameplay: true = A/D relative, false = WASD absolute
 extern bool startHardcore;  // title → gameplay: true = no lives / no checkpoints
 
 
