@@ -71,6 +71,7 @@ static int framesCounter = 0;
 static int finishScreen = 0;
 
 static Rectangle startBtn = { 0 };
+static Rectangle hardBtn = { 0 };
 static Rectangle volDownBtn = { 0 };
 static Rectangle volUpBtn = { 0 };
 static Texture2D speakerTexture = { 0 };
@@ -390,9 +391,10 @@ void InitTitleScreen(void)
     float sw = (float)GetScreenWidth();
     float sh = (float)GetScreenHeight();
 
-    startBtn = (Rectangle){ sw*0.5f - 140.0f, sh*0.5f - 28.0f, 280.0f, 56.0f };
+    startBtn = (Rectangle){ sw*0.5f - 140.0f, sh*0.5f - 40.0f, 280.0f, 52.0f };
+    hardBtn = (Rectangle){ sw*0.5f - 140.0f, startBtn.y + startBtn.height + 14.0f, 280.0f, 44.0f };
 
-    float volY = startBtn.y + startBtn.height + 48.0f;
+    float volY = hardBtn.y + hardBtn.height + 40.0f;
     volDownBtn = (Rectangle){ sw*0.5f - 20.0f, volY, 36.0f, 36.0f };
     volUpBtn = (Rectangle){ sw*0.5f + 52.0f, volY, 36.0f, 36.0f };
 
@@ -408,12 +410,21 @@ void UpdateTitleScreen(void)
 
     if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
     {
-        finishScreen = 2;   // GAMEPLAY
+        startHardMode = false;
+        finishScreen = 2;   // GAMEPLAY (WASD)
         PlaySound(fxCoin);
         return;
     }
 
-    if (Clicked(volDownBtn) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+    if (Clicked(hardBtn))
+    {
+        startHardMode = true;
+        finishScreen = 2;   // GAMEPLAY (A/D hard mode)
+        PlaySound(fxCoin);
+        return;
+    }
+
+    if (Clicked(volDownBtn) || IsKeyPressed(KEY_LEFT))
     {
         if (volumeLevel > VOLUME_MIN)
         {
@@ -422,7 +433,7 @@ void UpdateTitleScreen(void)
             PlaySound(fxCoin);
         }
     }
-    else if (Clicked(volUpBtn) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+    else if (Clicked(volUpBtn) || IsKeyPressed(KEY_RIGHT))
     {
         if (volumeLevel < VOLUME_MAX)
         {
@@ -451,6 +462,7 @@ void DrawTitleScreen(void)
 
     Vector2 mouse = GetMousePosition();
     DrawMenuButton(startBtn, "START GAME", CheckCollisionPointRec(mouse, startBtn));
+    DrawMenuButton(hardBtn, "HARD MODE", CheckCollisionPointRec(mouse, hardBtn));
 
     // Volume row: speaker  <  N  >
     float volY = volDownBtn.y;
@@ -475,6 +487,31 @@ void DrawTitleScreen(void)
     DrawRectangleRec(volUpBtn, upFill);
     DrawRectangleLinesEx(volUpBtn, 2.0f, (Color){ 90, 100, 120, 255 });
     DrawText(">", (int)(volUpBtn.x + 10), (int)(volUpBtn.y + 4), 28, RAYWHITE);
+
+    // Tooltip last so it sits above the volume row
+    if (CheckCollisionPointRec(mouse, hardBtn))
+    {
+        const int tipPad = 10;
+        const int tipFont = 16;
+        const int tipLineH = tipFont + 4;
+        const char *line1 = "Hard mode uses rotational A/D controls,";
+        const char *line2 = "which are a bit harder to get used to.";
+        int tipW = MeasureText(line1, tipFont);
+        int tipW2 = MeasureText(line2, tipFont);
+        if (tipW2 > tipW) tipW = tipW2;
+        int tipH = tipPad*2 + tipLineH*2;
+        float tipX = hardBtn.x + (hardBtn.width - (float)(tipW + tipPad*2))*0.5f;
+        float tipY = hardBtn.y + hardBtn.height + 10.0f;
+        if (tipX < 8.0f) tipX = 8.0f;
+        if (tipX + tipW + tipPad*2 > (float)GetScreenWidth() - 8.0f)
+            tipX = (float)GetScreenWidth() - 8.0f - (float)(tipW + tipPad*2);
+
+        DrawRectangle((int)tipX, (int)tipY, tipW + tipPad*2, tipH, (Color){ 36, 42, 54, 235 });
+        DrawRectangleLinesEx((Rectangle){ tipX, tipY, (float)(tipW + tipPad*2), (float)tipH }, 2.0f,
+                             (Color){ 255, 179, 71, 200 });
+        DrawText(line1, (int)tipX + tipPad, (int)tipY + tipPad, tipFont, (Color){ 220, 225, 235, 255 });
+        DrawText(line2, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH, tipFont, (Color){ 220, 225, 235, 255 });
+    }
 }
 
 void UnloadTitleScreen(void)

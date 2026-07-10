@@ -70,13 +70,24 @@ typedef struct HexGrid
     Texture2D hexTexture;
 } HexGrid;
 
+typedef enum HexBeeInput
+{
+    HEX_BEE_INPUT_NONE = 0,
+    HEX_BEE_INPUT_TURN_LEFT,    // relative A/D mode: leftmost fork
+    HEX_BEE_INPUT_TURN_RIGHT,   // relative A/D mode: rightmost fork
+    HEX_BEE_INPUT_DIR_UP,       // absolute WASD: screen up (-y)
+    HEX_BEE_INPUT_DIR_DOWN,
+    HEX_BEE_INPUT_DIR_LEFT,
+    HEX_BEE_INPUT_DIR_RIGHT
+} HexBeeInput;
+
 typedef struct HexBee
 {
     int edge;
     int fromVertex;     // travel from this endpoint toward the other
     float t;            // 0..1 along current edge
     float speed;        // pixels per second
-    int queuedTurn;     // buffered input: -1 = left fork (A), +1 = right fork (D), 0 = none
+    HexBeeInput queuedInput;    // consumed at next junction
     bool waiting;       // stopped at a junction (t == 1 on edge) until input arrives
 
     // Vertices crossed during the last HexBeeUpdate, in order, for the trail module
@@ -98,7 +109,7 @@ int HexFindTopmostVertex(const HexGrid *grid);
 int HexFindBottommostVertex(const HexGrid *grid);
 
 void HexBeeInit(HexBee *bee, HexGrid *grid, int startVertex, float speed);
-void HexBeeSetTurn(HexBee *bee, int dir);   // -1 left, +1 right; consumed at next junction
+void HexBeeSetInput(HexBee *bee, HexBeeInput input);   // buffered until next junction
 void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt);
 Vector2 HexBeePosition(const HexBee *bee, const HexGrid *grid);
 float HexBeeRotationDeg(const HexBee *bee, const HexGrid *grid);

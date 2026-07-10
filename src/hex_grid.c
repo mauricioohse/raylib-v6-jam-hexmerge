@@ -270,11 +270,8 @@ int HexFindBottommostVertex(const HexGrid *grid)
 // Bee on edges
 //----------------------------------------------------------------------------------
 
-// Pick the exit edge at a vertex for a turn input (-1 left, +1 right). Screen y grows
-// down, so a positive angle delta from the incoming direction is a visual right turn.
-// Interior vertices offer exactly two forks (reverse excluded); rim vertices force the
-// single remaining edge whichever way was pressed.
-static int ChooseExit(const HexGrid *grid, int vertex, int fromEdge, int turn)
+// Relative A/D: pick leftmost / rightmost fork (reverse excluded).
+static int ChooseExitRelative(const HexGrid *grid, int vertex, int fromEdge, int turnLeft)
 {
     int prev = HexEdgeOtherVertex(grid, fromEdge, vertex);
     Vector2 a = grid->vertices[prev].pos;
@@ -303,7 +300,62 @@ static int ChooseExit(const HexGrid *grid, int vertex, int fromEdge, int turn)
 
     if (n == 0) return fromEdge;    // dead end: U-turn (cannot happen on this board)
 
-    return (turn < 0)? exits[0] : exits[n - 1];     // n == 1: both indices are the forced exit
+    return turnLeft? exits[0] : exits[n - 1];
+}
+
+// Absolute WASD: each remaining exit (reverse excluded) maps to exactly one cardinal.
+// Flat-top hex edges sit on 60° steps; map those to WASD so a vertex never enables
+// more than two keys (interior: 2 exits → 2 keys; rim: 1 exit → 1 key).
+static int CardinalFromHexAngle(float angRad)
+{
+    // Snap to nearest 60° lattice direction, then to WASD.
+    float deg = angRad*RAD2DEG;
+    int slot = (int)floorf(deg/60.0f + 0.5f);   // ..., -1, 0, 1, 2, ...
+    slot %= 6;
+    if (slot < 0) slot += 6;
+
+    // 0°→D, 60°→S, 120°→S, 180°→A, 240°→W, 300°→W
+    switch (slot)
+    {
+        case 0: return HEX_BEE_INPUT_DIR_RIGHT; // 0°
+        case 1: return HEX_BEE_INPUT_DIR_DOWN;  // 60°
+        case 2: return HEX_BEE_INPUT_DIR_DOWN;  // 120°
+        case 3: return HEX_BEE_INPUT_DIR_LEFT;  // 180°
+        case 4: return HEX_BEE_INPUT_DIR_UP;    // 240°
+        case 5: return HEX_BEE_INPUT_DIR_UP;    // 300°
+        default: return HEX_BEE_INPUT_NONE;
+    }
+}
+
+static int ChooseExitAbsolute(const HexGrid *grid, int vertex, int fromEdge, HexBeeInput want)
+{
+    const HexVertex *v = &grid->vertices[vertex];
+    for (int i = 0; i < v->edgeCount; i++)
+    {
+        int e = v->edges[i];
+        if (e == fromEdge) continue;    // never U-turn via WASD; keeps exactly two keys interior
+        float ang = EdgeAngleFromVertex(grid, e, vertex);
+        if (CardinalFromHexAngle(ang) == want) return e;
+    }
+    return -1;  // pressed key has no exit at this vertex
+}
+
+static int ResolveBeeExit(const HexBee *bee, const HexGrid *grid, int vertex, int fromEdge)
+{
+    switch (bee->queuedInput)
+    {
+        case HEX_BEE_INPUT_TURN_LEFT:
+            return ChooseExitRelative(grid, vertex, fromEdge, 1);
+        case HEX_BEE_INPUT_TURN_RIGHT:
+            return ChooseExitRelative(grid, vertex, fromEdge, 0);
+        case HEX_BEE_INPUT_DIR_UP:
+        case HEX_BEE_INPUT_DIR_DOWN:
+        case HEX_BEE_INPUT_DIR_LEFT:
+        case HEX_BEE_INPUT_DIR_RIGHT:
+            return ChooseExitAbsolute(grid, vertex, fromEdge, bee->queuedInput);
+        default:
+            return -1;
+    }
 }
 
 void HexBeeInit(HexBee *bee, HexGrid *grid, int startVertex, float speed)
@@ -311,6 +363,7 @@ void HexBeeInit(HexBee *bee, HexGrid *grid, int startVertex, float speed)
     memset(bee, 0, sizeof(*bee));
     bee->speed = speed;
     bee->fromVertex = startVertex;
+    bee->queuedInput = HEX_BEE_INPUT_NONE;
 
     // Take the exit heading furthest into the board (rightward from leftmost start)
     const HexVertex *v = &grid->vertices[startVertex];
@@ -331,19 +384,20 @@ void HexBeeInit(HexBee *bee, HexGrid *grid, int startVertex, float speed)
     grid->edges[best].painted = true;
 }
 
-void HexBeeSetTurn(HexBee *bee, int dir)
+void HexBeeSetInput(HexBee *bee, HexBeeInput input)
 {
-    bee->queuedTurn = (dir < 0)? -1 : 1;
+    if ((bee == NULL) || (input == HEX_BEE_INPUT_NONE)) return;
+    bee->queuedInput = input;
 }
 
 int HexBeePeekNextEdge(const HexBee *bee, const HexGrid *grid)
 {
-    if (bee->queuedTurn == 0) return -1;    // no input buffered: bee will stop
+    if (bee->queuedInput == HEX_BEE_INPUT_NONE) return -1;
 
     int toVertex = HexEdgeOtherVertex(grid, bee->edge, bee->fromVertex);
     if (toVertex < 0) return -1;
 
-    return ChooseExit(grid, toVertex, bee->edge, bee->queuedTurn);
+    return ResolveBeeExit(bee, grid, toVertex, bee->edge);
 }
 
 void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
@@ -352,14 +406,21 @@ void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
 
     if ((bee->edge < 0) || (bee->edge >= grid->edgeCount)) return;
 
-    // Parked at a junction: wait for input, then launch onto the chosen fork
+    // Parked at a junction: wait for a valid exit, then launch
     if (bee->waiting)
     {
-        if (bee->queuedTurn == 0) return;
+        if (bee->queuedInput == HEX_BEE_INPUT_NONE) return;
 
         int vertex = HexEdgeOtherVertex(grid, bee->edge, bee->fromVertex);
-        int nextEdge = ChooseExit(grid, vertex, bee->edge, bee->queuedTurn);
-        bee->queuedTurn = 0;
+        int nextEdge = ResolveBeeExit(bee, grid, vertex, bee->edge);
+        if (nextEdge < 0)
+        {
+            // Absolute press with no matching exit: ignore and keep waiting
+            bee->queuedInput = HEX_BEE_INPUT_NONE;
+            return;
+        }
+
+        bee->queuedInput = HEX_BEE_INPUT_NONE;
         bee->waiting = false;
 
         bee->edge = nextEdge;
@@ -386,16 +447,24 @@ void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
             bee->arrivalCount++;
         }
 
-        // No buffered input: park exactly on the vertex until the player steers
-        if (bee->queuedTurn == 0)
+        if (bee->queuedInput == HEX_BEE_INPUT_NONE)
         {
             bee->waiting = true;
             bee->t = 1.0f;
             break;
         }
 
-        int nextEdge = ChooseExit(grid, arrived, viaEdge, bee->queuedTurn);
-        bee->queuedTurn = 0;
+        int nextEdge = ResolveBeeExit(bee, grid, arrived, viaEdge);
+        if (nextEdge < 0)
+        {
+            // Invalid absolute direction at this junction: park and clear bad input
+            bee->queuedInput = HEX_BEE_INPUT_NONE;
+            bee->waiting = true;
+            bee->t = 1.0f;
+            break;
+        }
+
+        bee->queuedInput = HEX_BEE_INPUT_NONE;
 
         bee->edge = nextEdge;
         bee->fromVertex = arrived;

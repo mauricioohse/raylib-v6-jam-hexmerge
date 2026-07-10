@@ -40,8 +40,9 @@ static Texture2D starTexture = { 0 };
 static int lives = PLAYER_MAX_LIVES;
 static float levelTimer = 0.0f;     // resets each level
 static bool runActive = false;
-static bool levelPaused = true;     // wait for A/D (or arrows) before bee/wasps move
+static bool levelPaused = true;     // wait for first steer before bee/wasps move
 static bool starMusicPlaying = false;
+static bool moveModeRelative = false;   // false = WASD absolute (default), true = A/D relative
 
 //----------------------------------------------------------------------------------
 // Animation helpers
@@ -229,6 +230,8 @@ void InitGameplayScreen(void)
     lives = PLAYER_MAX_LIVES;
     currentLevelIndex = 0;
     runActive = true;
+    moveModeRelative = startHardMode;   // HARD MODE = A/D relative
+    startHardMode = false;
     ResetRunStats();
 
     hexTexture = LoadTexture("resources/hexfield.png");
@@ -293,17 +296,39 @@ void UpdateGameplayScreen(void)
         PlaySound(fxCoin);
         return;
     }
+    if (IsKeyPressed(KEY_G))
+    {
+        moveModeRelative = !moveModeRelative;
+        PlaySound(fxCoin);
+    }
 #endif
 
-    bool turnLeft = IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT);
-    bool turnRight = IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT);
+    HexBeeInput steer = HEX_BEE_INPUT_NONE;
+    if (moveModeRelative)
+    {
+        if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT))
+            steer = HEX_BEE_INPUT_TURN_LEFT;
+        else if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT))
+            steer = HEX_BEE_INPUT_TURN_RIGHT;
+    }
+    else
+    {
+        // Absolute screen directions (WASD / arrows). Invalid exits are ignored at the junction.
+        if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP))
+            steer = HEX_BEE_INPUT_DIR_UP;
+        else if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN))
+            steer = HEX_BEE_INPUT_DIR_DOWN;
+        else if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT))
+            steer = HEX_BEE_INPUT_DIR_LEFT;
+        else if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT))
+            steer = HEX_BEE_INPUT_DIR_RIGHT;
+    }
 
     if (levelPaused)
     {
-        if (turnLeft || turnRight)
+        if (steer != HEX_BEE_INPUT_NONE)
         {
-            if (turnLeft) HexBeeSetTurn(&level.bee, -1);
-            if (turnRight) HexBeeSetTurn(&level.bee, 1);
+            HexBeeSetInput(&level.bee, steer);
             levelPaused = false;
         }
         else
@@ -313,10 +338,9 @@ void UpdateGameplayScreen(void)
             return;
         }
     }
-    else
+    else if (steer != HEX_BEE_INPUT_NONE)
     {
-        if (turnLeft) HexBeeSetTurn(&level.bee, -1);
-        if (turnRight) HexBeeSetTurn(&level.bee, 1);
+        HexBeeSetInput(&level.bee, steer);
     }
 
     if (runActive) levelTimer += dt;
@@ -388,7 +412,9 @@ void DrawGameplayScreen(void)
     char levelLabel[32];
     snprintf(levelLabel, sizeof(levelLabel), "Level %d", currentLevelIndex + 1);
     DrawText(levelLabel, 16, 16, 20, LIGHTGRAY);
-    DrawText(levelPaused? "A/D to start" : "A/D turn", 16, 40, 18, (Color){ 160, 170, 180, 255 });
+    DrawText(levelPaused? (moveModeRelative? "A/D to start" : "WASD to start")
+                        : (moveModeRelative? "A/D turn" : "WASD move"),
+             16, 40, 18, (Color){ 160, 170, 180, 255 });
 
     char timeBuf[16];
     HexScoresFormat(levelTimer, timeBuf, (int)sizeof(timeBuf));
@@ -397,13 +423,16 @@ void DrawGameplayScreen(void)
 
     if (levelPaused)
     {
-        const char *prompt = "Press A/D or arrows to start";
+        const char *prompt = moveModeRelative? "Press A/D or arrows to start"
+                                             : "Press WASD or arrows to start";
         int pw = MeasureText(prompt, 24);
         DrawText(prompt, (GetScreenWidth() - pw)/2, GetScreenHeight() - 56, 24, (Color){ 255, 220, 70, 255 });
     }
 
 #if defined(_DEBUG)
-    DrawText("DEBUG: 1-9/0 jump  </, >/ . step", 16, GetScreenHeight() - 28, 16, (Color){ 120, 140, 160, 255 });
+    DrawText(TextFormat("DEBUG: 1-9/0 jump  </, >/ . step  G=%s",
+                        moveModeRelative? "A/D" : "WASD"),
+             16, GetScreenHeight() - 28, 16, (Color){ 120, 140, 160, 255 });
 #endif
 }
 
