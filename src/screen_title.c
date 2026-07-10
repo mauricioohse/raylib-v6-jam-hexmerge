@@ -281,7 +281,7 @@ void InitTitleScreen(void)
     volDownBtn = (Rectangle){ sw*0.5f - 20.0f, volY, 36.0f, 36.0f };
     volUpBtn = (Rectangle){ sw*0.5f + 52.0f, volY, 36.0f, 36.0f };
 
-    HexSocialLayoutBottomCenter(sh - 56.0f);
+    HexSocialLayoutTitle(sh - 56.0f);
     ApplyVolume();
 }
 
@@ -352,7 +352,7 @@ void DrawTitleScreen(void)
     int tw = MeasureText(title, titleSize);
     DrawText(title, (GetScreenWidth() - tw)/2, GetScreenHeight()/2 - 160, titleSize, (Color){ 255, 179, 71, 255 });
 
-    const char *subtitle = "paint the hexes, grow the flowers";
+    const char *subtitle = "Help the flowers in the hex plains!";
     int subSize = 18;
     int sw = MeasureText(subtitle, subSize);
     DrawText(subtitle, (GetScreenWidth() - sw)/2, GetScreenHeight()/2 - 90, subSize, LIGHTGRAY);
@@ -442,6 +442,19 @@ void DrawTitleScreen(void)
     }
 
     HexSocialDraw();
+
+    {
+        Rectangle tw = HexSocialTwitchRect();
+        const char *line1 = "Enjoy the game?";
+        const char *line2 = "hit the follow!";
+        int fontSize = 16;
+        int lineH = fontSize + 2;
+        int tx = (int)(tw.x + tw.width + 10.0f);
+        int ty = (int)(tw.y + (tw.height - (float)(lineH*2 - 2))*0.5f);
+        Color yellow = (Color){ 255, 220, 70, 255 };
+        DrawText(line1, tx, ty, fontSize, yellow);
+        DrawText(line2, tx, ty + lineH, fontSize, yellow);
+    }
 }
 
 void UnloadTitleScreen(void)

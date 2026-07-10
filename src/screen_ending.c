@@ -34,9 +34,9 @@ void InitEndingScreen(void)
     bestCount = HexScoresLoad(bestTimes, HEX_SCORES_MAX, lastRun.hardcore);
 
     float sw = (float)GetScreenWidth();
-    float iconSize = 32.0f;
-    float gap = 16.0f;
-    float total = iconSize*2.0f + gap;
+    float iconSize = HEX_SOCIAL_ICON_SIZE;
+    float gap = HEX_SOCIAL_ICON_GAP;
+    float total = iconSize*3.0f + gap*2.0f;
     // Under the yellow promo on the right (matches DrawEndingScreen layout)
     HexSocialLayoutAt(sw - 48.0f - total, (float)(112 + 28 + 40 + 24*2 + 16));
 }
@@ -124,9 +124,9 @@ void DrawEndingScreen(void)
         DrawText(line1, x1, y, fontSize, yellow);
         DrawText(line2, x2, y + lineH, fontSize, yellow);
 
-        float iconSize = 32.0f;
-        float gap = 16.0f;
-        float total = iconSize*2.0f + gap;
+        float iconSize = HEX_SOCIAL_ICON_SIZE;
+        float gap = HEX_SOCIAL_ICON_GAP;
+        float total = iconSize*3.0f + gap*2.0f;
         HexSocialLayoutAt((float)sw - (float)rightPad - total, (float)(y + lineH*2 + 16));
     }
 

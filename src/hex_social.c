@@ -1,27 +1,27 @@
 /**********************************************************************************************
 *
-*   Beehold - Clickable social icons (Discord / X)
+*   Beehold - Clickable social icons (Discord / X / Twitch)
 *
 **********************************************************************************************/
 
 #include "hex_social.h"
 
-#define SOCIAL_ICON_SIZE 32.0f
-#define SOCIAL_ICON_GAP 16.0f
-
 static Texture2D discordTex = { 0 };
 static Texture2D xTex = { 0 };
+static Texture2D twitchTex = { 0 };
 static Rectangle discordBtn = { 0 };
 static Rectangle xBtn = { 0 };
+static Rectangle twitchBtn = { 0 };
 
 void HexSocialInit(void)
 {
     discordTex = LoadTexture("resources/icon_discord.png");
     xTex = LoadTexture("resources/icon_x.png");
-    // Smooth logos at small size
+    twitchTex = LoadTexture("resources/icon_twitch.png");
     SetTextureFilter(discordTex, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(xTex, TEXTURE_FILTER_BILINEAR);
-    HexSocialLayoutBottomCenter((float)GetScreenHeight() - 56.0f);
+    SetTextureFilter(twitchTex, TEXTURE_FILTER_BILINEAR);
+    HexSocialLayoutTitle((float)GetScreenHeight() - 56.0f);
 }
 
 void HexSocialUnload(void)
@@ -30,19 +30,40 @@ void HexSocialUnload(void)
     discordTex = (Texture2D){ 0 };
     UnloadTexture(xTex);
     xTex = (Texture2D){ 0 };
+    UnloadTexture(twitchTex);
+    twitchTex = (Texture2D){ 0 };
 }
 
 void HexSocialLayoutAt(float x, float y)
 {
-    discordBtn = (Rectangle){ x, y, SOCIAL_ICON_SIZE, SOCIAL_ICON_SIZE };
-    xBtn = (Rectangle){ x + SOCIAL_ICON_SIZE + SOCIAL_ICON_GAP, y, SOCIAL_ICON_SIZE, SOCIAL_ICON_SIZE };
+    discordBtn = (Rectangle){ x, y, HEX_SOCIAL_ICON_SIZE, HEX_SOCIAL_ICON_SIZE };
+    xBtn = (Rectangle){ x + HEX_SOCIAL_ICON_SIZE + HEX_SOCIAL_ICON_GAP, y,
+                        HEX_SOCIAL_ICON_SIZE, HEX_SOCIAL_ICON_SIZE };
+    twitchBtn = (Rectangle){ x + (HEX_SOCIAL_ICON_SIZE + HEX_SOCIAL_ICON_GAP)*2.0f, y,
+                             HEX_SOCIAL_ICON_SIZE, HEX_SOCIAL_ICON_SIZE };
 }
 
 void HexSocialLayoutBottomCenter(float y)
 {
-    float total = SOCIAL_ICON_SIZE*2.0f + SOCIAL_ICON_GAP;
+    float total = HEX_SOCIAL_ICON_SIZE*3.0f + HEX_SOCIAL_ICON_GAP*2.0f;
     float x = ((float)GetScreenWidth() - total) * 0.5f;
     HexSocialLayoutAt(x, y);
+}
+
+void HexSocialLayoutTitle(float y)
+{
+    twitchBtn = (Rectangle){ 16.0f, y, HEX_SOCIAL_ICON_SIZE, HEX_SOCIAL_ICON_SIZE };
+
+    float pair = HEX_SOCIAL_ICON_SIZE*2.0f + HEX_SOCIAL_ICON_GAP;
+    float x = (float)GetScreenWidth() - 16.0f - pair;
+    discordBtn = (Rectangle){ x, y, HEX_SOCIAL_ICON_SIZE, HEX_SOCIAL_ICON_SIZE };
+    xBtn = (Rectangle){ x + HEX_SOCIAL_ICON_SIZE + HEX_SOCIAL_ICON_GAP, y,
+                        HEX_SOCIAL_ICON_SIZE, HEX_SOCIAL_ICON_SIZE };
+}
+
+Rectangle HexSocialTwitchRect(void)
+{
+    return twitchBtn;
 }
 
 bool HexSocialUpdate(void)
@@ -58,6 +79,11 @@ bool HexSocialUpdate(void)
     if (CheckCollisionPointRec(mouse, xBtn))
     {
         OpenURL(HEX_SOCIAL_X_URL);
+        return true;
+    }
+    if (CheckCollisionPointRec(mouse, twitchBtn))
+    {
+        OpenURL(HEX_SOCIAL_TWITCH_URL);
         return true;
     }
     return false;
@@ -82,4 +108,5 @@ void HexSocialDraw(void)
     Vector2 mouse = GetMousePosition();
     DrawIcon(discordTex, discordBtn, CheckCollisionPointRec(mouse, discordBtn));
     DrawIcon(xTex, xBtn, CheckCollisionPointRec(mouse, xBtn));
+    DrawIcon(twitchTex, twitchBtn, CheckCollisionPointRec(mouse, twitchBtn));
 }
