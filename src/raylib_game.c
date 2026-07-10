@@ -57,7 +57,7 @@ Animation beeAnim = {0};
 int volumeLevel = 5;
 float lastRunTime = 0.0f;
 HexRunResult lastRun = { 0 };
-bool startHardMode = false;
+bool startHardMode = true;
 bool startHardcore = false;
 
 //----------------------------------------------------------------------------------
