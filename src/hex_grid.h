@@ -111,6 +111,7 @@ int HexFindBottommostVertex(const HexGrid *grid);
 void HexBeeInit(HexBee *bee, HexGrid *grid, int startVertex, float speed);
 void HexBeeSetInput(HexBee *bee, HexBeeInput input);   // buffered until next junction
 void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt);
+void HexBeeDrawLiveTrail(const HexBee *bee, const HexGrid *grid);  // pollen up to bee mid-edge
 Vector2 HexBeePosition(const HexBee *bee, const HexGrid *grid);
 float HexBeeRotationDeg(const HexBee *bee, const HexGrid *grid);
 int HexBeePeekNextEdge(const HexBee *bee, const HexGrid *grid);

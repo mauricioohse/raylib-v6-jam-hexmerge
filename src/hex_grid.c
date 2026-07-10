@@ -381,7 +381,7 @@ void HexBeeInit(HexBee *bee, HexGrid *grid, int startVertex, float speed)
     }
 
     bee->edge = best;
-    grid->edges[best].painted = true;
+    // Don't paint yet — pollen commits when the bee arrives at the far vertex
 }
 
 void HexBeeSetInput(HexBee *bee, HexBeeInput input)
@@ -426,7 +426,7 @@ void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
         bee->edge = nextEdge;
         bee->fromVertex = vertex;
         bee->t = 0.0f;
-        grid->edges[nextEdge].painted = true;
+        // Trail grows live until arrival; edge stays unpainted for now
     }
 
     float len = HexEdgeLength(grid, bee->edge);
@@ -439,6 +439,9 @@ void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
         float overflowPx = (bee->t - 1.0f)*len;
         int arrived = HexEdgeOtherVertex(grid, bee->edge, bee->fromVertex);
         int viaEdge = bee->edge;
+
+        // Commit the static pollen line only once the bee reaches the vertex
+        grid->edges[viaEdge].painted = true;
 
         if (bee->arrivalCount < HEX_BEE_MAX_ARRIVALS)
         {
@@ -468,11 +471,24 @@ void HexBeeUpdate(HexBee *bee, HexGrid *grid, float dt)
 
         bee->edge = nextEdge;
         bee->fromVertex = arrived;
-        grid->edges[nextEdge].painted = true;
+        // Next edge paints on arrival, not on launch
 
         len = HexEdgeLength(grid, bee->edge);
         bee->t = (len > 0.001f)? overflowPx/len : 0.0f;
     }
+}
+
+void HexBeeDrawLiveTrail(const HexBee *bee, const HexGrid *grid)
+{
+    if ((bee == NULL) || (grid == NULL)) return;
+    if ((bee->edge < 0) || (bee->edge >= grid->edgeCount)) return;
+    // Static line already covers finished edges; only draw the in-progress segment
+    if (grid->edges[bee->edge].painted) return;
+    if (bee->waiting) return;
+
+    Vector2 from = grid->vertices[bee->fromVertex].pos;
+    Vector2 beePos = HexBeePosition(bee, grid);
+    DrawLineEx(from, beePos, 3.0f, EDGE_TRAIL_COLOR);
 }
 
 Vector2 HexBeePosition(const HexBee *bee, const HexGrid *grid)

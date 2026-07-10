@@ -373,6 +373,7 @@ bool HexLevelStarPowered(const HexLevel *level)
 void HexLevelDraw(const HexLevel *level, Texture2D waspTexture)
 {
     HexGridDraw(&level->grid);
+    HexBeeDrawLiveTrail(&level->bee, &level->grid);
     HexFlowerFieldDraw(&level->flowers, &level->grid);
     HexStarFieldDraw(&level->stars, &level->grid);
 
