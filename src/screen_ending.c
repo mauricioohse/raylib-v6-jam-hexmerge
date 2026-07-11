@@ -25,8 +25,10 @@ static int finishScreen = 0;
 static Texture2D ratingStarTex = { 0 };
 static Texture2D ratingStarEmptyTex = { 0 };
 static HexRunResult viewRun = { 0 };
+static HexRunResult submitRun = { 0 };   // snapshot of the finished run only (never best-run)
 static bool viewingBestFromMenu = false;
 static bool hasViewRun = false;
+static bool canSubmitThisRun = false;
 
 static bool wantGlobalSubmit = false;
 static bool namePromptActive = false;
@@ -84,7 +86,8 @@ static void TrySubmitName(void)
 
     strncpy(submittedName, clean, HEX_PLAYER_NAME_MAX);
     submittedName[HEX_PLAYER_NAME_MAX] = '\0';
-    HexScoresSubmitGlobalNamed(&viewRun, submittedName);
+    // Always post the finished run snapshot — never the stored personal-best file
+    HexScoresSubmitGlobalNamed(&submitRun, submittedName);
     HexScoresNamePromptHide();
     namePromptActive = false;
     // Brief delay so the add is visible on the next board fetch
@@ -156,7 +159,9 @@ void InitEndingScreen(void)
     viewingBestFromMenu = endingFromMenu;
     endingFromMenu = false;
     memset(&viewRun, 0, sizeof(viewRun));
+    memset(&submitRun, 0, sizeof(submitRun));
     hasViewRun = false;
+    canSubmitThisRun = false;
     wantGlobalSubmit = false;
     namePromptActive = false;
     nameBuf[0] = '\0';
@@ -170,13 +175,16 @@ void InitEndingScreen(void)
         hasViewRun = HexScoresLoadBestRun(&viewRun);
     else
     {
+        // Freeze the run we just finished for both display and dreamlo submit
+        submitRun = lastRun;
         viewRun = lastRun;
         hasViewRun = (viewRun.levelsRecorded > 0) || viewRun.won;
+        canSubmitThisRun = HexScoresCanSubmitGlobal(&submitRun);
     }
 
     StartGlobalFetch();
 
-    wantGlobalSubmit = !viewingBestFromMenu && HexScoresCanSubmitGlobal(&viewRun);
+    wantGlobalSubmit = canSubmitThisRun;
     if (wantGlobalSubmit)
     {
         HexScoresLoadPlayerName(nameBuf, (int)sizeof(nameBuf));

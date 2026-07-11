@@ -29,6 +29,8 @@
 #define HEX_DREAMLO_PRIVATE "x49B2n34kE2qdvJfjMcmLgitvEWXnwH06lya-wqv2vcQ"
 #define HEX_DREAMLO_MIN_TIME_SEC 60.0f
 #define HEX_DREAMLO_MIN_STARS 24  // 1* per level across the full campaign
+#define HEX_DREAMLO_RUN_ID_LEN 10
+#define HEX_DREAMLO_NAME_MAX (HEX_PLAYER_NAME_MAX + 1 + HEX_DREAMLO_RUN_ID_LEN)
 
 typedef struct HexLevelResult
 {
@@ -70,7 +72,8 @@ void HexScoresSaveBestRunIfBetter(const HexRunResult *run);
 // True if this run is eligible to post to dreamlo (respects DEBUG_TEST_SCORE).
 bool HexScoresCanSubmitGlobal(const HexRunResult *run);
 
-// Submit a named winning run to dreamlo (web). Name must be A-Za-z0-9, non-empty.
+// Submit a named winning run to dreamlo (web). Posts as name-########## so each
+// run is a unique entry; the UI strips the suffix when displaying.
 void HexScoresSubmitGlobalNamed(const HexRunResult *run, const char *name);
 
 // Async fetch top N (web). Poll HexScoresGlobalFetchReady().

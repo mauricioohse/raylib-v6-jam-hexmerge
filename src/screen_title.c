@@ -357,14 +357,14 @@ void DrawTitleScreen(void)
     DrawFlyBees();
 
     const char *title = "BEEHOLD";
-    int titleSize = 60;
+    int titleSize = 80;
     int tw = MeasureText(title, titleSize);
-    DrawText(title, (GetScreenWidth() - tw)/2, GetScreenHeight()/2 - 160, titleSize, (Color){ 255, 179, 71, 255 });
+    DrawText(title, (GetScreenWidth() - tw)/2, GetScreenHeight()/2 - 180, titleSize, (Color){ 255, 179, 71, 255 });
 
     const char *subtitle = "Help the flowers in the hex plains!";
     int subSize = 20;
     int sw = MeasureText(subtitle, subSize);
-    DrawText(subtitle, (GetScreenWidth() - sw)/2, GetScreenHeight()/2 - 90, subSize, LIGHTGRAY);
+    DrawText(subtitle, (GetScreenWidth() - sw)/2, GetScreenHeight()/2 - 92, subSize, LIGHTGRAY);
 
     Vector2 mouse = GetMousePosition();
     DrawMenuButton(startBtn, "START GAME", CheckCollisionPointRec(mouse, startBtn));

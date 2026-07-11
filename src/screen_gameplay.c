@@ -304,8 +304,7 @@ static void RecordCurrentLevelStats(void)
 
 static void TryActivateCheckpoint(void)
 {
-    const HexLevelDef *def = HexLevelGetDef(currentLevelIndex);
-    if (def == NULL || !def->checkpoint) return;
+    // Every level is a checkpoint — dying with 0 lives restarts this level.
     if (currentLevelIndex < checkpointLevel) return;
 
     checkpointLevel = currentLevelIndex;
@@ -362,8 +361,7 @@ static void BeginLevelClear(bool isFinal)
     levelClearActive = true;
     levelPaused = true;
 
-    if (!isFinal && levelDeaths == 0 && lives < PLAYER_MAX_LIVES)
-        lives++;
+    if (!isFinal) lives = PLAYER_MAX_LIVES;
 
     PlaySound(fxWin);
 }
@@ -381,15 +379,17 @@ static void EndLevelClear(void)
 
     currentLevelIndex++;
     LoadCurrentLevel(true);
-    {
-        const HexLevelDef *def = HexLevelGetDef(currentLevelIndex);
-        if (def != NULL && def->checkpoint && currentLevelIndex > checkpointLevel)
-        {
-            checkpointLevel = currentLevelIndex;
-            PlaySound(fxCheckpoint);
-            checkpointBannerTimer = 2.0f;
-        }
-    }
+    TryActivateCheckpoint();
+}
+
+static void SoftRespawnLevel(void)
+{
+    StopStarMusic();
+    HexLevelRespawnKeepProgress(&level, BEE_SPEED);
+    levelPaused = true;
+    fireFailDelay = 0.0f;
+    beeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
+    UpdateAnimation(&beeAnim);
 }
 
 // Returns true if the run ended (caller should return from Update).
@@ -413,8 +413,8 @@ static bool ApplyDamage(void)
         return false;
     }
 
-    // Lives remain: retry this level (keep death count for star rating)
-    LoadCurrentLevel(false);
+    // Lives remain: keep filled hexes, pollen trails, and progress; reset bee + enemies
+    SoftRespawnLevel();
     return false;
 }
 
@@ -744,9 +744,9 @@ void DrawGameplayScreen(void)
     char levelLabel[32];
     snprintf(levelLabel, sizeof(levelLabel), "Level %d", currentLevelIndex + 1);
     DrawText(levelLabel, 16, 16, 20, LIGHTGRAY);
-    DrawText(levelPaused? (moveModeRelative? "A/D to start" : "WASD to start")
-                        : (moveModeRelative? "A/D turn" : "WASD move"),
-             16, 40, 20, (Color){ 160, 170, 180, 255 });
+    // DrawText(levelPaused? (moveModeRelative? "A/D to start" : "WASD to start")
+    //                     : (moveModeRelative? "A/D turn" : "WASD move"),
+    //          16, 40, 20, (Color){ 160, 170, 180, 255 });
 
     char timeBuf[16];
     HexScoresFormat(levelTimer, timeBuf, (int)sizeof(timeBuf));
@@ -799,7 +799,7 @@ void DrawGameplayScreen(void)
 
         if (levelClearTimer >= LEVEL_CLEAR_SKIP_AFTER)
         {
-            const char *skip = "Press a Fmovement key to continue";
+            const char *skip = "Press a movement key to continue";
             DrawText(skip, (sw - MeasureText(skip, 20))/2, sh/2 + 100, 20,
                      (Color){ 200, 210, 220, 255 });
         }

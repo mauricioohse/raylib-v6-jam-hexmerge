@@ -46,7 +46,7 @@
         } catch (e) { return 0; }
     });
 
-    // Fire-and-forget GET to dreamlo. name must already be URL-safe (A-Za-z0-9).
+    // Fire-and-forget GET to dreamlo. name must already be URL-safe (A-Za-z0-9 plus optional -########## run id).
     EM_JS(void, HexDreamloJsSubmit, (const char *privateCode, const char *name, int score, int centiseconds, int stars), {
         try {
             var url = "http://dreamlo.com/lb/" + UTF8ToString(privateCode) +
@@ -497,6 +497,56 @@ static void SanitizePlayerName(const char *in, char *out, int outSize)
     out[n] = '\0';
 }
 
+// If in ends with -##########, copy the base name; otherwise copy in as-is.
+// Legacy dreamlo rows without a run id still work.
+static void StripDreamloRunId(const char *in, char *out, int outSize)
+{
+    if ((out == NULL) || (outSize <= 0)) return;
+    out[0] = '\0';
+    if (in == NULL) return;
+
+    int len = (int)strlen(in);
+    if (len > HEX_DREAMLO_RUN_ID_LEN + 1)
+    {
+        const char *dash = in + len - HEX_DREAMLO_RUN_ID_LEN - 1;
+        if (*dash == '-')
+        {
+            bool allDigit = true;
+            for (int i = 1; i <= HEX_DREAMLO_RUN_ID_LEN; i++)
+            {
+                char c = dash[i];
+                if ((c < '0') || (c > '9')) { allDigit = false; break; }
+            }
+            if (allDigit)
+            {
+                int baseLen = (int)(dash - in);
+                if (baseLen > outSize - 1) baseLen = outSize - 1;
+                if (baseLen < 0) baseLen = 0;
+                memcpy(out, in, (size_t)baseLen);
+                out[baseLen] = '\0';
+                return;
+            }
+        }
+    }
+
+    strncpy(out, in, (size_t)(outSize - 1));
+    out[outSize - 1] = '\0';
+}
+
+static void MakeDreamloSubmitName(const char *baseName, char *out, int outSize)
+{
+    if ((out == NULL) || (outSize <= 0)) return;
+    out[0] = '\0';
+    if ((baseName == NULL) || (baseName[0] == '\0')) return;
+
+    char id[HEX_DREAMLO_RUN_ID_LEN + 1];
+    for (int i = 0; i < HEX_DREAMLO_RUN_ID_LEN; i++)
+        id[i] = (char)('0' + GetRandomValue(0, 9));
+    id[HEX_DREAMLO_RUN_ID_LEN] = '\0';
+
+    snprintf(out, (size_t)outSize, "%s-%s", baseName, id);
+}
+
 void HexScoresLoadPlayerName(char *buf, int bufSize)
 {
     if ((buf == NULL) || (bufSize <= 0)) return;
@@ -543,7 +593,10 @@ void HexScoresSubmitGlobalNamed(const HexRunResult *run, const char *name)
     if (score < 1) score = 1;
 
     HexScoresSavePlayerName(clean);
-    HexDreamloJsSubmit(HEX_DREAMLO_PRIVATE, clean, score, centiseconds, stars);
+
+    char dreamloName[HEX_DREAMLO_NAME_MAX + 1];
+    MakeDreamloSubmitName(clean, dreamloName, (int)sizeof(dreamloName));
+    HexDreamloJsSubmit(HEX_DREAMLO_PRIVATE, dreamloName, score, centiseconds, stars);
 #else
     (void)run;
 #endif
@@ -593,7 +646,11 @@ static void ParseDreamloPipe(const char *text)
 
         HexGlobalEntry *e = &sGlobalTop[sGlobalTopCount];
         memset(e, 0, sizeof(*e));
-        SanitizePlayerName(fields[0], e->name, (int)sizeof(e->name));
+
+        // Strip optional -########## run id before sanitizing for display
+        char stripped[HEX_DREAMLO_NAME_MAX + 1];
+        StripDreamloRunId(fields[0], stripped, (int)sizeof(stripped));
+        SanitizePlayerName(stripped, e->name, (int)sizeof(e->name));
         if (e->name[0] == '\0') continue;
 
         int cs = atoi(fields[2]);

@@ -2,10 +2,9 @@
 *
 *   Beehold - Trail path + encircle fill (loop detection on the hex mesh)
 *
-*   Tracks the ordered path of vertices the bee has walked. When the bee arrives at a
-*   vertex already on the path, the slice from that vertex to the end plus the closing
-*   edge forms a closed loop; every face the loop encloses gets marked filled -- unless
-*   twin-seed rules reject the fill (exactly one twin of a pair enclosed).
+*   Tracks the ordered path of vertices the bee has walked. Closing a loop fills
+*   enclosed faces. Persistent pollen (edges.painted) also counts as a wall, and can
+*   bridge back to the live path after death so leftover trails still seal shapes.
 *
 **********************************************************************************************/
 

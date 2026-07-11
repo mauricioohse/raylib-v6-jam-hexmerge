@@ -56,7 +56,7 @@ typedef struct HexLevelDef
     HexLevelEnemyDef enemies[HEX_LEVEL_MAX_ENEMIES];
     int enemyCount;
     const char *hint;                       // sidebar help text (may be NULL)
-    bool checkpoint;                        // teaching level: save progress here on entry
+    bool checkpoint;                        // unused: every level is a checkpoint
     bool seedAll;                           // seed every non-special face (paint the whole board)
 } HexLevelDef;
 
@@ -80,6 +80,10 @@ int HexLevelCount(void);
 void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D pondTexture,
                   Texture2D flowerTexture, Texture2D bubbleTexture, Texture2D starTexture,
                   float beeSpeed);
+
+// Soft death: keep filled faces, flower progress, collected stars, and pollen trails;
+// respawn bee at start and re-place enemies. powerTimer is cleared.
+void HexLevelRespawnKeepProgress(HexLevel *level, float beeSpeed);
 
 // Returns faces filled this frame, HEX_TRAIL_TWIN_FAIL, or HEX_TRAIL_FIRE_FAIL.
 int HexLevelUpdate(HexLevel *level, float dt);

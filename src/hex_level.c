@@ -26,7 +26,7 @@
 *    21  — radius 3, fire without water + 4 seeds + star
 *    22  — radius 3, seedAll paint-the-board, mixed swarm
 *    23  — radius 3, seedAll + stars + fire/water, 6 enemies
-*    24  — radius 3, six seeds + two fire — 2 red / 1 purple / 2 green + black on R=3 and R=1
+*    24  — radius 3, six seeds + twin pair + two fire — mixed wasp finale
 *
 **********************************************************************************************/
 
@@ -296,8 +296,8 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .beeStart = { -3, 0 },
         .seeds = { { { 2, -1 }, -1 }, { { -2, 1 }, -1 }, { { 0, 2 }, -1 }, { { 0, -2 }, -1 } },
         .seedCount = 4,
-        .stars = { { 2, 0 }, { -2, 0 }, { 0, 2 } },
-        .starCount = 3,
+        .stars = { { 2, 0 }, { -2, 0 }},
+        .starCount = 2,
         .enemies = {
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
@@ -431,15 +431,16 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .hint = NULL,
         .seedAll = true,
     },
-    // 24: six seeds + two fire — 2 red / 1 purple / 2 green + black on R=3 and R=1
+    // 24: six seeds + twin pair + two fire — 2 red / 1 purple / 2 green + black on R=3 and R=1
     {
         .radius = 3,
         .beeStart = { -3, 0 },
         .seeds = {
             { { 2, -1 }, -1 }, { { -1, 2 }, -1 }, { { 0, -2 }, -1 },
             { { 1, 1 }, -1 }, { { -2, 1 }, -1 }, { { 0, 2 }, -1 },
+            { { 3, -3 }, 0 }, { { -3, 3 }, 0 },
         },
-        .seedCount = 6,
+        .seedCount = 8,
         .starCount = 0,
         .specials = {
             { { 2, 0 }, HEX_FACE_FIRE },
@@ -450,12 +451,11 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
             { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_TOPMOST },
-            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_RIGHTMOST },
             { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST, 3 },
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_INNER, 1 },
         },
-        .enemyCount = 7,
+        .enemyCount = 6,
         .hint = "Final challenge!",
     },
 };
@@ -570,6 +570,41 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
     int avoid[HEX_LEVEL_MAX_ENEMIES + 1];
     int avoidCount = 0;
     avoid[avoidCount++] = startVertex;     // never spawn on the bee
+
+    for (int i = 0; i < level->enemyCount; i++)
+    {
+        const HexLevelEnemyDef *ed = &level->def->enemies[i];
+        int ring = (ed->type == HEX_ENEMY_BLACK_EDGE)? ed->ring : 0;
+        int v = HexEnemySpawnVertexAvoid(&level->grid, ed->spawn, avoid, avoidCount, ring);
+        avoid[avoidCount++] = v;
+        HexEnemyInit(&level->enemies[i], ed->type, &level->grid, v, beeSpeed, ring);
+    }
+}
+
+void HexLevelRespawnKeepProgress(HexLevel *level, float beeSpeed)
+{
+    if ((level == NULL) || (level->def == NULL)) return;
+
+    // Keep filled faces AND wet pollen trails; only reset bee path / enemies / power
+    for (int f = 0; f < level->grid.faceCount; f++)
+        level->grid.faces[f].failShake = 0.0f;
+
+    for (int i = 0; i < level->flowers.count; i++)
+        level->flowers.flowers[i].failShake = 0.0f;
+
+    level->stars.powerTimer = 0.0f;
+
+    int beeFace = HexFindFace(&level->grid, level->def->beeStart.q, level->def->beeStart.r);
+    int startVertex = FaceLeftmostVertex(&level->grid, beeFace);
+    HexBeeInit(&level->bee, &level->grid, startVertex, beeSpeed);
+    HexTrailInit(&level->trail, startVertex);
+
+    level->enemyCount = level->def->enemyCount;
+    if (level->enemyCount > HEX_LEVEL_MAX_ENEMIES) level->enemyCount = HEX_LEVEL_MAX_ENEMIES;
+
+    int avoid[HEX_LEVEL_MAX_ENEMIES + 1];
+    int avoidCount = 0;
+    avoid[avoidCount++] = startVertex;
 
     for (int i = 0; i < level->enemyCount; i++)
     {
