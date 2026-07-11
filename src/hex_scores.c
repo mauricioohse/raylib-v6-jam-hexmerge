@@ -287,8 +287,9 @@ void HexScoresDrawLevelStars(Texture2D filled, Texture2D empty, int stars, float
     }
 
     // Text fallback if PNGs failed to load (e.g. stale web pack)
-    int fontSize = (int)(28.0f*scale);
-    if (fontSize < 16) fontSize = 16;
+    int fontSize = 20;
+    if (scale >= 1.5f) fontSize = 30;
+    if (scale >= 2.5f) fontSize = 40;
     float gap = (float)fontSize + 6.0f;
     for (int s = 0; s < HEX_LEVEL_STARS_MAX; s++)
     {

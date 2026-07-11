@@ -220,7 +220,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST, 3 },
         },
         .enemyCount = 3,
-        .hint = "Black wasps each patrol their own ring — inner, middle, and outer!",
+        .hint = "Black wasps each patrol their own ring.",
         .checkpoint = true,
     },
     // 13: mixed rings — chaser + random + one black per ring, twin pair + 3 seeds
@@ -346,7 +346,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .specialCount = 2,
         .enemies = { { 0 } },
         .enemyCount = 0,
-        .hint = "Red fire hexes kill if painted alone! Encircle fire with a blue water hex to put it out.",
+        .hint = "Red fire hexes kill if painted alone! Encircle fire with a water hex to put it out.",
         .checkpoint = true,
     },
     // 20: twin pair + one seed + fire and water — black edge + chaser
@@ -456,7 +456,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_INNER, 1 },
         },
         .enemyCount = 7,
-        .hint = NULL,
+        .hint = "Final challenge!",
     },
 };
 
@@ -682,11 +682,11 @@ void HexLevelDrawHint(const HexLevel *level)
     if ((level->def == NULL) || (level->def->hint == NULL) || (level->def->hint[0] == '\0')) return;
 
     const int pad = 12;
-    const int fontSize = 18;
-    const int boxW = 200;
+    const int fontSize = 20;
+    const int boxW = 220;
     const int boxX = GetScreenWidth() - boxW - 16;
     const int boxY = 56;
-    const int maxChars = 22;
+    const int maxChars = 20;
 
     const char *text = level->def->hint;
     char line[64];

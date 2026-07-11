@@ -119,7 +119,7 @@ static void DrawMenuButton(Rectangle r, const char *label, bool hovered)
     DrawRectangleRec(r, fill);
     DrawRectangleLinesEx(r, 2.0f, border);
 
-    int fontSize = 28;
+    int fontSize = 30;
     int tw = MeasureText(label, fontSize);
     DrawText(label, (int)(r.x + (r.width - tw)*0.5f), (int)(r.y + (r.height - fontSize)*0.5f), fontSize, text);
 }
@@ -337,12 +337,12 @@ void DrawTitleScreen(void)
     DrawFlyBees();
 
     const char *title = "BEEHOLD";
-    int titleSize = 64;
+    int titleSize = 60;
     int tw = MeasureText(title, titleSize);
     DrawText(title, (GetScreenWidth() - tw)/2, GetScreenHeight()/2 - 160, titleSize, (Color){ 255, 179, 71, 255 });
 
     const char *subtitle = "Help the flowers in the hex plains!";
-    int subSize = 18;
+    int subSize = 20;
     int sw = MeasureText(subtitle, subSize);
     DrawText(subtitle, (GetScreenWidth() - sw)/2, GetScreenHeight()/2 - 90, subSize, LIGHTGRAY);
 
@@ -363,23 +363,23 @@ void DrawTitleScreen(void)
 
     DrawRectangleRec(volDownBtn, downFill);
     DrawRectangleLinesEx(volDownBtn, 2.0f, (Color){ 90, 100, 120, 255 });
-    DrawText("<", (int)(volDownBtn.x + 10), (int)(volDownBtn.y + 4), 28, RAYWHITE);
+    DrawText("<", (int)(volDownBtn.x + 10), (int)(volDownBtn.y + 4), 30, RAYWHITE);
 
     char volText[8];
     snprintf(volText, sizeof(volText), "%d", volumeLevel);
-    int vw = MeasureText(volText, 28);
+    int vw = MeasureText(volText, 30);
     DrawText(volText, (int)(volDownBtn.x + volDownBtn.width + (volUpBtn.x - (volDownBtn.x + volDownBtn.width) - vw)*0.5f),
-             (int)(volY + 4), 28, RAYWHITE);
+             (int)(volY + 4), 30, RAYWHITE);
 
     DrawRectangleRec(volUpBtn, upFill);
     DrawRectangleLinesEx(volUpBtn, 2.0f, (Color){ 90, 100, 120, 255 });
-    DrawText(">", (int)(volUpBtn.x + 10), (int)(volUpBtn.y + 4), 28, RAYWHITE);
+    DrawText(">", (int)(volUpBtn.x + 10), (int)(volUpBtn.y + 4), 30, RAYWHITE);
 
     // Tooltips last so they sit above the volume row
     if (CheckCollisionPointRec(mouse, moveBtn))
     {
         const int tipPad = 10;
-        const int tipFont = 16;
+        const int tipFont = 20;
         const int tipLineH = tipFont + 4;
         const char *line1 = controllerMode
             ? "A/D: turn left/right at each junction."
@@ -408,7 +408,7 @@ void DrawTitleScreen(void)
         Rectangle tw = HexSocialTwitchRect();
         const char *line1 = "Enjoy the game?";
         const char *line2 = "hit the follow!";
-        int fontSize = 16;
+        int fontSize = 20;
         int lineH = fontSize + 2;
         int tx = (int)(tw.x + tw.width + 10.0f);
         int ty = (int)(tw.y + (tw.height - (float)(lineH*2 - 2))*0.5f);

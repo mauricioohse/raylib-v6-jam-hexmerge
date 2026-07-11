@@ -73,24 +73,24 @@ void DrawEndingScreen(void)
 
     const char *title = lastRun.won? "MEADOW COMPLETE" : "YOU LOSE! TRY AGAIN?";
     Color titleCol = lastRun.won? (Color){ 255, 179, 71, 255 } : (Color){ 255, 110, 100, 255 };
-    int titleSize = lastRun.won? 40 : 34;
-    DrawText(title, (sw - MeasureText(title, titleSize))/2, 28, titleSize, titleCol);
+    int titleSize = 40;
+    DrawText(title, (sw - MeasureText(title, titleSize))/2, 20, titleSize, titleCol);
 
     char timeBuf[16];
     HexScoresFormat(lastRun.totalTime, timeBuf, (int)sizeof(timeBuf));
 
     char totalLine[64];
     snprintf(totalLine, sizeof(totalLine), "Time  %s", timeBuf);
-    DrawText(totalLine, (sw - MeasureText(totalLine, 22))/2, 72, 22, RAYWHITE);
+    DrawText(totalLine, (sw - MeasureText(totalLine, 20))/2, 70, 20, RAYWHITE);
 
     char starsLine[64];
     snprintf(starsLine, sizeof(starsLine), "Stars  %d", lastRun.totalStars);
-    DrawText(starsLine, (sw - MeasureText(starsLine, 20))/2, 98, 20, (Color){ 255, 220, 70, 255 });
+    DrawText(starsLine, (sw - MeasureText(starsLine, 20))/2, 96, 20, (Color){ 255, 220, 70, 255 });
 
     const char *header = "LEVEL";
     int headerY = 130;
     int listX = 48;
-    DrawText(header, listX, headerY, 18, (Color){ 160, 170, 180, 255 });
+    DrawText(header, listX, headerY, 20, (Color){ 160, 170, 180, 255 });
 
     int n = lastRun.levelsRecorded;
     int listTop = headerY + 26;
@@ -114,22 +114,22 @@ void DrawEndingScreen(void)
         {
             int y = listTop + (i - start)*lineH;
 
-            char label[8];
+            char label[16];
             snprintf(label, sizeof(label), "%2d", i + 1);
             Color tint = RAYWHITE;
             if (!lastRun.won && (i == n - 1)) tint = (Color){ 255, 160, 140, 255 };
-            DrawText(label, listX, y, 16, tint);
+            DrawText(label, listX, y, 20, tint);
 
-            float starY = (float)y + (16.0f - starSize)*0.5f;
+            float starY = (float)y + (20.0f - starSize)*0.5f;
             HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, lastRun.levels[i].stars,
-                                    (float)(listX + 36), starY, RATING_STAR_SCALE);
+                                    (float)(listX + 40), starY, RATING_STAR_SCALE);
         }
     }
 
     {
         const char *line1 = "Enjoyed the game?";
         const char *line2 = "follow mohselabs on X!";
-        int fontSize = 18;
+        int fontSize = 20;
         int lineH = fontSize + 6;
         int rightPad = 48;
         int x1 = sw - rightPad - MeasureText(line1, fontSize);
@@ -149,12 +149,12 @@ void DrawEndingScreen(void)
 
     const char *boardTitle = "BEST TOTAL TIMES";
     int boardY = sh - 130;
-    DrawText(boardTitle, (sw - MeasureText(boardTitle, 16))/2, boardY, 16, (Color){ 180, 190, 200, 255 });
+    DrawText(boardTitle, (sw - MeasureText(boardTitle, 20))/2, boardY, 20, (Color){ 180, 190, 200, 255 });
 
     if (bestCount <= 0)
     {
         const char *empty = "No records yet";
-        DrawText(empty, (sw - MeasureText(empty, 16))/2, boardY + 22, 16, LIGHTGRAY);
+        DrawText(empty, (sw - MeasureText(empty, 20))/2, boardY + 24, 20, LIGHTGRAY);
     }
     else
     {
@@ -169,16 +169,16 @@ void DrawEndingScreen(void)
             snprintf(piece, sizeof(piece), "%s%s", (i > 0)? "  " : "", t);
             strncat(row, piece, sizeof(row) - strlen(row) - 1);
         }
-        DrawText(row, (sw - MeasureText(row, 16))/2, boardY + 22, 16, (Color){ 255, 220, 70, 255 });
+        DrawText(row, (sw - MeasureText(row, 20))/2, boardY + 24, 20, (Color){ 255, 220, 70, 255 });
     }
 
     const char *hint = lastRun.won? "ENTER / TAP  return to menu" : "ENTER / TAP  try again from menu";
-    DrawText(hint, (sw - MeasureText(hint, 18))/2, sh - 40, 18, LIGHTGRAY);
+    DrawText(hint, (sw - MeasureText(hint, 20))/2, sh - 40, 20, LIGHTGRAY);
 
     if (lastRun.won)
     {
         const char *promo = "got a good score? post in the comments!";
-        DrawText(promo, (sw - MeasureText(promo, 16))/2, sh - 68, 16, (Color){ 255, 220, 70, 255 });
+        DrawText(promo, (sw - MeasureText(promo, 20))/2, sh - 68, 20, (Color){ 255, 220, 70, 255 });
     }
 }
 

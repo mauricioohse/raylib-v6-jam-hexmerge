@@ -118,7 +118,7 @@ static void DrawMenuButton(Rectangle r, const char *label, bool hovered)
     DrawRectangleRec(r, fill);
     DrawRectangleLinesEx(r, 2.0f, border);
 
-    int fontSize = 28;
+    int fontSize = 30;
     int tw = MeasureText(label, fontSize);
     DrawText(label, (int)(r.x + (r.width - tw)*0.5f), (int)(r.y + (r.height - fontSize)*0.5f), fontSize, text);
 }
@@ -741,12 +741,12 @@ void DrawGameplayScreen(void)
     DrawText(levelLabel, 16, 16, 20, LIGHTGRAY);
     DrawText(levelPaused? (moveModeRelative? "A/D to start" : "WASD to start")
                         : (moveModeRelative? "A/D turn" : "WASD move"),
-             16, 40, 18, (Color){ 160, 170, 180, 255 });
+             16, 40, 20, (Color){ 160, 170, 180, 255 });
 
     char timeBuf[16];
     HexScoresFormat(levelTimer, timeBuf, (int)sizeof(timeBuf));
-    int tw = MeasureText(timeBuf, 22);
-    DrawText(timeBuf, (GetScreenWidth() - tw)/2, 16, 22, (Color){ 255, 220, 70, 255 });
+    int tw = MeasureText(timeBuf, 20);
+    DrawText(timeBuf, (GetScreenWidth() - tw)/2, 16, 20, (Color){ 255, 220, 70, 255 });
 
     if (checkpointBannerTimer > 0.0f)
     {
@@ -754,7 +754,7 @@ void DrawGameplayScreen(void)
         if (t > 1.0f) t = 1.0f;
         unsigned char a = (unsigned char)(t*255.0f);
         const char *banner = "CHECKPOINT!";
-        int fontSize = 28;
+        int fontSize = 30;
         int bw = MeasureText(banner, fontSize);
         DrawText(banner, (GetScreenWidth() - bw)/2, GetScreenHeight()/4 - fontSize/2, fontSize,
                  (Color){ 255, 220, 70, a });
@@ -764,8 +764,8 @@ void DrawGameplayScreen(void)
     {
         const char *prompt = moveModeRelative? "Press A/D or arrows to start"
                                              : "Press WASD or arrows to start";
-        int pw = MeasureText(prompt, 24);
-        DrawText(prompt, (GetScreenWidth() - pw)/2, GetScreenHeight() - 56, 24, (Color){ 255, 220, 70, 255 });
+        int pw = MeasureText(prompt, 20);
+        DrawText(prompt, (GetScreenWidth() - pw)/2, GetScreenHeight() - 56, 20, (Color){ 255, 220, 70, 255 });
     }
 
     if (levelClearActive)
@@ -787,15 +787,15 @@ void DrawGameplayScreen(void)
         HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, levelClearStars,
                                 starsX, starsY, RATING_STAR_DRAW_SCALE);
 
-        char timeBuf[16];
-        HexScoresFormat(levelClearTimeSec, timeBuf, (int)sizeof(timeBuf));
-        const char *timeLine = TextFormat("Time  %s", timeBuf);
-        DrawText(timeLine, (sw - MeasureText(timeLine, 22))/2, sh/2 + 50, 22, RAYWHITE);
+        char clearTimeBuf[16];
+        HexScoresFormat(levelClearTimeSec, clearTimeBuf, (int)sizeof(clearTimeBuf));
+        const char *timeLine = TextFormat("Time  %s", clearTimeBuf);
+        DrawText(timeLine, (sw - MeasureText(timeLine, 20))/2, sh/2 + 50, 20, RAYWHITE);
 
         if (levelClearTimer >= LEVEL_CLEAR_SKIP_AFTER)
         {
-            const char *skip = "Press any key to continue";
-            DrawText(skip, (sw - MeasureText(skip, 18))/2, sh/2 + 100, 18,
+            const char *skip = "Press a Fmovement key to continue";
+            DrawText(skip, (sw - MeasureText(skip, 20))/2, sh/2 + 100, 20,
                      (Color){ 200, 210, 220, 255 });
         }
     }
@@ -803,7 +803,7 @@ void DrawGameplayScreen(void)
 #if defined(_DEBUG)
     DrawText(TextFormat("DEBUG: 1-9/0 jump  </, >/ . step  G=%s  H=fill",
                         moveModeRelative? "A/D" : "WASD"),
-             16, GetScreenHeight() - 28, 16, (Color){ 120, 140, 160, 255 });
+             16, GetScreenHeight() - 28, 10, (Color){ 120, 140, 160, 255 });
 #endif
 
     if (gamePaused)
@@ -811,7 +811,7 @@ void DrawGameplayScreen(void)
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.65f));
 
         const char *paused = "PAUSED";
-        int pausedSize = 48;
+        int pausedSize = 40;
         int pw = MeasureText(paused, pausedSize);
         DrawText(paused, (GetScreenWidth() - pw)/2, GetScreenHeight()/2 - 100, pausedSize,
                  (Color){ 255, 179, 71, 255 });
@@ -831,24 +831,24 @@ void DrawGameplayScreen(void)
 
         DrawRectangleRec(pauseVolDownBtn, downFill);
         DrawRectangleLinesEx(pauseVolDownBtn, 2.0f, (Color){ 90, 100, 120, 255 });
-        DrawText("<", (int)(pauseVolDownBtn.x + 10), (int)(pauseVolDownBtn.y + 4), 28, RAYWHITE);
+        DrawText("<", (int)(pauseVolDownBtn.x + 10), (int)(pauseVolDownBtn.y + 4), 30, RAYWHITE);
 
         char volText[8];
         snprintf(volText, sizeof(volText), "%d", volumeLevel);
-        int vw = MeasureText(volText, 28);
+        int vw = MeasureText(volText, 30);
         DrawText(volText,
                  (int)(pauseVolDownBtn.x + pauseVolDownBtn.width +
                        (pauseVolUpBtn.x - (pauseVolDownBtn.x + pauseVolDownBtn.width) - vw)*0.5f),
-                 (int)(volY + 4), 28, RAYWHITE);
+                 (int)(volY + 4), 30, RAYWHITE);
 
         DrawRectangleRec(pauseVolUpBtn, upFill);
         DrawRectangleLinesEx(pauseVolUpBtn, 2.0f, (Color){ 90, 100, 120, 255 });
-        DrawText(">", (int)(pauseVolUpBtn.x + 10), (int)(pauseVolUpBtn.y + 4), 28, RAYWHITE);
+        DrawText(">", (int)(pauseVolUpBtn.x + 10), (int)(pauseVolUpBtn.y + 4), 30, RAYWHITE);
 
         const char *hint = "P / ESC to resume";
-        int hw = MeasureText(hint, 18);
+        int hw = MeasureText(hint, 20);
         DrawText(hint, (GetScreenWidth() - hw)/2,
-                 (int)(pauseVolDownBtn.y + pauseVolDownBtn.height + 28.0f), 18,
+                 (int)(pauseVolDownBtn.y + pauseVolDownBtn.height + 28.0f), 20,
                  (Color){ 160, 170, 180, 255 });
     }
 }
