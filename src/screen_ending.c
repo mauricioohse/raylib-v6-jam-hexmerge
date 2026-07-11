@@ -15,21 +15,135 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
 static int framesCounter = 0;
 static int finishScreen = 0;
-static float bestTimes[HEX_SCORES_MAX] = { 0 };
-static int bestCount = 0;
 static Texture2D ratingStarTex = { 0 };
 static Texture2D ratingStarEmptyTex = { 0 };
 static HexRunResult viewRun = { 0 };
 static bool viewingBestFromMenu = false;
 static bool hasViewRun = false;
 
+static bool wantGlobalSubmit = false;
+static bool namePromptActive = false;
+static char nameBuf[HEX_PLAYER_NAME_MAX + 1] = { 0 };
+static char submittedName[HEX_PLAYER_NAME_MAX + 1] = { 0 };
+
+static HexGlobalEntry globalTop[HEX_GLOBAL_TOP_MAX] = { 0 };
+static int globalTopCount = 0;
+static bool globalFetchStarted = false;
+static int refetchDelayFrames = 0;  // wait after submit so dreamlo can index
+
 #define RATING_STAR_SCALE 1.25f
+#define GLOBAL_REFETCH_DELAY_FRAMES 45  // ~0.75s at 60fps
+
+//----------------------------------------------------------------------------------
+// Helpers
+//----------------------------------------------------------------------------------
+static void StartGlobalFetch(void)
+{
+    globalFetchStarted = true;
+    globalTopCount = 0;
+    refetchDelayFrames = 0;
+    HexScoresFetchGlobalTop(HEX_GLOBAL_TOP_MAX);
+}
+
+static void PumpGlobalFetch(void)
+{
+    if (refetchDelayFrames > 0)
+    {
+        refetchDelayFrames--;
+        if (refetchDelayFrames == 0) StartGlobalFetch();
+        return;
+    }
+    if (!globalFetchStarted) return;
+    if (HexScoresGlobalFetchReady())
+        globalTopCount = HexScoresCopyGlobalTop(globalTop, HEX_GLOBAL_TOP_MAX);
+}
+
+static void TrySubmitName(void)
+{
+    char clean[HEX_PLAYER_NAME_MAX + 1];
+#if defined(PLATFORM_WEB)
+    HexScoresNamePromptRead(clean, (int)sizeof(clean));
+#else
+    // Desktop: sanitize whatever was typed into nameBuf
+    int n = 0;
+    for (int i = 0; nameBuf[i] && (n < HEX_PLAYER_NAME_MAX); i++)
+    {
+        char c = nameBuf[i];
+        if (isalnum((unsigned char)c)) clean[n++] = c;
+    }
+    clean[n] = '\0';
+#endif
+    if (clean[0] == '\0') return;
+
+    strncpy(submittedName, clean, HEX_PLAYER_NAME_MAX);
+    submittedName[HEX_PLAYER_NAME_MAX] = '\0';
+    HexScoresSubmitGlobalNamed(&viewRun, submittedName);
+    HexScoresNamePromptHide();
+    namePromptActive = false;
+    // Brief delay so the add is visible on the next board fetch
+    refetchDelayFrames = GLOBAL_REFETCH_DELAY_FRAMES;
+    PlaySound(fxCoin);
+}
+
+static void DrawGlobalBoard(int sw, int sh)
+{
+    const char *title = "GLOBAL TOP 10";
+    int boardX = sw/2 + 20;
+    int y = 70;
+    DrawText(title, boardX, y, 20, (Color){ 255, 179, 71, 255 });
+    y += 28;
+
+    PumpGlobalFetch();
+
+    if (HexScoresGlobalFetchPending())
+    {
+        DrawText("Loading...", boardX, y, 20, LIGHTGRAY);
+    }
+    else if (globalTopCount <= 0)
+    {
+        DrawText("No scores yet", boardX, y, 20, LIGHTGRAY);
+    }
+    else
+    {
+        for (int i = 0; i < globalTopCount; i++)
+        {
+            char timeBuf[16];
+            HexScoresFormat(globalTop[i].timeSec, timeBuf, (int)sizeof(timeBuf));
+            char line[64];
+            snprintf(line, sizeof(line), "%2d  %-10s  %s  *%d",
+                     i + 1, globalTop[i].name, timeBuf, globalTop[i].stars);
+            Color col = RAYWHITE;
+            if (submittedName[0] && (strcmp(globalTop[i].name, submittedName) == 0))
+                col = (Color){ 255, 220, 70, 255 };
+            DrawText(line, boardX, y, 20, col);
+            y += 22;
+        }
+    }
+
+    // Your score comparison strip (always when we have a run to compare)
+    if (hasViewRun && (viewRun.won || viewingBestFromMenu))
+    {
+        int by = sh - 100;
+        const char *label = viewingBestFromMenu? "YOUR BEST" : "YOUR SCORE";
+        DrawText(label, boardX, by, 20, (Color){ 180, 190, 200, 255 });
+        char timeBuf[16];
+        HexScoresFormat(viewRun.totalTime, timeBuf, (int)sizeof(timeBuf));
+        char line[64];
+        if (submittedName[0])
+            snprintf(line, sizeof(line), "%-10s  %s  *%d",
+                     submittedName, timeBuf, viewRun.totalStars);
+        else
+            snprintf(line, sizeof(line), "%s  *%d", timeBuf, viewRun.totalStars);
+        DrawText(line, boardX, by + 24, 20, (Color){ 255, 220, 70, 255 });
+    }
+}
 
 //----------------------------------------------------------------------------------
 // Ending Screen Functions Definition
@@ -38,12 +152,19 @@ void InitEndingScreen(void)
 {
     framesCounter = 0;
     finishScreen = 0;
-    bestCount = HexScoresLoad(bestTimes, HEX_SCORES_MAX);
 
     viewingBestFromMenu = endingFromMenu;
     endingFromMenu = false;
     memset(&viewRun, 0, sizeof(viewRun));
     hasViewRun = false;
+    wantGlobalSubmit = false;
+    namePromptActive = false;
+    nameBuf[0] = '\0';
+    submittedName[0] = '\0';
+    globalTopCount = 0;
+    globalFetchStarted = false;
+    refetchDelayFrames = 0;
+    HexScoresNamePromptHide();
 
     if (viewingBestFromMenu)
         hasViewRun = HexScoresLoadBestRun(&viewRun);
@@ -51,6 +172,16 @@ void InitEndingScreen(void)
     {
         viewRun = lastRun;
         hasViewRun = (viewRun.levelsRecorded > 0) || viewRun.won;
+    }
+
+    StartGlobalFetch();
+
+    wantGlobalSubmit = !viewingBestFromMenu && HexScoresCanSubmitGlobal(&viewRun);
+    if (wantGlobalSubmit)
+    {
+        HexScoresLoadPlayerName(nameBuf, (int)sizeof(nameBuf));
+        namePromptActive = true;
+        HexScoresNamePromptShow(nameBuf);
     }
 
     ratingStarTex = LoadTexture("resources/rating_star.png");
@@ -62,11 +193,46 @@ void InitEndingScreen(void)
     float iconSize = HEX_SOCIAL_ICON_SIZE;
     float gap = HEX_SOCIAL_ICON_GAP;
     float total = iconSize*3.0f + gap*2.0f;
-    HexSocialLayoutAt(sw - 48.0f - total, (float)(112 + 28 + 40 + 24*2 + 16));
+    HexSocialLayoutAt(sw - 48.0f - total, (float)GetScreenHeight() - 56.0f);
 }
 
 void UpdateEndingScreen(void)
 {
+    framesCounter++;
+    PumpGlobalFetch();
+
+    if (namePromptActive)
+    {
+#if defined(PLATFORM_WEB)
+        if (HexScoresNamePromptEnterPressed())
+            TrySubmitName();
+#else
+        // Desktop name entry
+        int ch = GetCharPressed();
+        while (ch > 0)
+        {
+            if (isalnum(ch))
+            {
+                int len = (int)strlen(nameBuf);
+                if (len < HEX_PLAYER_NAME_MAX)
+                {
+                    nameBuf[len] = (char)ch;
+                    nameBuf[len + 1] = '\0';
+                }
+            }
+            ch = GetCharPressed();
+        }
+        if (IsKeyPressed(KEY_BACKSPACE))
+        {
+            int len = (int)strlen(nameBuf);
+            if (len > 0) nameBuf[len - 1] = '\0';
+        }
+        if (IsKeyPressed(KEY_ENTER))
+            TrySubmitName();
+#endif
+        return;  // don't leave screen while naming
+    }
+
     if (HexSocialUpdate())
     {
         PlaySound(fxCoin);
@@ -102,126 +268,76 @@ void DrawEndingScreen(void)
     int titleSize = 40;
     DrawText(title, (sw - MeasureText(title, titleSize))/2, 20, titleSize, titleCol);
 
-    int listTop = 130;
+    // Left: local run summary + per-level stars
+    int listX = 24;
+    int listTop = 70;
     if (hasViewRun)
     {
         char timeBuf[16];
         HexScoresFormat(viewRun.totalTime, timeBuf, (int)sizeof(timeBuf));
-
         char totalLine[64];
         snprintf(totalLine, sizeof(totalLine), "Time  %s", timeBuf);
-        DrawText(totalLine, (sw - MeasureText(totalLine, 20))/2, 70, 20, RAYWHITE);
-
+        DrawText(totalLine, listX, listTop, 20, RAYWHITE);
         char starsLine[64];
         snprintf(starsLine, sizeof(starsLine), "Stars  %d", viewRun.totalStars);
-        DrawText(starsLine, (sw - MeasureText(starsLine, 20))/2, 96, 20, (Color){ 255, 220, 70, 255 });
+        DrawText(starsLine, listX, listTop + 24, 20, (Color){ 255, 220, 70, 255 });
 
-        const char *header = "LEVEL";
-        int headerY = 130;
-        int listX = 48;
-        DrawText(header, listX, headerY, 20, (Color){ 160, 170, 180, 255 });
-
+        DrawText("LEVEL", listX, listTop + 56, 20, (Color){ 160, 170, 180, 255 });
+        int y = listTop + 80;
         int n = viewRun.levelsRecorded;
-        listTop = headerY + 26;
-        if (n <= 0)
+        int maxVisible = (sh - 160 - y)/22;
+        if (maxVisible < 1) maxVisible = 1;
+        int start = 0;
+        if (n > maxVisible) start = n - maxVisible;
+
+        float starSize = (float)((ratingStarTex.id != 0)? ratingStarTex.width : 16)*RATING_STAR_SCALE;
+        for (int i = start; i < n; i++)
         {
-            const char *empty = "No level data";
-            DrawText(empty, listX, sh/2, 20, LIGHTGRAY);
-        }
-        else
-        {
-            int listBottom = sh - 150;
-            int lineH = 22;
-            int maxVisible = (listBottom - listTop)/lineH;
-            if (maxVisible < 1) maxVisible = 1;
-
-            int start = 0;
-            if (n > maxVisible) start = n - maxVisible;
-
-            float starSize = (float)((ratingStarTex.id != 0)? ratingStarTex.width : 16)*RATING_STAR_SCALE;
-            for (int i = start; i < n; i++)
-            {
-                int y = listTop + (i - start)*lineH;
-
-                char label[16];
-                snprintf(label, sizeof(label), "%2d", i + 1);
-                Color tint = RAYWHITE;
-                if (!viewRun.won && !viewingBestFromMenu && (i == n - 1))
-                    tint = (Color){ 255, 160, 140, 255 };
-                DrawText(label, listX, y, 20, tint);
-
-                float starY = (float)y + (20.0f - starSize)*0.5f;
-                HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, viewRun.levels[i].stars,
-                                        (float)(listX + 40), starY, RATING_STAR_SCALE);
-            }
+            char label[16];
+            snprintf(label, sizeof(label), "%2d", i + 1);
+            DrawText(label, listX, y, 20, RAYWHITE);
+            float starY = (float)y + (20.0f - starSize)*0.5f;
+            HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, viewRun.levels[i].stars,
+                                    (float)(listX + 40), starY, RATING_STAR_SCALE);
+            y += 22;
         }
     }
     else
     {
-        const char *empty = viewingBestFromMenu? "No best run yet — finish the meadow!"
+        const char *empty = viewingBestFromMenu? "No best run yet"
                                                : "No level data";
-        DrawText(empty, (sw - MeasureText(empty, 20))/2, sh/2 - 40, 20, LIGHTGRAY);
-        listTop = sh/2;
+        DrawText(empty, listX, listTop, 20, LIGHTGRAY);
     }
 
+    // Right: global board
+    DrawGlobalBoard(sw, sh);
+
+    // Name prompt UI chrome (HTML input sits on top on web)
+    if (namePromptActive)
     {
-        const char *line1 = "Enjoyed the game?";
-        const char *line2 = "follow mohselabs on X!";
-        int fontSize = 20;
-        int lineH = fontSize + 6;
-        int rightPad = 48;
-        int x1 = sw - rightPad - MeasureText(line1, fontSize);
-        int x2 = sw - rightPad - MeasureText(line2, fontSize);
-        int y = listTop + 40;
-        Color yellow = (Color){ 255, 220, 70, 255 };
-        DrawText(line1, x1, y, fontSize, yellow);
-        DrawText(line2, x2, y + lineH, fontSize, yellow);
-
-        float iconSize = HEX_SOCIAL_ICON_SIZE;
-        float gap = HEX_SOCIAL_ICON_GAP;
-        float total = iconSize*3.0f + gap*2.0f;
-        HexSocialLayoutAt((float)sw - (float)rightPad - total, (float)(y + lineH*2 + 16));
-    }
-
-    HexSocialDraw();
-
-    const char *boardTitle = "BEST TOTAL TIMES";
-    int boardY = sh - 130;
-    DrawText(boardTitle, (sw - MeasureText(boardTitle, 20))/2, boardY, 20, (Color){ 180, 190, 200, 255 });
-
-    if (bestCount <= 0)
-    {
-        const char *empty = "No records yet";
-        DrawText(empty, (sw - MeasureText(empty, 20))/2, boardY + 24, 20, LIGHTGRAY);
+        DrawRectangle(0, 0, sw, sh, Fade(BLACK, 0.45f));
+        const char *prompt = "ENTER YOUR NAME";
+        DrawText(prompt, (sw - MeasureText(prompt, 30))/2, sh/2 - 60, 30, (Color){ 255, 179, 71, 255 });
+        const char *hint = "Letters & numbers only — ENTER to submit";
+        DrawText(hint, (sw - MeasureText(hint, 20))/2, sh/2 - 20, 20, LIGHTGRAY);
+#if !defined(PLATFORM_WEB)
+        // Desktop typed name preview
+        char shown[32];
+        snprintf(shown, sizeof(shown), "%s_", nameBuf);
+        DrawText(shown, (sw - MeasureText(shown, 30))/2, sh/2 + 20, 30, RAYWHITE);
+#endif
     }
     else
     {
-        char row[128];
-        row[0] = '\0';
-        int shown = (bestCount < 5)? bestCount : 5;
-        for (int i = 0; i < shown; i++)
-        {
-            char t[16];
-            HexScoresFormat(bestTimes[i], t, (int)sizeof(t));
-            char piece[24];
-            snprintf(piece, sizeof(piece), "%s%s", (i > 0)? "  " : "", t);
-            strncat(row, piece, sizeof(row) - strlen(row) - 1);
-        }
-        DrawText(row, (sw - MeasureText(row, 20))/2, boardY + 24, 20, (Color){ 255, 220, 70, 255 });
-    }
-
-    const char *hint = "ENTER / TAP  return to menu";
-    DrawText(hint, (sw - MeasureText(hint, 20))/2, sh - 40, 20, LIGHTGRAY);
-
-    if (!viewingBestFromMenu && viewRun.won)
-    {
-        const char *promo = "got a good score? post in the comments!";
-        DrawText(promo, (sw - MeasureText(promo, 20))/2, sh - 68, 20, (Color){ 255, 220, 70, 255 });
+        const char *hint = "ENTER / TAP  return to menu";
+        DrawText(hint, (sw - MeasureText(hint, 20))/2, sh - 40, 20, LIGHTGRAY);
+        HexSocialDraw();
     }
 }
 
 void UnloadEndingScreen(void)
 {
+    HexScoresNamePromptHide();
     UnloadTexture(ratingStarTex);
     UnloadTexture(ratingStarEmptyTex);
     ratingStarTex = (Texture2D){ 0 };

@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   Beehold - Run stats + CSV history (desktop file + emscripten localStorage)
+*   Beehold - Run stats + CSV history + dreamlo global board
 *
 **********************************************************************************************/
 
@@ -17,6 +17,18 @@
 #define HEX_RUNS_CSV_FILE "beehold_runs.csv"
 #define HEX_RUN_MAX_LEVELS 32
 #define HEX_LEVEL_STARS_MAX 3
+#define HEX_PLAYER_NAME_MAX 16
+#define HEX_GLOBAL_TOP_MAX 10
+
+// Set to 1 to force-send dreamlo scores even in _DEBUG or with time < 60s (testing).
+#ifndef DEBUG_TEST_SCORE
+#define DEBUG_TEST_SCORE 0
+#endif
+
+// dreamlo private code (add + read via /pipe). HTTP only for this board.
+#define HEX_DREAMLO_PRIVATE "x49B2n34kE2qdvJfjMcmLgitvEWXnwH06lya-wqv2vcQ"
+#define HEX_DREAMLO_MIN_TIME_SEC 60.0f
+#define HEX_DREAMLO_MIN_STARS 24  // 1* per level across the full campaign
 
 typedef struct HexLevelResult
 {
@@ -33,6 +45,13 @@ typedef struct HexRunResult
     int totalStars;
 } HexRunResult;
 
+typedef struct HexGlobalEntry
+{
+    char name[HEX_PLAYER_NAME_MAX + 1];
+    float timeSec;
+    int stars;
+} HexGlobalEntry;
+
 // Stars earned for a level: 3 minus deaths, clamped to [1, HEX_LEVEL_STARS_MAX].
 int HexScoresStarsFromDeaths(int deaths);
 
@@ -47,6 +66,28 @@ bool HexScoresLoadBestRun(HexRunResult *out);
 
 // Save run as the best if it wins and beats the stored best time (or none exists).
 void HexScoresSaveBestRunIfBetter(const HexRunResult *run);
+
+// True if this run is eligible to post to dreamlo (respects DEBUG_TEST_SCORE).
+bool HexScoresCanSubmitGlobal(const HexRunResult *run);
+
+// Submit a named winning run to dreamlo (web). Name must be A-Za-z0-9, non-empty.
+void HexScoresSubmitGlobalNamed(const HexRunResult *run, const char *name);
+
+// Async fetch top N (web). Poll HexScoresGlobalFetchReady().
+void HexScoresFetchGlobalTop(int count);
+bool HexScoresGlobalFetchPending(void);
+bool HexScoresGlobalFetchReady(void);
+int HexScoresCopyGlobalTop(HexGlobalEntry *out, int maxCount);
+
+// Saved player name (localStorage on web / soft default on desktop).
+void HexScoresLoadPlayerName(char *buf, int bufSize);
+void HexScoresSavePlayerName(const char *name);
+
+// Web HTML name field (no-ops on desktop — use GetCharPressed there).
+void HexScoresNamePromptShow(const char *initial);
+void HexScoresNamePromptHide(void);
+bool HexScoresNamePromptEnterPressed(void);
+void HexScoresNamePromptRead(char *buf, int bufSize);  // sanitized A-Za-z0-9
 
 // Append this run's per-level rows to beehold_runs.csv (localStorage on web).
 void HexScoresAppendRunCsv(const HexRunResult *run);

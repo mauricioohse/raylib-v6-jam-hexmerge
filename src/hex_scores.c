@@ -45,6 +45,175 @@
             return buf;
         } catch (e) { return 0; }
     });
+
+    // Fire-and-forget GET to dreamlo. name must already be URL-safe (A-Za-z0-9).
+    EM_JS(void, HexDreamloJsSubmit, (const char *privateCode, const char *name, int score, int centiseconds, int stars), {
+        try {
+            var url = "http://dreamlo.com/lb/" + UTF8ToString(privateCode) +
+                      "/add/" + UTF8ToString(name) + "/" + score + "/" + centiseconds + "/" + stars;
+            fetch(url, { method: "GET", mode: "cors", cache: "no-store" }).catch(function () {});
+        } catch (e) {}
+    });
+
+    EM_JS(void, HexDreamloJsSaveName, (const char *name), {
+        try { localStorage.setItem("beehold_player_name", UTF8ToString(name)); } catch (e) {}
+    });
+
+    EM_JS(char *, HexDreamloJsLoadName, (), {
+        try {
+            var s = localStorage.getItem("beehold_player_name");
+            if (!s) s = "";
+            s = String(s).replace(/[^A-Za-z0-9]/g, "").slice(0, 16);
+            var len = lengthBytesUTF8(s) + 1;
+            var buf = _malloc(len);
+            stringToUTF8(s, buf, len);
+            return buf;
+        } catch (e) {
+            var buf = _malloc(1);
+            HEAPU8[buf] = 0;
+            return buf;
+        }
+    });
+
+    EM_JS(void, HexDreamloJsFetchTop, (const char *privateCode, int count), {
+        try {
+            globalThis.__beeholdPipeState = 1;
+            globalThis.__beeholdPipeText = "";
+            // /json has Access-Control-Allow-Origin:* (pipe does not)
+            var url = "http://dreamlo.com/lb/" + UTF8ToString(privateCode) + "/json/" + count;
+            fetch(url, { method: "GET", mode: "cors", cache: "no-store" })
+                .then(function (r) { return r.text(); })
+                .then(function (t) {
+                    try {
+                        var j = JSON.parse(t || "{}");
+                        var entries = j && j.dreamlo && j.dreamlo.leaderboard && j.dreamlo.leaderboard.entry;
+                        if (!entries) {
+                            globalThis.__beeholdPipeText = "";
+                            globalThis.__beeholdPipeState = 2;
+                            return;
+                        }
+                        if (!Array.isArray(entries)) entries = [entries];
+                        var lines = [];
+                        for (var i = 0; i < entries.length; i++) {
+                            var e = entries[i] || {};
+                            lines.push([
+                                e.name || "",
+                                e.score || "0",
+                                e.seconds || "0",
+                                e.text || "0",
+                                e.date || ""
+                            ].join("|"));
+                        }
+                        globalThis.__beeholdPipeText = lines.join("\n");
+                        globalThis.__beeholdPipeState = 2;
+                    } catch (err) {
+                        globalThis.__beeholdPipeText = "";
+                        globalThis.__beeholdPipeState = 3;
+                    }
+                })
+                .catch(function () {
+                    globalThis.__beeholdPipeText = "";
+                    globalThis.__beeholdPipeState = 3;
+                });
+        } catch (e) {
+            globalThis.__beeholdPipeState = 3;
+        }
+    });
+
+    EM_JS(int, HexDreamloJsFetchState, (), {
+        return globalThis.__beeholdPipeState | 0;
+    });
+
+    EM_JS(char *, HexDreamloJsFetchText, (), {
+        try {
+            var s = globalThis.__beeholdPipeText || "";
+            var len = lengthBytesUTF8(s) + 1;
+            var buf = _malloc(len);
+            stringToUTF8(s, buf, len);
+            return buf;
+        } catch (e) { return 0; }
+    });
+
+    EM_JS(void, HexNamePromptShow, (const char *initial), {
+        try {
+            var old = document.getElementById("beehold-name-wrap");
+            if (old) old.remove();
+            globalThis.__beeholdNameEnter = 0;
+
+            var wrap = document.createElement("div");
+            wrap.id = "beehold-name-wrap";
+            wrap.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;z-index:10000;pointer-events:none;";
+
+            var inp = document.createElement("input");
+            inp.id = "beehold-name";
+            inp.type = "text";
+            inp.maxLength = 16;
+            inp.spellcheck = false;
+            inp.autocomplete = "off";
+            inp.value = UTF8ToString(initial || "");
+            inp.placeholder = "YOURNAME";
+            inp.style.cssText =
+                "pointer-events:auto;position:fixed;left:50%;top:58%;transform:translate(-50%,-50%);" +
+                "width:220px;height:36px;font-size:20px;font-family:monospace;text-align:center;" +
+                "border:2px solid #ffb347;background:#1e2430;color:#fff;outline:none;border-radius:4px;";
+            inp.addEventListener("input", function () {
+                this.value = this.value.replace(/[^A-Za-z0-9]/g, "");
+            });
+            // Keep keys in the field — raylib/emscripten otherwise eats Backspace etc.
+            function keepKeys(e) {
+                e.stopPropagation();
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    globalThis.__beeholdNameEnter = 1;
+                }
+            }
+            inp.addEventListener("keydown", keepKeys);
+            inp.addEventListener("keyup", keepKeys);
+            inp.addEventListener("keypress", keepKeys);
+            wrap.appendChild(inp);
+            document.body.appendChild(wrap);
+            setTimeout(function () {
+                try {
+                    var canvas = document.getElementById("canvas");
+                    if (canvas) canvas.blur();
+                } catch (err) {}
+                inp.focus();
+                inp.select();
+            }, 30);
+        } catch (e) {}
+    });
+
+    EM_JS(void, HexNamePromptHide, (), {
+        try {
+            var wrap = document.getElementById("beehold-name-wrap");
+            if (wrap) wrap.remove();
+            globalThis.__beeholdNameEnter = 0;
+        } catch (e) {}
+    });
+
+    EM_JS(int, HexNamePromptEnterPressed, (), {
+        if (globalThis.__beeholdNameEnter) {
+            globalThis.__beeholdNameEnter = 0;
+            return 1;
+        }
+        return 0;
+    });
+
+    EM_JS(char *, HexNamePromptRead, (), {
+        try {
+            var inp = document.getElementById("beehold-name");
+            var s = inp ? String(inp.value || "") : "";
+            s = s.replace(/[^A-Za-z0-9]/g, "").slice(0, 16);
+            var len = lengthBytesUTF8(s) + 1;
+            var buf = _malloc(len);
+            stringToUTF8(s, buf, len);
+            return buf;
+        } catch (e) {
+            var buf = _malloc(1);
+            HEAPU8[buf] = 0;
+            return buf;
+        }
+    });
 #endif
 
 //----------------------------------------------------------------------------------
@@ -293,6 +462,236 @@ void HexScoresSaveBestRunIfBetter(const HexRunResult *run)
     }
 
     SaveBestRunText(buf);
+}
+
+bool HexScoresCanSubmitGlobal(const HexRunResult *run)
+{
+    if ((run == NULL) || !run->won || (run->totalTime <= 0.0f)) return false;
+#if !DEBUG_TEST_SCORE
+    #if defined(_DEBUG)
+        return false;
+    #endif
+    if (run->totalTime < HEX_DREAMLO_MIN_TIME_SEC) return false;
+    if (run->totalStars < HEX_DREAMLO_MIN_STARS) return false;
+#endif
+    return true;
+}
+
+static void SanitizePlayerName(const char *in, char *out, int outSize)
+{
+    if ((out == NULL) || (outSize <= 0)) return;
+    out[0] = '\0';
+    if (in == NULL) return;
+
+    int n = 0;
+    for (const char *p = in; *p && (n < outSize - 1); p++)
+    {
+        char c = *p;
+        if (((c >= 'A') && (c <= 'Z')) ||
+            ((c >= 'a') && (c <= 'z')) ||
+            ((c >= '0') && (c <= '9')))
+        {
+            out[n++] = c;
+        }
+    }
+    out[n] = '\0';
+}
+
+void HexScoresLoadPlayerName(char *buf, int bufSize)
+{
+    if ((buf == NULL) || (bufSize <= 0)) return;
+    buf[0] = '\0';
+#if defined(PLATFORM_WEB)
+    char *loaded = HexDreamloJsLoadName();
+    if (loaded != NULL)
+    {
+        SanitizePlayerName(loaded, buf, bufSize);
+        free(loaded);
+    }
+#else
+    (void)bufSize;
+#endif
+}
+
+void HexScoresSavePlayerName(const char *name)
+{
+    char clean[HEX_PLAYER_NAME_MAX + 1];
+    SanitizePlayerName(name, clean, (int)sizeof(clean));
+    if (clean[0] == '\0') return;
+#if defined(PLATFORM_WEB)
+    HexDreamloJsSaveName(clean);
+#else
+    (void)clean;
+#endif
+}
+
+void HexScoresSubmitGlobalNamed(const HexRunResult *run, const char *name)
+{
+    if (!HexScoresCanSubmitGlobal(run)) return;
+
+    char clean[HEX_PLAYER_NAME_MAX + 1];
+    SanitizePlayerName(name, clean, (int)sizeof(clean));
+    if (clean[0] == '\0') return;
+
+#if defined(PLATFORM_WEB)
+    int stars = run->totalStars;
+    if (stars < 0) stars = 0;
+    int centiseconds = (int)(run->totalTime*100.0f + 0.5f);
+    if (centiseconds < 1) centiseconds = 1;
+
+    int score = 10000000 - centiseconds;
+    if (score < 1) score = 1;
+
+    HexScoresSavePlayerName(clean);
+    HexDreamloJsSubmit(HEX_DREAMLO_PRIVATE, clean, score, centiseconds, stars);
+#else
+    (void)run;
+#endif
+}
+
+//----------------------------------------------------------------------------------
+// Global leaderboard fetch
+//----------------------------------------------------------------------------------
+static HexGlobalEntry sGlobalTop[HEX_GLOBAL_TOP_MAX];
+static int sGlobalTopCount = 0;
+static int sGlobalFetchState = 0;   // 0 idle, 1 pending, 2 ready, 3 error
+
+#if defined(PLATFORM_WEB)
+static void ParseDreamloPipe(const char *text)
+{
+    sGlobalTopCount = 0;
+    if (text == NULL) return;
+
+    const char *p = text;
+    while ((*p != '\0') && (sGlobalTopCount < HEX_GLOBAL_TOP_MAX))
+    {
+        while ((*p == '\r') || (*p == '\n')) p++;
+        if (*p == '\0') break;
+        if (strncmp(p, "ERROR", 5) == 0) break;
+
+        char line[256];
+        int n = 0;
+        while ((*p != '\0') && (*p != '\n') && (*p != '\r') && (n < (int)sizeof(line) - 1))
+            line[n++] = *p++;
+        line[n] = '\0';
+        while ((*p == '\n') || (*p == '\r')) p++;
+
+        // name|score|seconds|text|date|...
+        char *fields[6] = { 0 };
+        int fieldCount = 0;
+        char *tok = line;
+        fields[fieldCount++] = tok;
+        for (char *c = line; *c && (fieldCount < 6); c++)
+        {
+            if (*c == '|')
+            {
+                *c = '\0';
+                fields[fieldCount++] = c + 1;
+            }
+        }
+        if (fieldCount < 4) continue;
+
+        HexGlobalEntry *e = &sGlobalTop[sGlobalTopCount];
+        memset(e, 0, sizeof(*e));
+        SanitizePlayerName(fields[0], e->name, (int)sizeof(e->name));
+        if (e->name[0] == '\0') continue;
+
+        int cs = atoi(fields[2]);
+        if (cs < 0) cs = 0;
+        e->timeSec = (float)cs/100.0f;
+        e->stars = atoi(fields[3]);
+        if (e->stars < 0) e->stars = 0;
+        sGlobalTopCount++;
+    }
+}
+#endif
+
+void HexScoresFetchGlobalTop(int count)
+{
+    if (count < 1) count = 1;
+    if (count > HEX_GLOBAL_TOP_MAX) count = HEX_GLOBAL_TOP_MAX;
+    sGlobalTopCount = 0;
+    sGlobalFetchState = 1;
+#if defined(PLATFORM_WEB)
+    HexDreamloJsFetchTop(HEX_DREAMLO_PRIVATE, count);
+#else
+    (void)count;
+    sGlobalFetchState = 3;
+#endif
+}
+
+bool HexScoresGlobalFetchPending(void)
+{
+#if defined(PLATFORM_WEB)
+    int st = HexDreamloJsFetchState();
+    if ((sGlobalFetchState == 1) && (st == 2))
+    {
+        char *text = HexDreamloJsFetchText();
+        ParseDreamloPipe(text);
+        if (text) free(text);
+        sGlobalFetchState = 2;
+    }
+    else if ((sGlobalFetchState == 1) && (st == 3))
+    {
+        sGlobalFetchState = 3;
+    }
+#endif
+    return (sGlobalFetchState == 1);
+}
+
+bool HexScoresGlobalFetchReady(void)
+{
+    HexScoresGlobalFetchPending();  // pump async result
+    return (sGlobalFetchState == 2);
+}
+
+int HexScoresCopyGlobalTop(HexGlobalEntry *out, int maxCount)
+{
+    if ((out == NULL) || (maxCount <= 0)) return 0;
+    HexScoresGlobalFetchReady();
+    int n = sGlobalTopCount;
+    if (n > maxCount) n = maxCount;
+    for (int i = 0; i < n; i++) out[i] = sGlobalTop[i];
+    return n;
+}
+
+void HexScoresNamePromptShow(const char *initial)
+{
+#if defined(PLATFORM_WEB)
+    HexNamePromptShow(initial? initial : "");
+#else
+    (void)initial;
+#endif
+}
+
+void HexScoresNamePromptHide(void)
+{
+#if defined(PLATFORM_WEB)
+    HexNamePromptHide();
+#endif
+}
+
+bool HexScoresNamePromptEnterPressed(void)
+{
+#if defined(PLATFORM_WEB)
+    return HexNamePromptEnterPressed() != 0;
+#else
+    return false;
+#endif
+}
+
+void HexScoresNamePromptRead(char *buf, int bufSize)
+{
+    if ((buf == NULL) || (bufSize <= 0)) return;
+    buf[0] = '\0';
+#if defined(PLATFORM_WEB)
+    char *raw = HexNamePromptRead();
+    if (raw != NULL)
+    {
+        SanitizePlayerName(raw, buf, bufSize);
+        free(raw);
+    }
+#endif
 }
 
 void HexScoresAppendRunCsv(const HexRunResult *run)
