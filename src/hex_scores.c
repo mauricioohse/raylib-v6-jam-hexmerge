@@ -50,22 +50,12 @@
 //----------------------------------------------------------------------------------
 // Best-times persistence
 //----------------------------------------------------------------------------------
-static const char *ScoresFile(bool hardcore)
-{
-    return hardcore? HEX_SCORES_HARDCORE_FILE : HEX_SCORES_FILE;
-}
-
-static const char *ScoresWebKey(bool hardcore)
-{
-    return hardcore? "beehold_scores_hardcore" : "beehold_scores";
-}
-
-static char *LoadScoresText(bool hardcore)
+static char *LoadScoresText(void)
 {
 #if defined(PLATFORM_WEB)
-    return HexScoresJsLoadKey(ScoresWebKey(hardcore));
+    return HexScoresJsLoadKey("beehold_scores");
 #else
-    return LoadFileText(ScoresFile(hardcore));
+    return LoadFileText(HEX_SCORES_FILE);
 #endif
 }
 
@@ -79,12 +69,12 @@ static void FreeScoresText(char *text)
 #endif
 }
 
-static void SaveScoresText(const char *text, bool hardcore)
+static void SaveScoresText(const char *text)
 {
 #if defined(PLATFORM_WEB)
-    HexScoresJsSaveKey(ScoresWebKey(hardcore), text);
+    HexScoresJsSaveKey("beehold_scores", text);
 #else
-    SaveFileText(ScoresFile(hardcore), (char *)text);
+    SaveFileText(HEX_SCORES_FILE, (char *)text);
 #endif
 }
 
@@ -157,21 +147,21 @@ static void SaveRunsCsv(const char *text)
 //----------------------------------------------------------------------------------
 // Public API
 //----------------------------------------------------------------------------------
-int HexScoresLoad(float *outTimes, int maxCount, bool hardcore)
+int HexScoresLoad(float *outTimes, int maxCount)
 {
-    char *text = LoadScoresText(hardcore);
+    char *text = LoadScoresText();
     int count = ParseScores(text, outTimes, maxCount);
     FreeScoresText(text);
     SortAscending(outTimes, count);
     return count;
 }
 
-int HexScoresSubmit(float seconds, bool hardcore)
+int HexScoresSubmit(float seconds)
 {
     if (seconds <= 0.0f) return 0;
 
     float times[HEX_SCORES_MAX + 1] = { 0 };
-    int count = HexScoresLoad(times, HEX_SCORES_MAX, hardcore);
+    int count = HexScoresLoad(times, HEX_SCORES_MAX);
 
     int insertAt = count;
     for (int i = 0; i < count; i++)
@@ -197,7 +187,7 @@ int HexScoresSubmit(float seconds, bool hardcore)
         pos += n;
         if (pos >= (int)sizeof(buf) - 1) break;
     }
-    SaveScoresText(buf, hardcore);
+    SaveScoresText(buf);
 
     return insertAt + 1;
 }
@@ -230,7 +220,7 @@ void HexScoresAppendRunCsv(const HexRunResult *run)
     }
     else
     {
-        int n = snprintf(out, (int)cap, "run,won,hardcore,level,time_sec\n");
+        int n = snprintf(out, (int)cap, "run,won,level,time_sec\n");
         if (n > 0) pos = (size_t)n;
     }
 
@@ -239,10 +229,9 @@ void HexScoresAppendRunCsv(const HexRunResult *run)
     for (int i = 0; i < run->levelsRecorded; i++)
     {
         if (pos + 96 >= cap) break;
-        int n = snprintf(out + pos, (int)(cap - pos), "%ld,%d,%d,%d,%.3f\n",
+        int n = snprintf(out + pos, (int)(cap - pos), "%ld,%d,%d,%.3f\n",
                          runId,
                          run->won? 1 : 0,
-                         run->hardcore? 1 : 0,
                          i + 1,
                          run->levels[i].timeSec);
         if (n <= 0) break;

@@ -58,7 +58,6 @@ int volumeLevel = 5;
 float lastRunTime = 0.0f;
 HexRunResult lastRun = { 0 };
 bool controllerMode = true;
-bool startHardcore = false;
 
 //----------------------------------------------------------------------------------
 // Global Variables Definition (local to this module)

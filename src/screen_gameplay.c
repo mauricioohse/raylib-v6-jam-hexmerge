@@ -52,7 +52,6 @@ static bool levelPaused = true;     // wait for first steer before bee/wasps mov
 static bool gamePaused = false;     // pause menu (P / ESC)
 static bool starMusicPlaying = false;
 static bool moveModeRelative = false;   // false = WASD absolute (default), true = A/D relative
-static bool hardcore = false;
 static int checkpointLevel = 0;
 static bool levelTookDamage = false;
 static float checkpointBannerTimer = 0.0f;
@@ -286,7 +285,6 @@ static void RecordCurrentLevelStats(void)
 
 static void TryActivateCheckpoint(void)
 {
-    if (hardcore) return;
     const HexLevelDef *def = HexLevelGetDef(currentLevelIndex);
     if (def == NULL || !def->checkpoint) return;
     if (currentLevelIndex < checkpointLevel) return;
@@ -317,11 +315,10 @@ static void FinishRun(bool won)
     RecordCurrentLevelStats();
 
     lastRun.won = won;
-    lastRun.hardcore = hardcore;
     lastRunTime = lastRun.totalTime;
 
     HexScoresAppendRunCsv(&lastRun);
-    if (won) HexScoresSubmit(lastRun.totalTime, hardcore);
+    if (won) HexScoresSubmit(lastRun.totalTime);
 
     finishScreen = 1;
     PlaySound(won? fxWin : fxLife);
@@ -332,12 +329,6 @@ static bool ApplyDamage(void)
 {
     StopStarMusic();
     levelTookDamage = true;
-
-    if (hardcore)
-    {
-        FinishRun(false);
-        return true;
-    }
 
     lives--;
     PlaySound(fxLife);
@@ -386,11 +377,9 @@ void InitGameplayScreen(void)
     framesCounter = 0;
     finishScreen = 0;
     gamePaused = false;
-    hardcore = startHardcore;
-    startHardcore = false;
     moveModeRelative = controllerMode;  // title MOVE: A/D vs WASD
     // keep controllerMode so title remembers the choice after returning from a run
-    lives = hardcore? 1 : PLAYER_MAX_LIVES;
+    lives = PLAYER_MAX_LIVES;
     currentLevelIndex = 0;
     checkpointLevel = 0;
     levelTookDamage = false;
@@ -398,8 +387,7 @@ void InitGameplayScreen(void)
     fireFailDelay = 0.0f;
     runActive = true;
     ResetRunStats();
-    lastRun.hardcore = hardcore;
-    SetMusicPitch(music, hardcore? 1.10f : 1.0f);
+    SetMusicPitch(music, 1.0f);
 
     hexTexture = LoadTexture("resources/hexfield.png");
     pondTexture = LoadTexture("resources/hexpond.png");
@@ -489,11 +477,10 @@ void UpdateGameplayScreen(void)
         if (IsKeyPressed(key))
         {
             currentLevelIndex = key - KEY_ONE;
-            lives = hardcore? 1 : PLAYER_MAX_LIVES;
+            lives = PLAYER_MAX_LIVES;
             checkpointLevel = currentLevelIndex;
             finishScreen = 0;
             ResetRunStats();
-            lastRun.hardcore = hardcore;
             LoadCurrentLevel();
             TryActivateCheckpoint();
             PlaySound(fxCoin);
@@ -503,11 +490,10 @@ void UpdateGameplayScreen(void)
     if (IsKeyPressed(KEY_ZERO))
     {
         currentLevelIndex = 9;  // level 10
-        lives = hardcore? 1 : PLAYER_MAX_LIVES;
+        lives = PLAYER_MAX_LIVES;
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        lastRun.hardcore = hardcore;
         LoadCurrentLevel();
         TryActivateCheckpoint();
         PlaySound(fxCoin);
@@ -518,11 +504,10 @@ void UpdateGameplayScreen(void)
     {
         if (currentLevelIndex > 0) currentLevelIndex--;
         else currentLevelIndex = HexLevelCount() - 1;
-        lives = hardcore? 1 : PLAYER_MAX_LIVES;
+        lives = PLAYER_MAX_LIVES;
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        lastRun.hardcore = hardcore;
         LoadCurrentLevel();
         TryActivateCheckpoint();
         PlaySound(fxCoin);
@@ -531,11 +516,10 @@ void UpdateGameplayScreen(void)
     if (IsKeyPressed(KEY_PERIOD))
     {
         currentLevelIndex = (currentLevelIndex + 1)%HexLevelCount();
-        lives = hardcore? 1 : PLAYER_MAX_LIVES;
+        lives = PLAYER_MAX_LIVES;
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        lastRun.hardcore = hardcore;
         LoadCurrentLevel();
         TryActivateCheckpoint();
         PlaySound(fxCoin);
@@ -637,13 +621,12 @@ void UpdateGameplayScreen(void)
         StopStarMusic();
         if (currentLevelIndex + 1 < HexLevelCount())
         {
-            if (!hardcore && !levelTookDamage && lives < PLAYER_MAX_LIVES)
+            if (!levelTookDamage && lives < PLAYER_MAX_LIVES)
                 lives++;
 
             RecordCurrentLevelStats();
             currentLevelIndex++;
             LoadCurrentLevel();
-            if (!hardcore)
             {
                 const HexLevelDef *def = HexLevelGetDef(currentLevelIndex);
                 if (def != NULL && def->checkpoint && currentLevelIndex > checkpointLevel)
@@ -683,16 +666,7 @@ void DrawGameplayScreen(void)
     else
         DrawAnimation(&beeAnim, beePos);
 
-    if (hardcore)
-    {
-        const char *hc = "SPEEDRUN";
-        int hw = MeasureText(hc, 18);
-        DrawText(hc, GetScreenWidth() - 16 - hw, 16, 18, (Color){ 255, 110, 100, 255 });
-    }
-    else
-    {
-        DrawLives();
-    }
+    DrawLives();
     HexLevelDrawHint(&level);
 
     char levelLabel[32];

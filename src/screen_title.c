@@ -55,7 +55,6 @@ static int finishScreen = 0;
 
 static Rectangle startBtn = { 0 };
 static Rectangle moveBtn = { 0 };
-static Rectangle hardcoreBtn = { 0 };
 static Rectangle volDownBtn = { 0 };
 static Rectangle volUpBtn = { 0 };
 static Texture2D speakerTexture = { 0 };
@@ -275,9 +274,8 @@ void InitTitleScreen(void)
 
     startBtn = (Rectangle){ sw*0.5f - 140.0f, sh*0.5f - 56.0f, 280.0f, 52.0f };
     moveBtn = (Rectangle){ sw*0.5f - 140.0f, startBtn.y + startBtn.height + 14.0f, 280.0f, 44.0f };
-    hardcoreBtn = (Rectangle){ sw*0.5f - 140.0f, moveBtn.y + moveBtn.height + 14.0f, 280.0f, 44.0f };
 
-    float volY = hardcoreBtn.y + hardcoreBtn.height + 40.0f;
+    float volY = moveBtn.y + moveBtn.height + 40.0f;
     volDownBtn = (Rectangle){ sw*0.5f - 20.0f, volY, 36.0f, 36.0f };
     volUpBtn = (Rectangle){ sw*0.5f + 52.0f, volY, 36.0f, 36.0f };
 
@@ -307,16 +305,7 @@ void UpdateTitleScreen(void)
 
     if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
     {
-        startHardcore = false;
         finishScreen = 2;   // GAMEPLAY (uses controllerMode for controls)
-        PlaySound(fxCoin);
-        return;
-    }
-
-    if (Clicked(hardcoreBtn))
-    {
-        startHardcore = true;
-        finishScreen = 2;   // HARDCORE (uses controllerMode for controls)
         PlaySound(fxCoin);
         return;
     }
@@ -361,7 +350,6 @@ void DrawTitleScreen(void)
     DrawMenuButton(startBtn, "START GAME", CheckCollisionPointRec(mouse, startBtn));
     DrawMenuButton(moveBtn, controllerMode? "MOVE: A/D" : "MOVE: WASD",
                    CheckCollisionPointRec(mouse, moveBtn));
-    DrawMenuButton(hardcoreBtn, "SPEEDRUN", CheckCollisionPointRec(mouse, hardcoreBtn));
 
     // Volume row: speaker  <  N  >
     float volY = volDownBtn.y;
@@ -396,7 +384,7 @@ void DrawTitleScreen(void)
         const char *line1 = controllerMode
             ? "A/D: turn left/right at each junction."
             : "WASD: move in absolute screen directions.";
-        const char *line2 = "Click to switch. Applies to Start and Hardcore.";
+        const char *line2 = "Click to switch. Applies when you start.";
         int tipW = MeasureText(line1, tipFont);
         int tipW2 = MeasureText(line2, tipFont);
         if (tipW2 > tipW) tipW = tipW2;
@@ -412,33 +400,6 @@ void DrawTitleScreen(void)
                              (Color){ 255, 179, 71, 200 });
         DrawText(line1, (int)tipX + tipPad, (int)tipY + tipPad, tipFont, (Color){ 220, 225, 235, 255 });
         DrawText(line2, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH, tipFont, (Color){ 220, 225, 235, 255 });
-    }
-    else if (CheckCollisionPointRec(mouse, hardcoreBtn))
-    {
-        const int tipPad = 10;
-        const int tipFont = 16;
-        const int tipLineH = tipFont + 4;
-        const char *line1 = "For hardcore gamers.";
-        const char *line2 = "No lives, no checkpoints.";
-        const char *line3 = "Separate speedrun scores.";
-        int tipW = MeasureText(line1, tipFont);
-        int tipW2 = MeasureText(line2, tipFont);
-        int tipW3 = MeasureText(line3, tipFont);
-        if (tipW2 > tipW) tipW = tipW2;
-        if (tipW3 > tipW) tipW = tipW3;
-        int tipH = tipPad*2 + tipLineH*3;
-        float tipX = hardcoreBtn.x + (hardcoreBtn.width - (float)(tipW + tipPad*2))*0.5f;
-        float tipY = volDownBtn.y + volDownBtn.height + 12.0f;
-        if (tipX < 8.0f) tipX = 8.0f;
-        if (tipX + tipW + tipPad*2 > (float)GetScreenWidth() - 8.0f)
-            tipX = (float)GetScreenWidth() - 8.0f - (float)(tipW + tipPad*2);
-
-        DrawRectangle((int)tipX, (int)tipY, tipW + tipPad*2, tipH, (Color){ 36, 42, 54, 235 });
-        DrawRectangleLinesEx((Rectangle){ tipX, tipY, (float)(tipW + tipPad*2), (float)tipH }, 2.0f,
-                             (Color){ 255, 110, 100, 200 });
-        DrawText(line1, (int)tipX + tipPad, (int)tipY + tipPad, tipFont, (Color){ 220, 225, 235, 255 });
-        DrawText(line2, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH, tipFont, (Color){ 220, 225, 235, 255 });
-        DrawText(line3, (int)tipX + tipPad, (int)tipY + tipPad + tipLineH*2, tipFont, (Color){ 220, 225, 235, 255 });
     }
 
     HexSocialDraw();
