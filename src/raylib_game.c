@@ -151,6 +151,9 @@ int main(void)
         case OPTIONS: UnloadOptionsScreen(); break;
         case GAMEPLAY: UnloadGameplayScreen(); break;
         case ENDING: UnloadEndingScreen(); break;
+#if defined(_DEBUG)
+        case COVER: UnloadCoverScreen(); break;
+#endif
         default: break;
     }
 
@@ -207,6 +210,9 @@ static void ChangeToScreen(int screen)
         case OPTIONS: UnloadOptionsScreen(); break;
         case GAMEPLAY: UnloadGameplayScreen(); break;
         case ENDING: UnloadEndingScreen(); break;
+#if defined(_DEBUG)
+        case COVER: UnloadCoverScreen(); break;
+#endif
         default: break;
     }
 
@@ -217,6 +223,9 @@ static void ChangeToScreen(int screen)
         case OPTIONS: InitOptionsScreen(); break;
         case GAMEPLAY: InitGameplayScreen(); break;
         case ENDING: InitEndingScreen(); break;
+#if defined(_DEBUG)
+        case COVER: InitCoverScreen(); break;
+#endif
         default: break;
     }
 
@@ -253,6 +262,9 @@ static void UpdateTransition(void)
                 case OPTIONS: UnloadOptionsScreen(); break;
                 case GAMEPLAY: UnloadGameplayScreen(); break;
                 case ENDING: UnloadEndingScreen(); break;
+#if defined(_DEBUG)
+                case COVER: UnloadCoverScreen(); break;
+#endif
                 default: break;
             }
 
@@ -263,6 +275,9 @@ static void UpdateTransition(void)
                 case OPTIONS: InitOptionsScreen(); break;
                 case GAMEPLAY: InitGameplayScreen(); break;
                 case ENDING: InitEndingScreen(); break;
+#if defined(_DEBUG)
+                case COVER: InitCoverScreen(); break;
+#endif
                 default: break;
             }
 
@@ -311,6 +326,9 @@ static void UpdateDrawFrame(void)
                 if (FinishTitleScreen() == 1) TransitionToScreen(OPTIONS);
                 else if (FinishTitleScreen() == 2) TransitionToScreen(GAMEPLAY);
                 else if (FinishTitleScreen() == 3) TransitionToScreen(ENDING);
+#if defined(_DEBUG)
+                else if (FinishTitleScreen() == 4) TransitionToScreen(COVER);
+#endif
 
             } break;
             case OPTIONS:
@@ -335,6 +353,15 @@ static void UpdateDrawFrame(void)
                 if (FinishEndingScreen() == 1) TransitionToScreen(TITLE);
 
             } break;
+#if defined(_DEBUG)
+            case COVER:
+            {
+                UpdateCoverScreen();
+
+                if (FinishCoverScreen() == 1) TransitionToScreen(TITLE);
+
+            } break;
+#endif
             default: break;
         }
     }
@@ -353,6 +380,9 @@ static void UpdateDrawFrame(void)
             case OPTIONS: DrawOptionsScreen(); break;
             case GAMEPLAY: DrawGameplayScreen(); break;
             case ENDING: DrawEndingScreen(); break;
+#if defined(_DEBUG)
+            case COVER: DrawCoverScreen(); break;
+#endif
             default: break;
         }
 

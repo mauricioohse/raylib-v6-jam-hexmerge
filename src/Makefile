@@ -179,6 +179,7 @@ endif
 
 ifeq ($(BUILD_MODE),DEBUG)
     CFLAGS += -g -D_DEBUG
+    PROJECT_SOURCE_FILES += screen_cover.c
 else
     ifeq ($(PLATFORM),PLATFORM_WEB)
         ifeq ($(BUILD_WEB_ASYNCIFY),TRUE)

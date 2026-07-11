@@ -37,7 +37,10 @@ typedef enum GameScreen {
   TITLE = 0,
   OPTIONS,
   GAMEPLAY,
-  ENDING
+  ENDING,
+#if defined(_DEBUG)
+  COVER,
+#endif
 } GameScreen;
 
 typedef struct
@@ -135,6 +138,17 @@ void UpdateEndingScreen(void);
 void DrawEndingScreen(void);
 void UnloadEndingScreen(void);
 int FinishEndingScreen(void);
+
+#if defined(_DEBUG)
+//----------------------------------------------------------------------------------
+// Cover studio (DEBUG only) — pose + export itch cover
+//----------------------------------------------------------------------------------
+void InitCoverScreen(void);
+void UpdateCoverScreen(void);
+void DrawCoverScreen(void);
+void UnloadCoverScreen(void);
+int FinishCoverScreen(void);
+#endif
 
 #ifdef __cplusplus
 }

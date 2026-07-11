@@ -321,6 +321,15 @@ void UpdateTitleScreen(void)
         return;
     }
 
+#if defined(_DEBUG)
+    if (IsKeyPressed(KEY_Y))
+    {
+        finishScreen = 4;   // COVER studio
+        PlaySound(fxCoin);
+        return;
+    }
+#endif
+
     if (Clicked(volDownBtn) || IsKeyPressed(KEY_LEFT))
     {
         if (volumeLevel > VOLUME_MIN)
@@ -428,6 +437,10 @@ void DrawTitleScreen(void)
         DrawText(line1, tx, ty, fontSize, yellow);
         DrawText(line2, tx, ty + lineH, fontSize, yellow);
     }
+
+#if defined(_DEBUG)
+    DrawText("Y = cover studio", 12, GetScreenHeight() - 28, 18, (Color){ 120, 130, 150, 200 });
+#endif
 }
 
 void UnloadTitleScreen(void)
