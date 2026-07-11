@@ -2,9 +2,36 @@
 *
 *   Beehold - Level definitions + load/unload
 *
+*   Level summary (1-based):
+*     1  — radius 1, teaches one seed — center seed, no wasps
+*     2  — radius 3, teaches seeds must merge — opposite seeds, no wasps (checkpoint)
+*     3  — radius 2, teaches red wasp — two seeds, two reds
+*     4  — radius 2, teaches purple chaser — three seeds, two purple
+*     5  — radius 2, teaches green wasp — three seeds, three green
+*     6  — radius 3, combines red/purple/green — six seeds (checkpoint)
+*     7  — radius 3, outer black patrols + interior red/purple
+*     8  — radius 2, tight squeeze: black / purple / green
+*     9  — radius 2, twin seeds intro, no wasps (checkpoint)
+*    10  — radius 3, two twin pairs + black / chaser / random
+*    11  — radius 3, full swarm: one of each wasp color, 4 seeds
+*    12  — radius 3, black ring intro: one black per ring R=1,2,3, 2 seeds (checkpoint)
+*    13  — radius 3, chaser + random + black on each ring, twin pair + 3 seeds
+*    14  — radius 2, seedAll paint-the-board intro, one red wasp
+*    15  — radius 1, star seed tutorial, three reds (checkpoint)
+*    16  — radius 3, two stars + seeds + mixed wasps
+*    17  — radius 3, three stars + normal seeds + 5 wasps
+*    18  — radius 4, twelve seeds + twin pair + two stars
+*    19  — radius 1, fire + water tutorial (checkpoint)
+*    20  — radius 2, twin pair + seed + fire/water, black + chaser
+*    21  — radius 3, fire without water + 4 seeds + star
+*    22  — radius 3, seedAll paint-the-board, mixed swarm
+*    23  — radius 3, seedAll + stars + fire/water, 6 enemies
+*    24  — radius 3, six seeds + two fire — 2 red / 1 purple / 2 green + black on R=3 and R=1
+*
 **********************************************************************************************/
 
 #include "hex_level.h"
+#include "hex_enemy.h"
 #include "screens.h"
 
 #include <string.h>
@@ -13,7 +40,7 @@
 // Authored levels (1-based in UI; 0-based here)
 //----------------------------------------------------------------------------------
 static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
-    // 1: radius 1, center seed, no wasps
+    // 1: teaches one seed — center seed, no wasps
     {
         .radius = 1,
         .beeStart = { -1, 0 },
@@ -23,11 +50,10 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemies = { { 0 } },
         .enemyCount = 0,
         .hint = "The plants are suffering and need bee pollen to sprout. Encircle the seed to help!",
-        .checkpoint = true,
     },
-    // 2: radius 2, opposite seeds, no wasps
+    // 2: teaches seeds must merge — opposite seeds, no wasps
     {
-        .radius = 2,
+        .radius = 3,
         .beeStart = { -2, 0 },
         .seeds = { { { -2, 1 }, -1 }, { { 2, -1 }, -1 } },
         .seedCount = 2,
@@ -35,8 +61,9 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemies = { { 0 } },
         .enemyCount = 0,
         .hint = "Every seed must sprout, and their living hexes must connect into one shape.",
+        .checkpoint = true,
     },
-    // 3: radius 2, two seeds, introduce one wasp
+    // 3: teaches red wasp — two seeds, two reds
     {
         .radius = 2,
         .beeStart = { -2, 0 },
@@ -45,26 +72,65 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .starCount = 0,
         .enemies = {
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_BOTTOMMOST },
         },
-        .enemyCount = 1,
-        .hint = "Watch out! Wasps hunt along the edges. Don't let them touch you.",
+        .enemyCount = 2,
+        .hint = "Watch out! Red wasps walk randomly, but fast!.",
     },
-    // 4: radius 3, three seeds, three wasps
+    // 4: teaches purple chaser — three seeds, two purple
     {
-        .radius = 3,
+        .radius = 2,
         .beeStart = { -3, 0 },
         .seeds = { { { 2, -1 }, -1 }, { { -1, 2 }, -1 }, { { 0, -2 }, -1 } },
         .seedCount = 3,
         .starCount = 0,
         .enemies = {
-            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
             { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_BOTTOMMOST },
+        },
+        .enemyCount = 2,
+        .hint = "Purple wasps chase you down!",
+    },
+    // 5: teaches green wasp — three seeds, three green
+    {
+        .radius = 2,
+        .beeStart = { -3, 0 },
+        .seeds = { { { 2, -1 }, -1 }, { { -1, 2 }, -1 }, { { 0, -2 }, -1 } },
+        .seedCount = 3,
+        .starCount = 0,
+        .enemies = {
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_TOPMOST },
             { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
         },
         .enemyCount = 3,
-        .hint = NULL,
+        .hint = "Green ones sometimes chase, some times wander",
     },
-    // 5: radius 3, black rim patrols + interior red/purple
+    // 6: combines red/purple/green — six seeds
+    {
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seeds = {
+            { { 2, -1 }, -1 },
+            { { -1, 2 }, -1 },
+            { { 0, -2 }, -1 },
+            { { 1, 1 }, -1 },
+            { { -2, 1 }, -1 },
+            { { 0, 2 }, -1 },
+        },
+        .seedCount = 6,
+        .starCount = 0,
+        .enemies = {
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_LEFTMOST },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
+        },
+        .enemyCount = 4,
+        .hint = NULL,
+        .checkpoint = true,
+    },
+    // 7: black ring patrols (R=3 = outer) + interior red/purple
     {
         .radius = 3,
         .beeStart = { -3, 0 },
@@ -72,15 +138,15 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .seedCount = 3,
         .starCount = 0,
         .enemies = {
-            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
-            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST, 3 },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST, 3 },
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
             { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
         },
         .enemyCount = 4,
         .hint = NULL,
     },
-    // 6: Tight squeeze
+    // 8: tight squeeze — black / purple / green
     {
         .radius = 2,
         .beeStart = { -2, 0 },
@@ -95,7 +161,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 3,
         .hint = NULL,
     },
-    // 7: Twin seeds intro — no wasps
+    // 9: twin seeds intro — no wasps
     {
         .radius = 2,
         .beeStart = { -2, 0 },
@@ -107,7 +173,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .hint = "Twin seeds share a bond! Encircle both together, painting only one fails.",
         .checkpoint = true,
     },
-    // 8: two twin pairs + black / chaser / random
+    // 10: two twin pairs + black / chaser / random
     {
         .radius = 3,
         .beeStart = { -3, 0 },
@@ -125,7 +191,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 3,
         .hint = NULL,
     },
-    // 9: Full swarm (was old 9)
+    // 11: full swarm — one of each wasp color, 4 seeds
     {
         .radius = 3,
         .beeStart = { -3, 0 },
@@ -141,7 +207,56 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 4,
         .hint = NULL,
     },
-    // 10: Star seed tutorial — radius 1, one seed, two stars, three wanderers
+    // 12: black ring intro — one black per ring (R=1,2,3), two seeds
+    {
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seeds = { { { -2, 1 }, -1 }, { { 2, -1 }, -1 } },
+        .seedCount = 2,
+        .starCount = 0,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_INNER, 1 },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_RIGHTMOST, 2 },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST, 3 },
+        },
+        .enemyCount = 3,
+        .hint = "Black wasps each patrol their own ring — inner, middle, and outer!",
+        .checkpoint = true,
+    },
+    // 13: mixed rings — chaser + random + one black per ring, twin pair + 3 seeds
+    {
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seeds = {
+            { { 0, -2 }, -1 }, { { 2, -1 }, -1 }, { { -2, 1 }, -1 },
+            { { 1, 1 }, 0 }, { { -1, -1 }, 0 },
+        },
+        .seedCount = 5,
+        .starCount = 0,
+        .enemies = {
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_LEFTMOST, 1 },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST, 2 },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST, 3 },
+        },
+        .enemyCount = 5,
+        .hint = NULL,
+    },
+    // 14: seedAll intro — paint every hex
+    {
+        .radius = 2,
+        .beeStart = { -2, 0 },
+        .seedCount = 0,
+        .starCount = 0,
+        .enemies = {
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
+        },
+        .enemyCount = 1,
+        .hint = "Every hex has a seed! Paint the entire board to finish.",
+        .seedAll = true,
+    },
+    // 15: star seed tutorial — radius 1, one seed, two stars, five wanderers
     {
         .radius = 1,
         .beeStart = { -1, 0 },
@@ -158,13 +273,14 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .hint = "Grab a star seed! For a few seconds you can eat wasps — they flee to the grey prison hex.",
         .checkpoint = true,
     },
-    // 11: (was 10) one star + seeds + mixed wasps
+    // 16: one star + seeds + mixed wasps
     {
         .radius = 3,
         .beeStart = { -3, 0 },
         .seeds = { { { 2, -1 }, -1 }, { { -1, 2 }, -1 }, { { 0, -2 }, -1 } },
         .seedCount = 3,
-        .stars = { { 1, -2 } },
+        .stars = { { 1, -2 }, { -2, 1 } }, 
+ 
         .starCount = 1,
         .enemies = {
             { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
@@ -174,14 +290,14 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 3,
         .hint = NULL,
     },
-    // 12: (was 11) two stars + normal seeds + 5 wasps
+    // 17: three stars + normal seeds + 5 wasps
     {
         .radius = 3,
         .beeStart = { -3, 0 },
         .seeds = { { { 2, -1 }, -1 }, { { -2, 1 }, -1 }, { { 0, 2 }, -1 }, { { 0, -2 }, -1 } },
         .seedCount = 4,
-        .stars = { { 2, 0 }, { -2, 0 } },
-        .starCount = 2,
+        .stars = { { 2, 0 }, { -2, 0 }, { 0, 2 } },
+        .starCount = 3,
         .enemies = {
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
             { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
@@ -191,28 +307,9 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         },
         .enemyCount = 5,
         .hint = NULL,
+ 
     },
-    // 13: (was 12) radius 4
-    {
-        .radius = 4,
-        .beeStart = { -4, 0 },
-        .seeds = {
-            { { -3, 2 }, -1 }, { { 3, -2 }, -1 }, { { 0, -3 }, -1 },
-            { { 2, 1 }, -1 }, { { -2, -1 }, -1 },
-        },
-        .seedCount = 5,
-        .starCount = 0,
-        .enemies = {
-            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
-            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST },
-            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
-            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
-            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_INNER },
-        },
-        .enemyCount = 5,
-        .hint = NULL,
-    },
-    // 14: (was 13) radius 4, twelve seeds + twin pair + two stars
+    // 18: radius 4 — twelve seeds + twin pair + two stars
     {
         .radius = 4,
         .beeStart = { -4, 0 },
@@ -235,7 +332,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 5,
         .hint = NULL,
     },
-    // 15: (was 14) Fire + water tutorial — radius 1
+    // 19: fire + water tutorial — radius 1
     {
         .radius = 1,
         .beeStart = { -1, 0 },
@@ -252,7 +349,7 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .hint = "Red fire hexes kill if painted alone! Encircle fire with a blue water hex to put it out.",
         .checkpoint = true,
     },
-    // 16: (was 15) twin pair + one seed + fire and water — radius 2
+    // 20: twin pair + one seed + fire and water — black edge + chaser
     {
         .radius = 2,
         .beeStart = { -2, 0 },
@@ -264,11 +361,14 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { { -1, 0 }, HEX_FACE_WATER },
         },
         .specialCount = 2,
-        .enemies = { { 0 } },
-        .enemyCount = 0,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
+        },
+        .enemyCount = 2,
         .hint = NULL,
     },
-    // 17: (was 16) fire without water + 4 seeds + star — radius 3
+    // 21: fire without water + 4 seeds + star — radius 3
     {
         .radius = 3,
         .beeStart = { -3, 0 },
@@ -289,15 +389,28 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
         .enemyCount = 2,
         .hint = NULL,
     },
-    // 18: (was 17) radius 4 — 2 stars, twin pair, 2 fire, 1 water, 6 enemies (no chaser)
+    // 22: seedAll — paint every hex under a mixed swarm
     {
-        .radius = 4,
-        .beeStart = { -4, 0 },
-        .seeds = {
-            { { -3, 2 }, -1 }, { { 3, -2 }, -1 }, { { 0, -3 }, -1 },
-            { { 2, 1 }, -1 }, { { -2, -1 }, 0 }, { { 0, 3 }, 0 },
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seedCount = 0,
+        .starCount = 0,
+        .enemies = {
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST, 3 },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_BOTTOMMOST, 2 },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_LEFTMOST },
         },
-        .seedCount = 6,
+        .enemyCount = 5,
+        .hint = NULL,
+        .seedAll = true,
+    },
+    // 23: seedAll — paint every hex; 2 stars, 2 fire, 1 water, 6 enemies (no chaser)
+    {
+        .radius = 3,
+        .beeStart = { -4, 0 },
+        .seedCount = 0,
         .stars = { { 2, -2 }, { -2, 2 } },
         .starCount = 2,
         .specials = {
@@ -315,6 +428,34 @@ static const HexLevelDef LEVELS[HEX_LEVEL_IMPLEMENTED] = {
             { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_LEFTMOST },
         },
         .enemyCount = 6,
+        .hint = NULL,
+        .seedAll = true,
+    },
+    // 24: six seeds + two fire — 2 red / 1 purple / 2 green + black on R=3 and R=1
+    {
+        .radius = 3,
+        .beeStart = { -3, 0 },
+        .seeds = {
+            { { 2, -1 }, -1 }, { { -1, 2 }, -1 }, { { 0, -2 }, -1 },
+            { { 1, 1 }, -1 }, { { -2, 1 }, -1 }, { { 0, 2 }, -1 },
+        },
+        .seedCount = 6,
+        .starCount = 0,
+        .specials = {
+            { { 2, 0 }, HEX_FACE_FIRE },
+            { { -2, 0 }, HEX_FACE_FIRE },
+        },
+        .specialCount = 2,
+        .enemies = {
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_RED_RANDOM, HEX_SPAWN_INNER },
+            { HEX_ENEMY_PURPLE_CHASER, HEX_SPAWN_TOPMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_RIGHTMOST },
+            { HEX_ENEMY_GREEN_MIXED, HEX_SPAWN_BOTTOMMOST },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_TOPMOST, 3 },
+            { HEX_ENEMY_BLACK_EDGE, HEX_SPAWN_INNER, 1 },
+        },
+        .enemyCount = 7,
         .hint = NULL,
     },
 };
@@ -370,16 +511,40 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
     HexBeeInit(&level->bee, &level->grid, startVertex, beeSpeed);
     HexTrailInit(&level->trail, startVertex);
 
-    int seedFaces[HEX_LEVEL_MAX_SEEDS] = { 0 };
-    int twinPairs[HEX_LEVEL_MAX_SEEDS] = { 0 };
-    int seedCount = 0;
-    for (int i = 0; i < level->def->seedCount; i++)
+    // Specials first so seedAll can skip fire/water faces
+    for (int i = 0; i < level->def->specialCount; i++)
     {
-        int face = HexFindFace(&level->grid, level->def->seeds[i].coord.q, level->def->seeds[i].coord.r);
+        int face = HexFindFace(&level->grid, level->def->specials[i].coord.q, level->def->specials[i].coord.r);
         if (face < 0) continue;
-        seedFaces[seedCount] = face;
-        twinPairs[seedCount] = level->def->seeds[i].twinPair;
-        seedCount++;
+        level->grid.faces[face].kind = level->def->specials[i].kind;
+        level->grid.faces[face].fireAnimFrame = GetRandomValue(0, 3);
+    }
+
+    int seedFaces[HEX_MAX_FACES] = { 0 };
+    int twinPairs[HEX_MAX_FACES] = { 0 };
+    int seedCount = 0;
+    if (level->def->seedAll)
+    {
+        for (int i = 0; i < level->grid.faceCount; i++)
+        {
+            if (level->grid.faces[i].kind != HEX_FACE_NORMAL) continue;
+            if (seedCount >= HEX_FLOWER_MAX) break;
+            seedFaces[seedCount] = i;
+            twinPairs[seedCount] = -1;
+            seedCount++;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < level->def->seedCount; i++)
+        {
+            int face = HexFindFace(&level->grid, level->def->seeds[i].coord.q, level->def->seeds[i].coord.r);
+            if (face < 0) continue;
+            if (seedCount >= HEX_FLOWER_MAX) break;
+            seedFaces[seedCount] = face;
+            twinPairs[seedCount] = level->def->seeds[i].twinPair;
+            seedCount++;
+        }
     }
     HexFlowerFieldInit(&level->flowers, flowerTexture, bubbleTexture, seedFaces, twinPairs, seedCount);
 
@@ -399,14 +564,6 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
         if (level->jailFace >= 0) level->grid.faces[level->jailFace].starJail = true;
     }
 
-    for (int i = 0; i < level->def->specialCount; i++)
-    {
-        int face = HexFindFace(&level->grid, level->def->specials[i].coord.q, level->def->specials[i].coord.r);
-        if (face < 0) continue;
-        level->grid.faces[face].kind = level->def->specials[i].kind;
-        level->grid.faces[face].fireAnimFrame = GetRandomValue(0, 3);
-    }
-
     level->enemyCount = level->def->enemyCount;
     if (level->enemyCount > HEX_LEVEL_MAX_ENEMIES) level->enemyCount = HEX_LEVEL_MAX_ENEMIES;
 
@@ -416,9 +573,11 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
 
     for (int i = 0; i < level->enemyCount; i++)
     {
-        int v = HexEnemySpawnVertexAvoid(&level->grid, level->def->enemies[i].spawn, avoid, avoidCount);
+        const HexLevelEnemyDef *ed = &level->def->enemies[i];
+        int ring = (ed->type == HEX_ENEMY_BLACK_EDGE)? ed->ring : 0;
+        int v = HexEnemySpawnVertexAvoid(&level->grid, ed->spawn, avoid, avoidCount, ring);
         avoid[avoidCount++] = v;
-        HexEnemyInit(&level->enemies[i], level->def->enemies[i].type, &level->grid, v, beeSpeed);
+        HexEnemyInit(&level->enemies[i], ed->type, &level->grid, v, beeSpeed, ring);
     }
 }
 

@@ -26,7 +26,7 @@ typedef enum HexEnemyType
     HEX_ENEMY_RED_RANDOM = 0,   // full speed, picks a random fork at every junction
     HEX_ENEMY_PURPLE_CHASER,    // half speed, always takes the fork nearest the bee
     HEX_ENEMY_GREEN_MIXED,      // half speed, coin flip per junction: chase or wander
-    HEX_ENEMY_BLACK_EDGE,       // 1.5x bee speed, only walks rim edges (faceCount == 1)
+    HEX_ENEMY_BLACK_EDGE,       // 1.5x bee speed, patrols a concentric ring (see HexEnemy.ring)
     HEX_ENEMY_TYPE_COUNT
 } HexEnemyType;
 
@@ -42,6 +42,7 @@ typedef enum HexEnemySpawn
 typedef struct HexEnemy
 {
     HexEnemyType type;
+    int ring;           // black: 1..grid.radius ring to patrol (0 = treat as outer)
     int edge;
     int fromVertex;     // travel from this endpoint toward the other
     float t;            // 0..1 along current edge
@@ -54,8 +55,10 @@ typedef struct HexEnemy
 
 Color HexEnemyTint(HexEnemyType type);
 
-// baseSpeed is the bee's speed; chaser and mixed run at half of it
-void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int startVertex, float baseSpeed);
+// baseSpeed is the bee's speed; chaser and mixed run at half of it.
+// ring is only used by HEX_ENEMY_BLACK_EDGE (0 = outer rim of the board).
+void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int startVertex,
+                  float baseSpeed, int ring);
 
 // starPower: flee + slow + blue tint path. jailFace: center hex for jailed movement (-1 = none).
 // Returns true if the wasp started at least one new edge this frame (for zoom SFX).
@@ -74,6 +77,8 @@ bool HexEnemyIsJailed(const HexEnemy *enemy);
 int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn);
 
 // Like HexEnemySpawnVertex, but skips any vertex in avoid[] (e.g. bee start / other wasps).
-int HexEnemySpawnVertexAvoid(const HexGrid *grid, HexEnemySpawn spawn, const int *avoid, int avoidCount);
+// ring > 0: prefer a vertex that lies on that concentric ring (for black wasps).
+int HexEnemySpawnVertexAvoid(const HexGrid *grid, HexEnemySpawn spawn, const int *avoid, int avoidCount,
+                             int ring);
 
 #endif // HEX_ENEMY_H

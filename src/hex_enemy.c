@@ -41,9 +41,54 @@ static float Dist2(Vector2 a, Vector2 b)
     return dx*dx + dy*dy;
 }
 
-static bool IsRimEdge(const HexGrid *grid, int edge)
+static int FaceAxialDist(HexCoord c)
 {
-    return (edge >= 0) && (edge < grid->edgeCount) && (grid->edges[edge].faceCount == 1);
+    int s = -c.q - c.r;
+    int aq = (c.q < 0)? -c.q : c.q;
+    int ar = (c.r < 0)? -c.r : c.r;
+    int as_ = (s < 0)? -s : s;
+    int m = (aq > ar)? aq : ar;
+    return (m > as_)? m : as_;
+}
+
+// Resolve authored ring: 0 (or out of range) means the board's outer rim.
+static int EffectiveRing(const HexGrid *grid, int ring)
+{
+    if ((ring <= 0) || (ring > grid->radius)) return grid->radius;
+    return ring;
+}
+
+// Edge on the outer perimeter of the disk of faces with axial distance <= ring.
+static bool IsRingEdge(const HexGrid *grid, int edge, int ring)
+{
+    if ((edge < 0) || (edge >= grid->edgeCount)) return false;
+
+    int R = EffectiveRing(grid, ring);
+    const HexEdge *e = &grid->edges[edge];
+
+    if (R >= grid->radius)
+    {
+        return e->faceCount == 1;
+    }
+
+    if (e->faceCount != 2) return false;
+
+    int d0 = FaceAxialDist(grid->faces[e->faces[0]].coord);
+    int d1 = FaceAxialDist(grid->faces[e->faces[1]].coord);
+    int lo = (d0 < d1)? d0 : d1;
+    int hi = (d0 > d1)? d0 : d1;
+    return (lo == R) && (hi == R + 1);
+}
+
+static bool VertexOnRing(const HexGrid *grid, int vertex, int ring)
+{
+    if ((vertex < 0) || (vertex >= grid->vertexCount)) return false;
+    const HexVertex *v = &grid->vertices[vertex];
+    for (int i = 0; i < v->edgeCount; i++)
+    {
+        if (IsRingEdge(grid, v->edges[i], ring)) return true;
+    }
+    return false;
 }
 
 static bool IsJailEdge(const HexGrid *grid, int edge, int jailFace)
@@ -99,9 +144,9 @@ static int PickExit(const HexEnemy *enemy, const HexGrid *grid, int vertex, int 
 {
     const HexVertex *v = &grid->vertices[vertex];
     int exits[3] = { 0 };
-    int rimExits[3] = { 0 };
+    int ringExits[3] = { 0 };
     int n = 0;
-    int rimN = 0;
+    int ringN = 0;
     bool jailed = enemy->jailTimer > 0.0f;
 
     for (int i = 0; i < v->edgeCount; i++)
@@ -113,14 +158,14 @@ static int PickExit(const HexEnemy *enemy, const HexGrid *grid, int vertex, int 
             if (!IsJailEdge(grid, e, jailFace)) continue;
         }
         exits[n++] = e;
-        if (IsRimEdge(grid, e)) rimExits[rimN++] = e;
+        if (IsRingEdge(grid, e, enemy->ring)) ringExits[ringN++] = e;
     }
 
-    // Black rim patrol: prefer rim; if none (e.g. leaving jail), take any exit
-    if (!jailed && !flee && (enemy->type == HEX_ENEMY_BLACK_EDGE) && (rimN > 0))
+    // Black ring patrol: prefer ring edges; if none (e.g. leaving jail), take any exit
+    if (!jailed && !flee && (enemy->type == HEX_ENEMY_BLACK_EDGE) && (ringN > 0))
     {
-        n = rimN;
-        for (int i = 0; i < rimN; i++) exits[i] = rimExits[i];
+        n = ringN;
+        for (int i = 0; i < ringN; i++) exits[i] = ringExits[i];
     }
 
     if (n == 0) return fromEdge;    // dead end / no legal exit: U-turn
@@ -135,7 +180,7 @@ static int PickExit(const HexEnemy *enemy, const HexGrid *grid, int vertex, int 
         case HEX_ENEMY_RED_RANDOM: chase = false; break;
         case HEX_ENEMY_PURPLE_CHASER: chase = true; break;
         case HEX_ENEMY_GREEN_MIXED: chase = (GetRandomValue(0, 1) == 0); break;
-        case HEX_ENEMY_BLACK_EDGE: chase = false; break;   // patrol the rim randomly
+        case HEX_ENEMY_BLACK_EDGE: chase = false; break;   // patrol the ring randomly
         default: break;
     }
 
@@ -146,10 +191,12 @@ static int PickExit(const HexEnemy *enemy, const HexGrid *grid, int vertex, int 
 //----------------------------------------------------------------------------------
 // Lifecycle
 //----------------------------------------------------------------------------------
-void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int startVertex, float baseSpeed)
+void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int startVertex,
+                  float baseSpeed, int ring)
 {
     memset(enemy, 0, sizeof(*enemy));
     enemy->type = type;
+    enemy->ring = (type == HEX_ENEMY_BLACK_EDGE)? EffectiveRing(grid, ring) : 0;
 
     if (type == HEX_ENEMY_BLACK_EDGE) enemy->baseSpeed = baseSpeed*1.5f;
     else if (type == HEX_ENEMY_RED_RANDOM) enemy->baseSpeed = baseSpeed;
@@ -160,16 +207,16 @@ void HexEnemyInit(HexEnemy *enemy, HexEnemyType type, const HexGrid *grid, int s
     enemy->jailTimer = 0.0f;
 
     const HexVertex *v = &grid->vertices[startVertex];
-    int rimChoices[3] = { 0 };
-    int rimN = 0;
+    int ringChoices[3] = { 0 };
+    int ringN = 0;
     for (int i = 0; i < v->edgeCount; i++)
     {
-        if (IsRimEdge(grid, v->edges[i])) rimChoices[rimN++] = v->edges[i];
+        if (IsRingEdge(grid, v->edges[i], enemy->ring)) ringChoices[ringN++] = v->edges[i];
     }
 
-    if ((type == HEX_ENEMY_BLACK_EDGE) && (rimN > 0))
+    if ((type == HEX_ENEMY_BLACK_EDGE) && (ringN > 0))
     {
-        enemy->edge = rimChoices[GetRandomValue(0, rimN - 1)];
+        enemy->edge = ringChoices[GetRandomValue(0, ringN - 1)];
     }
     else
     {
@@ -314,11 +361,14 @@ static bool VertexAvoided(int v, const int *avoid, int avoidCount)
 
 int HexEnemySpawnVertex(const HexGrid *grid, HexEnemySpawn spawn)
 {
-    return HexEnemySpawnVertexAvoid(grid, spawn, NULL, 0);
+    return HexEnemySpawnVertexAvoid(grid, spawn, NULL, 0, 0);
 }
 
-int HexEnemySpawnVertexAvoid(const HexGrid *grid, HexEnemySpawn spawn, const int *avoid, int avoidCount)
+int HexEnemySpawnVertexAvoid(const HexGrid *grid, HexEnemySpawn spawn, const int *avoid, int avoidCount,
+                             int ring)
 {
+    int preferRing = (ring > 0)? EffectiveRing(grid, ring) : 0;
+
     int preferred = -1;
     switch (spawn)
     {
@@ -330,9 +380,47 @@ int HexEnemySpawnVertexAvoid(const HexGrid *grid, HexEnemySpawn spawn, const int
         default: preferred = HexFindRightmostVertex(grid); break;
     }
 
-    if ((preferred >= 0) && !VertexAvoided(preferred, avoid, avoidCount)) return preferred;
+    // If a ring is requested, directional extremes may not lie on it — pick among ring verts.
+    if (preferRing > 0)
+    {
+        if ((preferred < 0) || VertexAvoided(preferred, avoid, avoidCount) ||
+            !VertexOnRing(grid, preferred, preferRing))
+        {
+            preferred = -1;
+            float bestScore = -1.0e30f;
+            Vector2 origin = grid->origin;
+            for (int i = 0; i < grid->vertexCount; i++)
+            {
+                if (VertexAvoided(i, avoid, avoidCount)) continue;
+                if (!VertexOnRing(grid, i, preferRing)) continue;
 
-    // Fallback: farthest vertex from origin that isn't avoided (rim for black, any for others)
+                float dx = grid->vertices[i].pos.x - origin.x;
+                float dy = grid->vertices[i].pos.y - origin.y;
+                float score = 0.0f;
+                switch (spawn)
+                {
+                    case HEX_SPAWN_LEFTMOST: score = -grid->vertices[i].pos.x; break;
+                    case HEX_SPAWN_RIGHTMOST: score = grid->vertices[i].pos.x; break;
+                    case HEX_SPAWN_TOPMOST: score = -grid->vertices[i].pos.y; break;
+                    case HEX_SPAWN_BOTTOMMOST: score = grid->vertices[i].pos.y; break;
+                    case HEX_SPAWN_INNER: score = -(dx*dx + dy*dy); break;
+                    default: score = dx*dx + dy*dy; break;
+                }
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    preferred = i;
+                }
+            }
+        }
+        if (preferred >= 0) return preferred;
+    }
+    else if ((preferred >= 0) && !VertexAvoided(preferred, avoid, avoidCount))
+    {
+        return preferred;
+    }
+
+    // Fallback: farthest vertex from origin that isn't avoided
     int best = -1;
     float bestScore = -1.0f;
     Vector2 origin = grid->origin;
@@ -340,6 +428,7 @@ int HexEnemySpawnVertexAvoid(const HexGrid *grid, HexEnemySpawn spawn, const int
     {
         if (VertexAvoided(i, avoid, avoidCount)) continue;
         if ((spawn == HEX_SPAWN_INNER) && (grid->vertices[i].edgeCount < 3)) continue;
+        if ((preferRing > 0) && !VertexOnRing(grid, i, preferRing)) continue;
         float dx = grid->vertices[i].pos.x - origin.x;
         float dy = grid->vertices[i].pos.y - origin.y;
         float score = dx*dx + dy*dy;

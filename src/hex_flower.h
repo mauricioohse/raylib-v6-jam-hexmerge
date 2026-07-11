@@ -22,7 +22,7 @@
 #include "raylib.h"
 #include "hex_grid.h"
 
-#define HEX_FLOWER_MAX 16
+#define HEX_FLOWER_MAX HEX_MAX_FACES
 #define HEX_FLOWER_FRAME_COUNT 6
 #define HEX_FLOWER_SCALE 2.0f
 #define HEX_BUBBLE_FRAME_COUNT 4

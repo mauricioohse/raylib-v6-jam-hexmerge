@@ -17,17 +17,18 @@
 #include "hex_star.h"
 #include "hex_trail.h"
 
-#define HEX_LEVEL_SLOT_COUNT 18
-#define HEX_LEVEL_IMPLEMENTED 18
+#define HEX_LEVEL_SLOT_COUNT 24
+#define HEX_LEVEL_IMPLEMENTED 24
 #define HEX_LEVEL_MAX_SEEDS 16
 #define HEX_LEVEL_MAX_STARS 4
 #define HEX_LEVEL_MAX_SPECIAL 8
-#define HEX_LEVEL_MAX_ENEMIES 8
+#define HEX_LEVEL_MAX_ENEMIES 12
 
 typedef struct HexLevelEnemyDef
 {
     HexEnemyType type;
     HexEnemySpawn spawn;
+    int ring;           // black wasps only: 0 = outer rim; 1..radius = patrol that ring
 } HexLevelEnemyDef;
 
 typedef struct HexLevelSeedDef
@@ -56,6 +57,7 @@ typedef struct HexLevelDef
     int enemyCount;
     const char *hint;                       // sidebar help text (may be NULL)
     bool checkpoint;                        // teaching level: save progress here on entry
+    bool seedAll;                           // seed every non-special face (paint the whole board)
 } HexLevelDef;
 
 typedef struct HexLevel
