@@ -25,6 +25,9 @@ static float bestTimes[HEX_SCORES_MAX] = { 0 };
 static int bestCount = 0;
 static Texture2D ratingStarTex = { 0 };
 static Texture2D ratingStarEmptyTex = { 0 };
+static HexRunResult viewRun = { 0 };
+static bool viewingBestFromMenu = false;
+static bool hasViewRun = false;
 
 #define RATING_STAR_SCALE 1.25f
 
@@ -36,6 +39,19 @@ void InitEndingScreen(void)
     framesCounter = 0;
     finishScreen = 0;
     bestCount = HexScoresLoad(bestTimes, HEX_SCORES_MAX);
+
+    viewingBestFromMenu = endingFromMenu;
+    endingFromMenu = false;
+    memset(&viewRun, 0, sizeof(viewRun));
+    hasViewRun = false;
+
+    if (viewingBestFromMenu)
+        hasViewRun = HexScoresLoadBestRun(&viewRun);
+    else
+    {
+        viewRun = lastRun;
+        hasViewRun = (viewRun.levelsRecorded > 0) || viewRun.won;
+    }
 
     ratingStarTex = LoadTexture("resources/rating_star.png");
     ratingStarEmptyTex = LoadTexture("resources/rating_star_empty.png");
@@ -71,59 +87,81 @@ void DrawEndingScreen(void)
 
     DrawRectangle(0, 0, sw, sh, (Color){ 24, 28, 36, 255 });
 
-    const char *title = lastRun.won? "MEADOW COMPLETE" : "YOU LOSE! TRY AGAIN?";
-    Color titleCol = lastRun.won? (Color){ 255, 179, 71, 255 } : (Color){ 255, 110, 100, 255 };
+    const char *title = "BEST RUN";
+    Color titleCol = (Color){ 255, 179, 71, 255 };
+    if (!viewingBestFromMenu)
+    {
+        title = viewRun.won? "MEADOW COMPLETE" : "YOU LOSE! TRY AGAIN?";
+        titleCol = viewRun.won? (Color){ 255, 179, 71, 255 } : (Color){ 255, 110, 100, 255 };
+    }
+    else if (!hasViewRun)
+    {
+        title = "SCORES";
+    }
+
     int titleSize = 40;
     DrawText(title, (sw - MeasureText(title, titleSize))/2, 20, titleSize, titleCol);
 
-    char timeBuf[16];
-    HexScoresFormat(lastRun.totalTime, timeBuf, (int)sizeof(timeBuf));
-
-    char totalLine[64];
-    snprintf(totalLine, sizeof(totalLine), "Time  %s", timeBuf);
-    DrawText(totalLine, (sw - MeasureText(totalLine, 20))/2, 70, 20, RAYWHITE);
-
-    char starsLine[64];
-    snprintf(starsLine, sizeof(starsLine), "Stars  %d", lastRun.totalStars);
-    DrawText(starsLine, (sw - MeasureText(starsLine, 20))/2, 96, 20, (Color){ 255, 220, 70, 255 });
-
-    const char *header = "LEVEL";
-    int headerY = 130;
-    int listX = 48;
-    DrawText(header, listX, headerY, 20, (Color){ 160, 170, 180, 255 });
-
-    int n = lastRun.levelsRecorded;
-    int listTop = headerY + 26;
-    if (n <= 0)
+    int listTop = 130;
+    if (hasViewRun)
     {
-        const char *empty = "No level data";
-        DrawText(empty, listX, sh/2, 20, LIGHTGRAY);
+        char timeBuf[16];
+        HexScoresFormat(viewRun.totalTime, timeBuf, (int)sizeof(timeBuf));
+
+        char totalLine[64];
+        snprintf(totalLine, sizeof(totalLine), "Time  %s", timeBuf);
+        DrawText(totalLine, (sw - MeasureText(totalLine, 20))/2, 70, 20, RAYWHITE);
+
+        char starsLine[64];
+        snprintf(starsLine, sizeof(starsLine), "Stars  %d", viewRun.totalStars);
+        DrawText(starsLine, (sw - MeasureText(starsLine, 20))/2, 96, 20, (Color){ 255, 220, 70, 255 });
+
+        const char *header = "LEVEL";
+        int headerY = 130;
+        int listX = 48;
+        DrawText(header, listX, headerY, 20, (Color){ 160, 170, 180, 255 });
+
+        int n = viewRun.levelsRecorded;
+        listTop = headerY + 26;
+        if (n <= 0)
+        {
+            const char *empty = "No level data";
+            DrawText(empty, listX, sh/2, 20, LIGHTGRAY);
+        }
+        else
+        {
+            int listBottom = sh - 150;
+            int lineH = 22;
+            int maxVisible = (listBottom - listTop)/lineH;
+            if (maxVisible < 1) maxVisible = 1;
+
+            int start = 0;
+            if (n > maxVisible) start = n - maxVisible;
+
+            float starSize = (float)((ratingStarTex.id != 0)? ratingStarTex.width : 16)*RATING_STAR_SCALE;
+            for (int i = start; i < n; i++)
+            {
+                int y = listTop + (i - start)*lineH;
+
+                char label[16];
+                snprintf(label, sizeof(label), "%2d", i + 1);
+                Color tint = RAYWHITE;
+                if (!viewRun.won && !viewingBestFromMenu && (i == n - 1))
+                    tint = (Color){ 255, 160, 140, 255 };
+                DrawText(label, listX, y, 20, tint);
+
+                float starY = (float)y + (20.0f - starSize)*0.5f;
+                HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, viewRun.levels[i].stars,
+                                        (float)(listX + 40), starY, RATING_STAR_SCALE);
+            }
+        }
     }
     else
     {
-        int listBottom = sh - 150;
-        int lineH = 22;
-        int maxVisible = (listBottom - listTop)/lineH;
-        if (maxVisible < 1) maxVisible = 1;
-
-        int start = 0;
-        if (n > maxVisible) start = n - maxVisible;
-
-        float starSize = (float)((ratingStarTex.id != 0)? ratingStarTex.width : 16)*RATING_STAR_SCALE;
-        for (int i = start; i < n; i++)
-        {
-            int y = listTop + (i - start)*lineH;
-
-            char label[16];
-            snprintf(label, sizeof(label), "%2d", i + 1);
-            Color tint = RAYWHITE;
-            if (!lastRun.won && (i == n - 1)) tint = (Color){ 255, 160, 140, 255 };
-            DrawText(label, listX, y, 20, tint);
-
-            float starY = (float)y + (20.0f - starSize)*0.5f;
-            HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, lastRun.levels[i].stars,
-                                    (float)(listX + 40), starY, RATING_STAR_SCALE);
-        }
+        const char *empty = viewingBestFromMenu? "No best run yet — finish the meadow!"
+                                               : "No level data";
+        DrawText(empty, (sw - MeasureText(empty, 20))/2, sh/2 - 40, 20, LIGHTGRAY);
+        listTop = sh/2;
     }
 
     {
@@ -172,10 +210,10 @@ void DrawEndingScreen(void)
         DrawText(row, (sw - MeasureText(row, 20))/2, boardY + 24, 20, (Color){ 255, 220, 70, 255 });
     }
 
-    const char *hint = lastRun.won? "ENTER / TAP  return to menu" : "ENTER / TAP  try again from menu";
+    const char *hint = "ENTER / TAP  return to menu";
     DrawText(hint, (sw - MeasureText(hint, 20))/2, sh - 40, 20, LIGHTGRAY);
 
-    if (lastRun.won)
+    if (!viewingBestFromMenu && viewRun.won)
     {
         const char *promo = "got a good score? post in the comments!";
         DrawText(promo, (sw - MeasureText(promo, 20))/2, sh - 68, 20, (Color){ 255, 220, 70, 255 });

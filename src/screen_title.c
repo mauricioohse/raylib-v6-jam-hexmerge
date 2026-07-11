@@ -55,6 +55,7 @@ static int finishScreen = 0;
 
 static Rectangle startBtn = { 0 };
 static Rectangle moveBtn = { 0 };
+static Rectangle scoresBtn = { 0 };
 static Rectangle volDownBtn = { 0 };
 static Rectangle volUpBtn = { 0 };
 static Texture2D speakerTexture = { 0 };
@@ -272,10 +273,11 @@ void InitTitleScreen(void)
     float sw = (float)GetScreenWidth();
     float sh = (float)GetScreenHeight();
 
-    startBtn = (Rectangle){ sw*0.5f - 140.0f, sh*0.5f - 56.0f, 280.0f, 52.0f };
+    startBtn = (Rectangle){ sw*0.5f - 140.0f, sh*0.5f - 70.0f, 280.0f, 52.0f };
     moveBtn = (Rectangle){ sw*0.5f - 140.0f, startBtn.y + startBtn.height + 14.0f, 280.0f, 44.0f };
+    scoresBtn = (Rectangle){ sw*0.5f - 140.0f, moveBtn.y + moveBtn.height + 14.0f, 280.0f, 44.0f };
 
-    float volY = moveBtn.y + moveBtn.height + 40.0f;
+    float volY = scoresBtn.y + scoresBtn.height + 40.0f;
     volDownBtn = (Rectangle){ sw*0.5f - 20.0f, volY, 36.0f, 36.0f };
     volUpBtn = (Rectangle){ sw*0.5f + 52.0f, volY, 36.0f, 36.0f };
 
@@ -305,7 +307,16 @@ void UpdateTitleScreen(void)
 
     if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
     {
+        endingFromMenu = false;
         finishScreen = 2;   // GAMEPLAY (uses controllerMode for controls)
+        PlaySound(fxCoin);
+        return;
+    }
+
+    if (Clicked(scoresBtn))
+    {
+        endingFromMenu = true;
+        finishScreen = 3;   // ENDING — best-run scores
         PlaySound(fxCoin);
         return;
     }
@@ -350,6 +361,7 @@ void DrawTitleScreen(void)
     DrawMenuButton(startBtn, "START GAME", CheckCollisionPointRec(mouse, startBtn));
     DrawMenuButton(moveBtn, controllerMode? "MOVE: A/D" : "MOVE: WASD",
                    CheckCollisionPointRec(mouse, moveBtn));
+    DrawMenuButton(scoresBtn, "SCORES", CheckCollisionPointRec(mouse, scoresBtn));
 
     // Volume row: speaker  <  N  >
     float volY = volDownBtn.y;

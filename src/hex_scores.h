@@ -13,6 +13,7 @@
 
 #define HEX_SCORES_MAX 10
 #define HEX_SCORES_FILE "beehold_scores.txt"
+#define HEX_BEST_RUN_FILE "beehold_best_run.txt"
 #define HEX_RUNS_CSV_FILE "beehold_runs.csv"
 #define HEX_RUN_MAX_LEVELS 32
 #define HEX_LEVEL_STARS_MAX 3
@@ -40,6 +41,12 @@ int HexScoresLoad(float *outTimes, int maxCount);
 
 // Insert a finished total run time. Returns rank 1..n, or 0 if not top.
 int HexScoresSubmit(float seconds);
+
+// Full best-run breakdown (for scores screen). Returns false if none saved.
+bool HexScoresLoadBestRun(HexRunResult *out);
+
+// Save run as the best if it wins and beats the stored best time (or none exists).
+void HexScoresSaveBestRunIfBetter(const HexRunResult *run);
 
 // Append this run's per-level rows to beehold_runs.csv (localStorage on web).
 void HexScoresAppendRunCsv(const HexRunResult *run);

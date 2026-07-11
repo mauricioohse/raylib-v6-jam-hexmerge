@@ -58,6 +58,7 @@ int volumeLevel = 5;
 float lastRunTime = 0.0f;
 HexRunResult lastRun = { 0 };
 bool controllerMode = true;
+bool endingFromMenu = false;
 
 //----------------------------------------------------------------------------------
 // Global Variables Definition (local to this module)
@@ -309,6 +310,7 @@ static void UpdateDrawFrame(void)
 
                 if (FinishTitleScreen() == 1) TransitionToScreen(OPTIONS);
                 else if (FinishTitleScreen() == 2) TransitionToScreen(GAMEPLAY);
+                else if (FinishTitleScreen() == 3) TransitionToScreen(ENDING);
 
             } break;
             case OPTIONS:

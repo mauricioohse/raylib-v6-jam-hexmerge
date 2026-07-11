@@ -201,6 +201,100 @@ int HexScoresSubmit(float seconds)
     return insertAt + 1;
 }
 
+static char *LoadBestRunText(void)
+{
+#if defined(PLATFORM_WEB)
+    return HexScoresJsLoadKey("beehold_best_run");
+#else
+    return LoadFileText(HEX_BEST_RUN_FILE);
+#endif
+}
+
+static void SaveBestRunText(const char *text)
+{
+#if defined(PLATFORM_WEB)
+    HexScoresJsSaveKey("beehold_best_run", text);
+#else
+    SaveFileText(HEX_BEST_RUN_FILE, (char *)text);
+#endif
+}
+
+bool HexScoresLoadBestRun(HexRunResult *out)
+{
+    if (out == NULL) return false;
+    memset(out, 0, sizeof(*out));
+
+    char *text = LoadBestRunText();
+    if (text == NULL) return false;
+
+    // Format:
+    // won totalTime totalStars levels
+    // time stars   (one line per level)
+    const char *p = text;
+    int won = 0;
+    int levels = 0;
+    if (sscanf(p, "%d %f %d %d", &won, &out->totalTime, &out->totalStars, &levels) < 4)
+    {
+        FreeScoresText(text);
+        return false;
+    }
+    out->won = (won != 0);
+    if (levels < 0) levels = 0;
+    if (levels > HEX_RUN_MAX_LEVELS) levels = HEX_RUN_MAX_LEVELS;
+    out->levelsRecorded = levels;
+
+    // advance to next line
+    while ((*p != '\0') && (*p != '\n')) p++;
+    if (*p == '\n') p++;
+
+    for (int i = 0; i < levels; i++)
+    {
+        float t = 0.0f;
+        int stars = 1;
+        if (sscanf(p, "%f %d", &t, &stars) < 2) break;
+        if (stars < 1) stars = 1;
+        if (stars > HEX_LEVEL_STARS_MAX) stars = HEX_LEVEL_STARS_MAX;
+        out->levels[i].timeSec = t;
+        out->levels[i].stars = stars;
+
+        while ((*p != '\0') && (*p != '\n')) p++;
+        if (*p == '\n') p++;
+    }
+
+    FreeScoresText(text);
+    return (out->levelsRecorded > 0);
+}
+
+void HexScoresSaveBestRunIfBetter(const HexRunResult *run)
+{
+    if ((run == NULL) || !run->won || (run->levelsRecorded <= 0) || (run->totalTime <= 0.0f))
+        return;
+
+    HexRunResult existing = { 0 };
+    bool hasBest = HexScoresLoadBestRun(&existing);
+    if (hasBest && (run->totalTime >= existing.totalTime))
+        return;
+
+    // Header + one line per level; keep buffer generous for 32 levels
+    char buf[2048];
+    int pos = 0;
+    int n = snprintf(buf, (int)sizeof(buf), "%d %.3f %d %d\n",
+                     1, run->totalTime, run->totalStars, run->levelsRecorded);
+    if (n <= 0) return;
+    pos = n;
+
+    for (int i = 0; i < run->levelsRecorded; i++)
+    {
+        n = snprintf(buf + pos, (int)sizeof(buf) - pos, "%.3f %d\n",
+                     run->levels[i].timeSec, run->levels[i].stars);
+        if (n <= 0) break;
+        pos += n;
+        if (pos >= (int)sizeof(buf) - 1) break;
+    }
+
+    SaveBestRunText(buf);
+}
+
 void HexScoresAppendRunCsv(const HexRunResult *run)
 {
     if ((run == NULL) || (run->levelsRecorded <= 0)) return;

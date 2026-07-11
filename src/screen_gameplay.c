@@ -340,8 +340,13 @@ static void FinishRun(bool won)
     lastRunTime = lastRun.totalTime;
 
     HexScoresAppendRunCsv(&lastRun);
-    if (won) HexScoresSubmit(lastRun.totalTime);
+    if (won) 
+    {
+        HexScoresSubmit(lastRun.totalTime);
+        HexScoresSaveBestRunIfBetter(&lastRun);
+    }
 
+    endingFromMenu = false;
     finishScreen = 1;
     PlaySound(won? fxWin : fxLife);
 }
