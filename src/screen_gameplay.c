@@ -30,6 +30,9 @@
 #define VOLUME_MAX 10
 #define SPEAKER_FRAME_COUNT 4
 #define SPEAKER_SCALE 2.0f
+#define LEVEL_CLEAR_DURATION 5.0f
+#define LEVEL_CLEAR_SKIP_AFTER 1.0f
+#define RATING_STAR_DRAW_SCALE 2.0f
 
 static int framesCounter = 0;
 static int finishScreen = 0;
@@ -45,6 +48,8 @@ static Texture2D bubbleTexture = { 0 };
 static Texture2D starTexture = { 0 };
 static Texture2D fireTexture = { 0 };
 static Texture2D speakerTexture = { 0 };
+static Texture2D ratingStarTex = { 0 };
+static Texture2D ratingStarEmptyTex = { 0 };
 static int lives = PLAYER_MAX_LIVES;
 static float levelTimer = 0.0f;     // resets each level
 static bool runActive = false;
@@ -54,8 +59,15 @@ static bool starMusicPlaying = false;
 static bool moveModeRelative = false;   // false = WASD absolute (default), true = A/D relative
 static int checkpointLevel = 0;
 static bool levelTookDamage = false;
+static int levelDeaths = 0;             // deaths this level attempt (for star rating)
 static float checkpointBannerTimer = 0.0f;
 static float fireFailDelay = 0.0f;   // show red shake before applying damage
+static bool levelClearActive = false;
+static float levelClearTimer = 0.0f;
+static int levelClearStars = 0;
+static int levelClearLevelNumber = 0;   // 1-based
+static float levelClearTimeSec = 0.0f;
+static bool levelClearIsFinal = false;
 static HexBackground fallBg = { 0 };
 static Rectangle pauseMainMenuBtn = { 0 };
 static Rectangle pauseVolDownBtn = { 0 };
@@ -268,10 +280,15 @@ static void TruncateRunStatsToCheckpoint(void)
         lastRun.levelsRecorded = checkpointLevel;
 
     lastRun.totalTime = 0.0f;
+    lastRun.totalStars = 0;
     for (int i = 0; i < lastRun.levelsRecorded; i++)
+    {
         lastRun.totalTime += lastRun.levels[i].timeSec;
+        lastRun.totalStars += lastRun.levels[i].stars;
+    }
     lastRunTime = lastRun.totalTime;
     levelTimer = 0.0f;
+    levelDeaths = 0;
 }
 
 static void RecordCurrentLevelStats(void)
@@ -280,7 +297,9 @@ static void RecordCurrentLevelStats(void)
 
     int i = lastRun.levelsRecorded++;
     lastRun.levels[i].timeSec = levelTimer;
+    lastRun.levels[i].stars = HexScoresStarsFromDeaths(levelDeaths);
     lastRun.totalTime += levelTimer;
+    lastRun.totalStars += lastRun.levels[i].stars;
 }
 
 static void TryActivateCheckpoint(void)
@@ -294,13 +313,14 @@ static void TryActivateCheckpoint(void)
     checkpointBannerTimer = 2.0f;
 }
 
-static void LoadCurrentLevel(void)
+static void LoadCurrentLevel(bool resetDeaths)
 {
     StopStarMusic();
     HexLevelLoad(&level, currentLevelIndex, hexTexture, pondTexture, flowerTexture, bubbleTexture, starTexture, BEE_SPEED);
     levelPaused = true;
     levelTimer = 0.0f;
-    levelTookDamage = false;
+    if (resetDeaths) levelDeaths = 0;
+    levelTookDamage = (levelDeaths > 0);
     fireFailDelay = 0.0f;
     beeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
     UpdateAnimation(&beeAnim);
@@ -310,9 +330,11 @@ static void FinishRun(bool won)
 {
     StopStarMusic();
     runActive = false;
+    levelClearActive = false;
 
-    // Capture the level we just finished / died on (if not already recorded)
-    RecordCurrentLevelStats();
+    // Capture the level we just finished if it wasn't recorded by the clear transition
+    if (lastRun.levelsRecorded <= currentLevelIndex)
+        RecordCurrentLevelStats();
 
     lastRun.won = won;
     lastRunTime = lastRun.totalTime;
@@ -324,10 +346,52 @@ static void FinishRun(bool won)
     PlaySound(won? fxWin : fxLife);
 }
 
+static void BeginLevelClear(bool isFinal)
+{
+    RecordCurrentLevelStats();
+    levelClearStars = lastRun.levels[lastRun.levelsRecorded - 1].stars;
+    levelClearTimeSec = lastRun.levels[lastRun.levelsRecorded - 1].timeSec;
+    levelClearLevelNumber = currentLevelIndex + 1;
+    levelClearIsFinal = isFinal;
+    levelClearTimer = 0.0f;
+    levelClearActive = true;
+    levelPaused = true;
+
+    if (!isFinal && levelDeaths == 0 && lives < PLAYER_MAX_LIVES)
+        lives++;
+
+    PlaySound(fxWin);
+}
+
+static void EndLevelClear(void)
+{
+    levelClearActive = false;
+    levelClearTimer = 0.0f;
+
+    if (levelClearIsFinal)
+    {
+        FinishRun(true);
+        return;
+    }
+
+    currentLevelIndex++;
+    LoadCurrentLevel(true);
+    {
+        const HexLevelDef *def = HexLevelGetDef(currentLevelIndex);
+        if (def != NULL && def->checkpoint && currentLevelIndex > checkpointLevel)
+        {
+            checkpointLevel = currentLevelIndex;
+            PlaySound(fxCheckpoint);
+            checkpointBannerTimer = 2.0f;
+        }
+    }
+}
+
 // Returns true if the run ended (caller should return from Update).
 static bool ApplyDamage(void)
 {
     StopStarMusic();
+    levelDeaths++;
     levelTookDamage = true;
 
     lives--;
@@ -339,13 +403,13 @@ static bool ApplyDamage(void)
         currentLevelIndex = checkpointLevel;
         lives = PLAYER_MAX_LIVES;
         TruncateRunStatsToCheckpoint();
-        LoadCurrentLevel();
+        LoadCurrentLevel(true);
         TryActivateCheckpoint();
         return false;
     }
 
-    // Lives remain: retry this level
-    LoadCurrentLevel();
+    // Lives remain: retry this level (keep death count for star rating)
+    LoadCurrentLevel(false);
     return false;
 }
 
@@ -383,8 +447,11 @@ void InitGameplayScreen(void)
     currentLevelIndex = 0;
     checkpointLevel = 0;
     levelTookDamage = false;
+    levelDeaths = 0;
     checkpointBannerTimer = 0.0f;
     fireFailDelay = 0.0f;
+    levelClearActive = false;
+    levelClearTimer = 0.0f;
     runActive = true;
     ResetRunStats();
     SetMusicPitch(music, 1.0f);
@@ -398,14 +465,18 @@ void InitGameplayScreen(void)
     starTexture = LoadTexture("resources/star.png");
     fireTexture = LoadTexture("resources/fire.png");
     speakerTexture = LoadTexture("resources/speaker.png");
+    ratingStarTex = LoadTexture("resources/rating_star.png");
+    ratingStarEmptyTex = LoadTexture("resources/rating_star_empty.png");
     SetTextureFilter(bubbleTexture, TEXTURE_FILTER_POINT);
     SetTextureFilter(starTexture, TEXTURE_FILTER_POINT);
     SetTextureFilter(fireTexture, TEXTURE_FILTER_POINT);
     SetTextureFilter(speakerTexture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(ratingStarTex, TEXTURE_FILTER_POINT);
+    SetTextureFilter(ratingStarEmptyTex, TEXTURE_FILTER_POINT);
 
     LayoutPauseMenu();
     HexBackgroundInit(&fallBg, hexTexture, HEX_BG_GAMEPLAY);
-    LoadCurrentLevel();
+    LoadCurrentLevel(true);
     TryActivateCheckpoint();
 }
 
@@ -414,7 +485,7 @@ void UpdateGameplayScreen(void)
     float dt = GetFrameTime();
     HexBackgroundUpdate(&fallBg, dt);
 
-    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P))
+    if (!levelClearActive && (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P)))
     {
         SetGamePaused(!gamePaused);
         PlaySound(fxCoin);
@@ -427,6 +498,7 @@ void UpdateGameplayScreen(void)
             SetGamePaused(false);
             StopStarMusic();
             runActive = false;
+            levelClearActive = false;
             finishScreen = 2;   // abandon run → TITLE
             PlaySound(fxCoin);
             return;
@@ -450,6 +522,22 @@ void UpdateGameplayScreen(void)
                 PlaySound(fxCoin);
             }
         }
+        return;
+    }
+
+    // Between-level (or final) star results: freeze the cleared board underneath
+    if (levelClearActive)
+    {
+        levelClearTimer += dt;
+        bool canSkip = (levelClearTimer >= LEVEL_CLEAR_SKIP_AFTER);
+        bool skip = canSkip && (
+            IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ESCAPE) ||
+            IsGestureDetected(GESTURE_TAP) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
+            IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
+            IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN));
+
+        if ((levelClearTimer >= LEVEL_CLEAR_DURATION) || skip)
+            EndLevelClear();
         return;
     }
 
@@ -481,7 +569,7 @@ void UpdateGameplayScreen(void)
             checkpointLevel = currentLevelIndex;
             finishScreen = 0;
             ResetRunStats();
-            LoadCurrentLevel();
+            LoadCurrentLevel(true);
             TryActivateCheckpoint();
             PlaySound(fxCoin);
             return;
@@ -494,7 +582,7 @@ void UpdateGameplayScreen(void)
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        LoadCurrentLevel();
+        LoadCurrentLevel(true);
         TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;
@@ -508,7 +596,7 @@ void UpdateGameplayScreen(void)
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        LoadCurrentLevel();
+        LoadCurrentLevel(true);
         TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;
@@ -520,7 +608,7 @@ void UpdateGameplayScreen(void)
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        LoadCurrentLevel();
+        LoadCurrentLevel(true);
         TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;
@@ -619,29 +707,8 @@ void UpdateGameplayScreen(void)
     if (HexLevelWon(&level))
     {
         StopStarMusic();
-        if (currentLevelIndex + 1 < HexLevelCount())
-        {
-            if (!levelTookDamage && lives < PLAYER_MAX_LIVES)
-                lives++;
-
-            RecordCurrentLevelStats();
-            currentLevelIndex++;
-            LoadCurrentLevel();
-            {
-                const HexLevelDef *def = HexLevelGetDef(currentLevelIndex);
-                if (def != NULL && def->checkpoint && currentLevelIndex > checkpointLevel)
-                {
-                    checkpointLevel = currentLevelIndex;
-                    PlaySound(fxCheckpoint);
-                    checkpointBannerTimer = 2.0f;
-                }
-            }
-            PlaySound(fxWin);
-        }
-        else
-        {
-            FinishRun(true);
-        }
+        BeginLevelClear(currentLevelIndex + 1 >= HexLevelCount());
+        return;
     }
 
 #if defined(_DEBUG)
@@ -693,12 +760,44 @@ void DrawGameplayScreen(void)
                  (Color){ 255, 220, 70, a });
     }
 
-    if (levelPaused)
+    if (levelPaused && !levelClearActive)
     {
         const char *prompt = moveModeRelative? "Press A/D or arrows to start"
                                              : "Press WASD or arrows to start";
         int pw = MeasureText(prompt, 24);
         DrawText(prompt, (GetScreenWidth() - pw)/2, GetScreenHeight() - 56, 24, (Color){ 255, 220, 70, 255 });
+    }
+
+    if (levelClearActive)
+    {
+        int sw = GetScreenWidth();
+        int sh = GetScreenHeight();
+        DrawRectangle(0, 0, sw, sh, Fade(BLACK, 0.55f));
+
+        const char *cleared = TextFormat("LEVEL %d CLEAR!", levelClearLevelNumber);
+        int titleSize = 40;
+        DrawText(cleared, (sw - MeasureText(cleared, titleSize))/2, sh/2 - 110, titleSize,
+                 (Color){ 255, 179, 71, 255 });
+
+        float starSize = (float)((ratingStarTex.id != 0)? ratingStarTex.width : 32)*RATING_STAR_DRAW_SCALE;
+        float starGap = 8.0f;
+        float starsW = HEX_LEVEL_STARS_MAX*starSize + (HEX_LEVEL_STARS_MAX - 1)*starGap;
+        float starsX = ((float)sw - starsW)*0.5f;
+        float starsY = (float)sh*0.5f - 40.0f;
+        HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, levelClearStars,
+                                starsX, starsY, RATING_STAR_DRAW_SCALE);
+
+        char timeBuf[16];
+        HexScoresFormat(levelClearTimeSec, timeBuf, (int)sizeof(timeBuf));
+        const char *timeLine = TextFormat("Time  %s", timeBuf);
+        DrawText(timeLine, (sw - MeasureText(timeLine, 22))/2, sh/2 + 50, 22, RAYWHITE);
+
+        if (levelClearTimer >= LEVEL_CLEAR_SKIP_AFTER)
+        {
+            const char *skip = "Press any key to continue";
+            DrawText(skip, (sw - MeasureText(skip, 18))/2, sh/2 + 100, 18,
+                     (Color){ 200, 210, 220, 255 });
+        }
     }
 
 #if defined(_DEBUG)
@@ -778,6 +877,10 @@ void UnloadGameplayScreen(void)
     fireTexture = (Texture2D){ 0 };
     UnloadTexture(speakerTexture);
     speakerTexture = (Texture2D){ 0 };
+    UnloadTexture(ratingStarTex);
+    ratingStarTex = (Texture2D){ 0 };
+    UnloadTexture(ratingStarEmptyTex);
+    ratingStarEmptyTex = (Texture2D){ 0 };
 }
 
 int FinishGameplayScreen(void)

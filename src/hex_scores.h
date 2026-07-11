@@ -7,16 +7,20 @@
 #ifndef HEX_SCORES_H
 #define HEX_SCORES_H
 
+#include "raylib.h"
+
 #include <stdbool.h>
 
 #define HEX_SCORES_MAX 10
 #define HEX_SCORES_FILE "beehold_scores.txt"
 #define HEX_RUNS_CSV_FILE "beehold_runs.csv"
 #define HEX_RUN_MAX_LEVELS 32
+#define HEX_LEVEL_STARS_MAX 3
 
 typedef struct HexLevelResult
 {
     float timeSec;
+    int stars;              // 1..HEX_LEVEL_STARS_MAX
 } HexLevelResult;
 
 typedef struct HexRunResult
@@ -25,7 +29,11 @@ typedef struct HexRunResult
     int levelsRecorded;     // how many level slots have data
     HexLevelResult levels[HEX_RUN_MAX_LEVELS];
     float totalTime;
+    int totalStars;
 } HexRunResult;
+
+// Stars earned for a level: 3 minus deaths, clamped to [1, HEX_LEVEL_STARS_MAX].
+int HexScoresStarsFromDeaths(int deaths);
 
 // Load sorted best total times.
 int HexScoresLoad(float *outTimes, int maxCount);
@@ -38,5 +46,8 @@ void HexScoresAppendRunCsv(const HexRunResult *run);
 
 // Format seconds as M:SS.CC into buf (bufSize >= 16).
 void HexScoresFormat(float seconds, char *buf, int bufSize);
+
+// Draw 1..3 rating stars (filled + empty). Falls back to '*' text if textures missing.
+void HexScoresDrawLevelStars(Texture2D filled, Texture2D empty, int stars, float x, float y, float scale);
 
 #endif // HEX_SCORES_H

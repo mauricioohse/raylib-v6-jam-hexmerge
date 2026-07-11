@@ -23,6 +23,10 @@ static int framesCounter = 0;
 static int finishScreen = 0;
 static float bestTimes[HEX_SCORES_MAX] = { 0 };
 static int bestCount = 0;
+static Texture2D ratingStarTex = { 0 };
+static Texture2D ratingStarEmptyTex = { 0 };
+
+#define RATING_STAR_SCALE 1.25f
 
 //----------------------------------------------------------------------------------
 // Ending Screen Functions Definition
@@ -33,11 +37,15 @@ void InitEndingScreen(void)
     finishScreen = 0;
     bestCount = HexScoresLoad(bestTimes, HEX_SCORES_MAX);
 
+    ratingStarTex = LoadTexture("resources/rating_star.png");
+    ratingStarEmptyTex = LoadTexture("resources/rating_star_empty.png");
+    SetTextureFilter(ratingStarTex, TEXTURE_FILTER_POINT);
+    SetTextureFilter(ratingStarEmptyTex, TEXTURE_FILTER_POINT);
+
     float sw = (float)GetScreenWidth();
     float iconSize = HEX_SOCIAL_ICON_SIZE;
     float gap = HEX_SOCIAL_ICON_GAP;
     float total = iconSize*3.0f + gap*2.0f;
-    // Under the yellow promo on the right (matches DrawEndingScreen layout)
     HexSocialLayoutAt(sw - 48.0f - total, (float)(112 + 28 + 40 + 24*2 + 16));
 }
 
@@ -68,19 +76,24 @@ void DrawEndingScreen(void)
     int titleSize = lastRun.won? 40 : 34;
     DrawText(title, (sw - MeasureText(title, titleSize))/2, 28, titleSize, titleCol);
 
-    char totalLine[64];
     char timeBuf[16];
     HexScoresFormat(lastRun.totalTime, timeBuf, (int)sizeof(timeBuf));
-    snprintf(totalLine, sizeof(totalLine), "Total  %s", timeBuf);
+
+    char totalLine[64];
+    snprintf(totalLine, sizeof(totalLine), "Time  %s", timeBuf);
     DrawText(totalLine, (sw - MeasureText(totalLine, 22))/2, 72, 22, RAYWHITE);
 
-    const char *header = "LEVEL    TIME";
-    int headerY = 112;
+    char starsLine[64];
+    snprintf(starsLine, sizeof(starsLine), "Stars  %d", lastRun.totalStars);
+    DrawText(starsLine, (sw - MeasureText(starsLine, 20))/2, 98, 20, (Color){ 255, 220, 70, 255 });
+
+    const char *header = "LEVEL";
+    int headerY = 130;
     int listX = 48;
     DrawText(header, listX, headerY, 18, (Color){ 160, 170, 180, 255 });
 
     int n = lastRun.levelsRecorded;
-    int listTop = headerY + 28;
+    int listTop = headerY + 26;
     if (n <= 0)
     {
         const char *empty = "No level data";
@@ -88,25 +101,28 @@ void DrawEndingScreen(void)
     }
     else
     {
-        int lineH = 22;
         int listBottom = sh - 150;
+        int lineH = 22;
         int maxVisible = (listBottom - listTop)/lineH;
         if (maxVisible < 1) maxVisible = 1;
 
         int start = 0;
-        if (n > maxVisible) start = n - maxVisible;  // show latest levels if overflow
+        if (n > maxVisible) start = n - maxVisible;
 
+        float starSize = (float)((ratingStarTex.id != 0)? ratingStarTex.width : 16)*RATING_STAR_SCALE;
         for (int i = start; i < n; i++)
         {
-            char t[16];
-            HexScoresFormat(lastRun.levels[i].timeSec, t, (int)sizeof(t));
-            char line[64];
-            snprintf(line, sizeof(line), "%2d     %8s", i + 1, t);
-
             int y = listTop + (i - start)*lineH;
-            Color col = RAYWHITE;
-            if (!lastRun.won && (i == n - 1)) col = (Color){ 255, 160, 140, 255 };
-            DrawText(line, listX, y, 20, col);
+
+            char label[8];
+            snprintf(label, sizeof(label), "%2d", i + 1);
+            Color tint = RAYWHITE;
+            if (!lastRun.won && (i == n - 1)) tint = (Color){ 255, 160, 140, 255 };
+            DrawText(label, listX, y, 16, tint);
+
+            float starY = (float)y + (16.0f - starSize)*0.5f;
+            HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, lastRun.levels[i].stars,
+                                    (float)(listX + 36), starY, RATING_STAR_SCALE);
         }
     }
 
@@ -131,7 +147,6 @@ void DrawEndingScreen(void)
 
     HexSocialDraw();
 
-    // Compact best-times strip near the bottom (wins only matter for board, but always show)
     const char *boardTitle = "BEST TOTAL TIMES";
     int boardY = sh - 130;
     DrawText(boardTitle, (sw - MeasureText(boardTitle, 16))/2, boardY, 16, (Color){ 180, 190, 200, 255 });
@@ -169,7 +184,10 @@ void DrawEndingScreen(void)
 
 void UnloadEndingScreen(void)
 {
-    // Nothing to unload
+    UnloadTexture(ratingStarTex);
+    UnloadTexture(ratingStarEmptyTex);
+    ratingStarTex = (Texture2D){ 0 };
+    ratingStarEmptyTex = (Texture2D){ 0 };
 }
 
 int FinishEndingScreen(void)

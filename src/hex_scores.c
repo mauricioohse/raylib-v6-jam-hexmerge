@@ -147,6 +147,15 @@ static void SaveRunsCsv(const char *text)
 //----------------------------------------------------------------------------------
 // Public API
 //----------------------------------------------------------------------------------
+int HexScoresStarsFromDeaths(int deaths)
+{
+    if (deaths < 0) deaths = 0;
+    int stars = HEX_LEVEL_STARS_MAX - deaths;
+    if (stars < 1) stars = 1;
+    if (stars > HEX_LEVEL_STARS_MAX) stars = HEX_LEVEL_STARS_MAX;
+    return stars;
+}
+
 int HexScoresLoad(float *outTimes, int maxCount)
 {
     char *text = LoadScoresText();
@@ -220,7 +229,7 @@ void HexScoresAppendRunCsv(const HexRunResult *run)
     }
     else
     {
-        int n = snprintf(out, (int)cap, "run,won,level,time_sec\n");
+        int n = snprintf(out, (int)cap, "run,won,level,time_sec,stars\n");
         if (n > 0) pos = (size_t)n;
     }
 
@@ -229,11 +238,12 @@ void HexScoresAppendRunCsv(const HexRunResult *run)
     for (int i = 0; i < run->levelsRecorded; i++)
     {
         if (pos + 96 >= cap) break;
-        int n = snprintf(out + pos, (int)(cap - pos), "%ld,%d,%d,%.3f\n",
+        int n = snprintf(out + pos, (int)(cap - pos), "%ld,%d,%d,%.3f,%d\n",
                          runId,
                          run->won? 1 : 0,
                          i + 1,
-                         run->levels[i].timeSec);
+                         run->levels[i].timeSec,
+                         run->levels[i].stars);
         if (n <= 0) break;
         pos += (size_t)n;
     }
@@ -253,4 +263,37 @@ void HexScoresFormat(float seconds, char *buf, int bufSize)
     int secs = (totalCs/100)%60;
     int cs = totalCs%100;
     snprintf(buf, bufSize, "%d:%02d.%02d", mins, secs, cs);
+}
+
+void HexScoresDrawLevelStars(Texture2D filled, Texture2D empty, int stars, float x, float y, float scale)
+{
+    if (stars < 1) stars = 1;
+    if (stars > HEX_LEVEL_STARS_MAX) stars = HEX_LEVEL_STARS_MAX;
+    if (scale <= 0.0f) scale = 1.0f;
+
+    bool useTex = (filled.id != 0) && (empty.id != 0);
+    if (useTex)
+    {
+        float size = (float)filled.width*scale;
+        float gap = 4.0f*scale;
+        for (int s = 0; s < HEX_LEVEL_STARS_MAX; s++)
+        {
+            Texture2D tex = (s < stars)? filled : empty;
+            Rectangle src = { 0, 0, (float)tex.width, (float)tex.height };
+            Rectangle dst = { x + (float)s*(size + gap), y, size, size };
+            DrawTexturePro(tex, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+        }
+        return;
+    }
+
+    // Text fallback if PNGs failed to load (e.g. stale web pack)
+    int fontSize = (int)(28.0f*scale);
+    if (fontSize < 16) fontSize = 16;
+    float gap = (float)fontSize + 6.0f;
+    for (int s = 0; s < HEX_LEVEL_STARS_MAX; s++)
+    {
+        const char *glyph = "*";
+        Color col = (s < stars)? (Color){ 255, 220, 70, 255 } : (Color){ 90, 98, 110, 255 };
+        DrawText(glyph, (int)(x + (float)s*gap), (int)y, fontSize, col);
+    }
 }
