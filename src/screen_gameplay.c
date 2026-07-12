@@ -22,7 +22,7 @@
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
-#define PLAYER_MAX_LIVES 5
+#define PLAYER_MAX_LIVES 3
 #define HIT_RADIUS 14.0f
 #define HEART_SCALE 2.0f
 #define BEE_SPEED 120.0f
@@ -413,7 +413,7 @@ static bool ApplyDamage(void)
         return false;
     }
 
-    // Lives remain: keep filled hexes, pollen trails, and progress; reset bee + enemies
+    // Lives remain: keep filled hexes; clear pollen trail; reset bee + enemies
     SoftRespawnLevel();
     return false;
 }

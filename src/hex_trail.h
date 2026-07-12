@@ -4,7 +4,7 @@
 *
 *   Tracks the ordered path of vertices the bee has walked. Closing a loop fills
 *   enclosed faces. Persistent pollen (edges.painted) also counts as a wall, and can
-*   bridge back to the live path after death so leftover trails still seal shapes.
+*   bridge back to the live path so leftover trails from prior loops still seal shapes.
 *
 **********************************************************************************************/
 

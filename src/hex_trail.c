@@ -138,7 +138,7 @@ void HexTrailInit(HexTrail *trail, int startVertex)
 }
 
 // From fromVertex, walk painted edges (skipping excludeEdge). Return the highest trail
-// index reachable, or -1. Lets persistent pollen close shapes after death / prior loops.
+// index reachable, or -1. Lets persistent pollen close shapes across prior loops.
 static int FindPaintedTrailHit(const HexGrid *grid, int fromVertex, int excludeEdge,
                                const HexTrail *trail)
 {
@@ -190,7 +190,7 @@ static int ResolveTrailLoop(HexTrail *trail, HexGrid *grid, HexFlowerField *flow
     bool loopEdges[HEX_MAX_EDGES] = { false };
     if (useAllPainted)
     {
-        // Persistent pollen is part of the wall (needed after death / prior loops)
+        // Persistent pollen is part of the wall (leftover trails from prior loops)
         for (int e = 0; e < grid->edgeCount; e++)
             loopEdges[e] = grid->edges[e].painted;
     }
@@ -246,7 +246,7 @@ int HexTrailAdvance(HexTrail *trail, HexGrid *grid, HexFlowerField *flowers,
             if ((e >= 0) && (e < grid->edgeCount)) loopEdges[e] = true;
         }
         loopEdges[viaEdge] = true;
-        // Persistent pollen also seals — leftover trails after death still form walls
+        // Persistent pollen also seals — leftover trails from prior loops form walls
         for (int e = 0; e < grid->edgeCount; e++)
         {
             if (grid->edges[e].painted) loopEdges[e] = true;

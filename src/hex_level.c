@@ -585,7 +585,10 @@ void HexLevelRespawnKeepProgress(HexLevel *level, float beeSpeed)
 {
     if ((level == NULL) || (level->def == NULL)) return;
 
-    // Keep filled faces AND wet pollen trails; only reset bee path / enemies / power
+    // Keep filled faces / flower progress / collected stars; clear wet pollen trail
+    for (int e = 0; e < level->grid.edgeCount; e++)
+        level->grid.edges[e].painted = false;
+
     for (int f = 0; f < level->grid.faceCount; f++)
         level->grid.faces[f].failShake = 0.0f;
 

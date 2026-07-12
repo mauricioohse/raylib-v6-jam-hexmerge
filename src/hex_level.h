@@ -81,8 +81,8 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
                   Texture2D flowerTexture, Texture2D bubbleTexture, Texture2D starTexture,
                   float beeSpeed);
 
-// Soft death: keep filled faces, flower progress, collected stars, and pollen trails;
-// respawn bee at start and re-place enemies. powerTimer is cleared.
+// Soft death: keep filled faces / flower progress / collected stars; clear wet trail,
+// respawn bee at start, and re-place enemies. powerTimer is cleared.
 void HexLevelRespawnKeepProgress(HexLevel *level, float beeSpeed);
 
 // Returns faces filled this frame, HEX_TRAIL_TWIN_FAIL, or HEX_TRAIL_FIRE_FAIL.
