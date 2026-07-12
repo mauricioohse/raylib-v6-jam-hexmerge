@@ -117,7 +117,7 @@ static void TrySubmitName(void)
 
 static void DrawGlobalBoard(int sw, int sh)
 {
-    const char *title = "GLOBAL TOP 10";
+    const char *title = "GLOBAL TOP 20";
     int boardX = sw/2 + 20;
     int y = 70;
     DrawText(title, boardX, y, 20, (Color){ 255, 179, 71, 255 });

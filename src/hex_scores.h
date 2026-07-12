@@ -18,7 +18,7 @@
 #define HEX_RUN_MAX_LEVELS 32
 #define HEX_LEVEL_STARS_MAX 3
 #define HEX_PLAYER_NAME_MAX 16
-#define HEX_GLOBAL_TOP_MAX 10
+#define HEX_GLOBAL_TOP_MAX 20
 
 // Set to 1 to force-send global scores even in _DEBUG or with time < 60s (testing).
 #ifndef DEBUG_TEST_SCORE
