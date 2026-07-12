@@ -1,0 +1,13 @@
+name = "beehold-leaderboard"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Create the KV namespace once, then paste both ids below (see README.md).
+[[kv_namespaces]]
+binding = "BOARD"
+id = "47dc5f3bcdba44dc90b950ea4fb3db2c"
+preview_id = "83a18261a60d41eb9040dfb0c414a63c"
+
+# Set once after first deploy:
+#   npx wrangler secret put SUBMIT_KEY
+# Use the same value as HEX_LEADERBOARD_KEY in src/hex_scores.h

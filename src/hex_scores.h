@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   Beehold - Run stats + CSV history + dreamlo global board
+*   Beehold - Run stats + CSV history + global leaderboard (Cloudflare Worker on web)
 *
 **********************************************************************************************/
 
@@ -20,17 +20,21 @@
 #define HEX_PLAYER_NAME_MAX 16
 #define HEX_GLOBAL_TOP_MAX 10
 
-// Set to 1 to force-send dreamlo scores even in _DEBUG or with time < 60s (testing).
+// Set to 1 to force-send global scores even in _DEBUG or with time < 60s (testing).
 #ifndef DEBUG_TEST_SCORE
 #define DEBUG_TEST_SCORE 0
 #endif
 
-// dreamlo private code (add + read via /pipe). HTTP only for this board.
-#define HEX_DREAMLO_PRIVATE "x49B2n34kE2qdvJfjMcmLgitvEWXnwH06lya-wqv2vcQ"
-#define HEX_DREAMLO_MIN_TIME_SEC 60.0f
-#define HEX_DREAMLO_MIN_STARS 24  // 1* per level across the full campaign
-#define HEX_DREAMLO_RUN_ID_LEN 10
-#define HEX_DREAMLO_NAME_MAX (HEX_PLAYER_NAME_MAX + 1 + HEX_DREAMLO_RUN_ID_LEN)
+// Cloudflare Worker base URL (no trailing slash). See leaderboard/README.md.
+// After `wrangler deploy`, replace YOUR_SUBDOMAIN with the subdomain Wrangler prints.
+#define HEX_LEADERBOARD_URL "https://beehold-leaderboard.mauricioohse.workers.dev"
+// Must match the Worker secret SUBMIT_KEY (`npx wrangler secret put SUBMIT_KEY`).
+#define HEX_LEADERBOARD_KEY "beehold-change-me-to-a-long-random-string-haha"
+
+#define HEX_GLOBAL_MIN_TIME_SEC 60.0f
+#define HEX_GLOBAL_MIN_STARS 24  // 1* per level across the full campaign
+#define HEX_GLOBAL_RUN_ID_LEN 10
+#define HEX_GLOBAL_NAME_MAX (HEX_PLAYER_NAME_MAX + 1 + HEX_GLOBAL_RUN_ID_LEN)
 
 typedef struct HexLevelResult
 {
@@ -69,11 +73,11 @@ bool HexScoresLoadBestRun(HexRunResult *out);
 // Save run as the best if it wins and beats the stored best time (or none exists).
 void HexScoresSaveBestRunIfBetter(const HexRunResult *run);
 
-// True if this run is eligible to post to dreamlo (respects DEBUG_TEST_SCORE).
+// True if this run is eligible to post globally (respects DEBUG_TEST_SCORE).
 bool HexScoresCanSubmitGlobal(const HexRunResult *run);
 
-// Submit a named winning run to dreamlo (web). Posts as name-########## so each
-// run is a unique entry; the UI strips the suffix when displaying.
+// Submit a named winning run (web). Posts as name-########## so each run is a
+// unique entry; the UI strips the suffix when displaying.
 void HexScoresSubmitGlobalNamed(const HexRunResult *run, const char *name);
 
 // Async fetch top N (web). Poll HexScoresGlobalFetchReady().

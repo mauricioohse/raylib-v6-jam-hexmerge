@@ -38,19 +38,29 @@ static char submittedName[HEX_PLAYER_NAME_MAX + 1] = { 0 };
 static HexGlobalEntry globalTop[HEX_GLOBAL_TOP_MAX] = { 0 };
 static int globalTopCount = 0;
 static bool globalFetchStarted = false;
-static int refetchDelayFrames = 0;  // wait after submit so dreamlo can index
+static int refetchDelayFrames = 0;  // wait after submit before first quiet refetch
+static int pollFrames = 0;         // quiet auto-refresh timer
 
 #define RATING_STAR_SCALE 1.25f
-#define GLOBAL_REFETCH_DELAY_FRAMES 45  // ~0.75s at 60fps
+#define GLOBAL_REFETCH_DELAY_FRAMES 120  // ~2s at 60fps after submit
+#define GLOBAL_POLL_FRAMES 180           // ~3s quiet refresh while on scores screen
 
 //----------------------------------------------------------------------------------
 // Helpers
 //----------------------------------------------------------------------------------
-static void StartGlobalFetch(void)
+// Only show loading when we have nothing to display yet (never blink a full table).
+static bool IsGlobalBoardLoading(void)
+{
+    if (globalTopCount > 0) return false;
+    return (refetchDelayFrames > 0) || HexScoresGlobalFetchPending();
+}
+
+static void StartGlobalFetch(bool clearDisplay)
 {
     globalFetchStarted = true;
-    globalTopCount = 0;
+    if (clearDisplay) globalTopCount = 0;
     refetchDelayFrames = 0;
+    pollFrames = 0;
     HexScoresFetchGlobalTop(HEX_GLOBAL_TOP_MAX);
 }
 
@@ -59,12 +69,21 @@ static void PumpGlobalFetch(void)
     if (refetchDelayFrames > 0)
     {
         refetchDelayFrames--;
-        if (refetchDelayFrames == 0) StartGlobalFetch();
+        if (refetchDelayFrames == 0) StartGlobalFetch(false);
         return;
     }
+
     if (!globalFetchStarted) return;
+
+    // Keep showing the previous table while a refresh is in flight
+    if (HexScoresGlobalFetchPending()) return;
+
     if (HexScoresGlobalFetchReady())
         globalTopCount = HexScoresCopyGlobalTop(globalTop, HEX_GLOBAL_TOP_MAX);
+
+    pollFrames++;
+    if (pollFrames >= GLOBAL_POLL_FRAMES)
+        StartGlobalFetch(false);
 }
 
 static void TrySubmitName(void)
@@ -90,7 +109,8 @@ static void TrySubmitName(void)
     HexScoresSubmitGlobalNamed(&submitRun, submittedName);
     HexScoresNamePromptHide();
     namePromptActive = false;
-    // Brief delay so the add is visible on the next board fetch
+    // Keep current table visible; quiet-refetch after a short delay, then every 3s
+    pollFrames = 0;
     refetchDelayFrames = GLOBAL_REFETCH_DELAY_FRAMES;
     PlaySound(fxCoin);
 }
@@ -105,9 +125,9 @@ static void DrawGlobalBoard(int sw, int sh)
 
     PumpGlobalFetch();
 
-    if (HexScoresGlobalFetchPending())
+    if (IsGlobalBoardLoading())
     {
-        DrawText("Loading...", boardX, y, 20, LIGHTGRAY);
+        DrawText("Loading scores...", boardX, y, 20, LIGHTGRAY);
     }
     else if (globalTopCount <= 0)
     {
@@ -169,20 +189,21 @@ void InitEndingScreen(void)
     globalTopCount = 0;
     globalFetchStarted = false;
     refetchDelayFrames = 0;
+    pollFrames = 0;
     HexScoresNamePromptHide();
 
     if (viewingBestFromMenu)
         hasViewRun = HexScoresLoadBestRun(&viewRun);
     else
     {
-        // Freeze the run we just finished for both display and dreamlo submit
+        // Freeze the run we just finished for both display and global submit
         submitRun = lastRun;
         viewRun = lastRun;
         hasViewRun = (viewRun.levelsRecorded > 0) || viewRun.won;
         canSubmitThisRun = HexScoresCanSubmitGlobal(&submitRun);
     }
 
-    StartGlobalFetch();
+    StartGlobalFetch(true);
 
     wantGlobalSubmit = canSubmitThisRun;
     if (wantGlobalSubmit)

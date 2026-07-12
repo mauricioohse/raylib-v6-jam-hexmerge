@@ -51,7 +51,7 @@ static Texture2D speakerTexture = { 0 };
 static Texture2D ratingStarTex = { 0 };
 static Texture2D ratingStarEmptyTex = { 0 };
 static int lives = PLAYER_MAX_LIVES;
-static float levelTimer = 0.0f;     // resets each level
+static float levelTimer = 0.0f;     // per-level clock; survives deaths (no suicide-reset)
 static bool runActive = false;
 static bool levelPaused = true;     // wait for first steer before bee/wasps move
 static bool gamePaused = false;     // pause menu (P / ESC)
@@ -287,8 +287,7 @@ static void TruncateRunStatsToCheckpoint(void)
         lastRun.totalStars += lastRun.levels[i].stars;
     }
     lastRunTime = lastRun.totalTime;
-    levelTimer = 0.0f;
-    levelDeaths = 0;
+    // Keep levelTimer / levelDeaths — suicide must not wipe the clock or star penalty
 }
 
 static void RecordCurrentLevelStats(void)
@@ -312,12 +311,12 @@ static void TryActivateCheckpoint(void)
     checkpointBannerTimer = 2.0f;
 }
 
-static void LoadCurrentLevel(bool resetDeaths)
+static void LoadCurrentLevel(bool resetDeaths, bool resetTimer)
 {
     StopStarMusic();
     HexLevelLoad(&level, currentLevelIndex, hexTexture, pondTexture, flowerTexture, bubbleTexture, starTexture, BEE_SPEED);
     levelPaused = true;
-    levelTimer = 0.0f;
+    if (resetTimer) levelTimer = 0.0f;
     if (resetDeaths) levelDeaths = 0;
     levelTookDamage = (levelDeaths > 0);
     fireFailDelay = 0.0f;
@@ -378,7 +377,7 @@ static void EndLevelClear(void)
     }
 
     currentLevelIndex++;
-    LoadCurrentLevel(true);
+    LoadCurrentLevel(true, true);
     TryActivateCheckpoint();
 }
 
@@ -404,16 +403,16 @@ static bool ApplyDamage(void)
 
     if (lives <= 0)
     {
-        // Soft fail: restart from last checkpoint with full lives
+        // Soft fail: restart this level, but keep the clock and death count
         currentLevelIndex = checkpointLevel;
         lives = PLAYER_MAX_LIVES;
         TruncateRunStatsToCheckpoint();
-        LoadCurrentLevel(true);
+        LoadCurrentLevel(false, false);
         TryActivateCheckpoint();
         return false;
     }
 
-    // Lives remain: keep filled hexes; clear pollen trail; reset bee + enemies
+    // Lives remain: keep filled hexes + timer; clear pollen trail; reset bee + enemies
     SoftRespawnLevel();
     return false;
 }
@@ -481,7 +480,7 @@ void InitGameplayScreen(void)
 
     LayoutPauseMenu();
     HexBackgroundInit(&fallBg, hexTexture, HEX_BG_GAMEPLAY);
-    LoadCurrentLevel(true);
+    LoadCurrentLevel(true, true);
     TryActivateCheckpoint();
 }
 
@@ -574,7 +573,7 @@ void UpdateGameplayScreen(void)
             checkpointLevel = currentLevelIndex;
             finishScreen = 0;
             ResetRunStats();
-            LoadCurrentLevel(true);
+            LoadCurrentLevel(true, true);
             TryActivateCheckpoint();
             PlaySound(fxCoin);
             return;
@@ -587,7 +586,7 @@ void UpdateGameplayScreen(void)
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        LoadCurrentLevel(true);
+        LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;
@@ -601,7 +600,7 @@ void UpdateGameplayScreen(void)
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        LoadCurrentLevel(true);
+        LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;
@@ -613,7 +612,7 @@ void UpdateGameplayScreen(void)
         checkpointLevel = currentLevelIndex;
         finishScreen = 0;
         ResetRunStats();
-        LoadCurrentLevel(true);
+        LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
         PlaySound(fxCoin);
         return;

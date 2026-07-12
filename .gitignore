@@ -80,6 +80,8 @@ android.*
 *.js
 !src/minshell.html
 !src/shell.html
+!leaderboard/
+!leaderboard/**
 src/itch_web/
 src/beehold_web/
 tools/
