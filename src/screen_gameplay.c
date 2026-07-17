@@ -35,7 +35,6 @@
 #define RATING_STAR_DRAW_SCALE 2.0f
 
 static int framesCounter = 0;
-static int finishScreen = 0;
 
 static HexLevel level = { 0 };
 static int currentLevelIndex = 0;
@@ -345,8 +344,8 @@ static void FinishRun(bool won)
     }
 
     endingFromMenu = false;
-    finishScreen = 1;
     PlaySound(won? fxWin : fxLife);
+    TransitionToScreen(ENDING);
 }
 
 static void BeginLevelClear(bool isFinal)
@@ -443,7 +442,6 @@ static void DrawLives(void)
 void InitGameplayScreen(void)
 {
     framesCounter = 0;
-    finishScreen = 0;
     gamePaused = false;
     moveModeRelative = controllerMode;  // title MOVE: A/D vs WASD
     // keep controllerMode so title remembers the choice after returning from a run
@@ -503,8 +501,8 @@ void UpdateGameplayScreen(void)
             StopStarMusic();
             runActive = false;
             levelClearActive = false;
-            finishScreen = 2;   // abandon run → TITLE
             PlaySound(fxCoin);
+            TransitionToScreen(TITLE);
             return;
         }
 
@@ -571,7 +569,6 @@ void UpdateGameplayScreen(void)
             currentLevelIndex = key - KEY_ONE;
             lives = PLAYER_MAX_LIVES;
             checkpointLevel = currentLevelIndex;
-            finishScreen = 0;
             ResetRunStats();
             LoadCurrentLevel(true, true);
             TryActivateCheckpoint();
@@ -584,7 +581,6 @@ void UpdateGameplayScreen(void)
         currentLevelIndex = 9;  // level 10
         lives = PLAYER_MAX_LIVES;
         checkpointLevel = currentLevelIndex;
-        finishScreen = 0;
         ResetRunStats();
         LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
@@ -598,7 +594,6 @@ void UpdateGameplayScreen(void)
         else currentLevelIndex = HexLevelCount() - 1;
         lives = PLAYER_MAX_LIVES;
         checkpointLevel = currentLevelIndex;
-        finishScreen = 0;
         ResetRunStats();
         LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
@@ -610,7 +605,6 @@ void UpdateGameplayScreen(void)
         currentLevelIndex = (currentLevelIndex + 1)%HexLevelCount();
         lives = PLAYER_MAX_LIVES;
         checkpointLevel = currentLevelIndex;
-        finishScreen = 0;
         ResetRunStats();
         LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
@@ -885,9 +879,4 @@ void UnloadGameplayScreen(void)
     ratingStarTex = (Texture2D){ 0 };
     UnloadTexture(ratingStarEmptyTex);
     ratingStarEmptyTex = (Texture2D){ 0 };
-}
-
-int FinishGameplayScreen(void)
-{
-    return finishScreen;
 }

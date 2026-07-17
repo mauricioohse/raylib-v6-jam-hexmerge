@@ -515,7 +515,7 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
     for (int i = 0; i < level->def->specialCount; i++)
     {
         int face = HexFindFace(&level->grid, level->def->specials[i].coord.q, level->def->specials[i].coord.r);
-        if (face < 0) continue;
+        if (face < 0) continue; // skipps silently if the def is done wrong...
         level->grid.faces[face].kind = level->def->specials[i].kind;
         level->grid.faces[face].fireAnimFrame = GetRandomValue(0, 3);
     }

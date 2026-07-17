@@ -65,7 +65,6 @@ typedef enum CoverSaveKind
 //----------------------------------------------------------------------------------
 // Module state
 //----------------------------------------------------------------------------------
-static int finishScreen = 0;
 static HexLevel level = { 0 };
 static int currentLevelIndex = COVER_DEFAULT_LEVEL;
 static Texture2D hexTexture = { 0 };
@@ -486,7 +485,6 @@ static bool ExportCoverGif(void)
 //----------------------------------------------------------------------------------
 void InitCoverScreen(void)
 {
-    finishScreen = 0;
     pendingSave = COVER_SAVE_NONE;
     saveFlash = 0.0f;
     saveStatus[0] = '\0';
@@ -530,7 +528,7 @@ void UpdateCoverScreen(void)
 
     if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_B))
     {
-        finishScreen = 1;
+        TransitionToScreen(TITLE);
         return;
     }
 
@@ -696,11 +694,6 @@ void UnloadCoverScreen(void)
     fireTexture = (Texture2D){ 0 };
     fallHexTexture = (Texture2D){ 0 };
     coverBeeAnim.text = (Texture2D){ 0 };
-}
-
-int FinishCoverScreen(void)
-{
-    return finishScreen;
 }
 
 #endif // _DEBUG

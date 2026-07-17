@@ -51,7 +51,6 @@ typedef struct FlyBee
 } FlyBee;
 
 static int framesCounter = 0;
-static int finishScreen = 0;
 
 static Rectangle startBtn = { 0 };
 static Rectangle moveBtn = { 0 };
@@ -255,7 +254,6 @@ static void DrawFlyBees(void)
 void InitTitleScreen(void)
 {
     framesCounter = 0;
-    finishScreen = 0;
 
     speakerTexture = LoadTexture("resources/speaker.png");
     SetTextureFilter(speakerTexture, TEXTURE_FILTER_POINT);
@@ -308,24 +306,24 @@ void UpdateTitleScreen(void)
     if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
     {
         endingFromMenu = false;
-        finishScreen = 2;   // GAMEPLAY (uses controllerMode for controls)
         PlaySound(fxCoin);
+        TransitionToScreen(GAMEPLAY);
         return;
     }
 
     if (Clicked(scoresBtn))
     {
         endingFromMenu = true;
-        finishScreen = 3;   // ENDING — best-run scores
         PlaySound(fxCoin);
+        TransitionToScreen(ENDING);
         return;
     }
 
 #if defined(_DEBUG)
     if (IsKeyPressed(KEY_Y))
     {
-        finishScreen = 4;   // COVER studio
         PlaySound(fxCoin);
+        TransitionToScreen(COVER);
         return;
     }
 #endif
@@ -451,9 +449,4 @@ void UnloadTitleScreen(void)
     fallHexTexture = (Texture2D){ 0 };
     UnloadTexture(flyBeeTexture);
     flyBeeTexture = (Texture2D){ 0 };
-}
-
-int FinishTitleScreen(void)
-{
-    return finishScreen;
 }

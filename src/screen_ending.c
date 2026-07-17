@@ -21,7 +21,6 @@
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
 static int framesCounter = 0;
-static int finishScreen = 0;
 static Texture2D ratingStarTex = { 0 };
 static Texture2D ratingStarEmptyTex = { 0 };
 static HexRunResult viewRun = { 0 };
@@ -174,7 +173,6 @@ static void DrawGlobalBoard(int sw, int sh)
 void InitEndingScreen(void)
 {
     framesCounter = 0;
-    finishScreen = 0;
 
     viewingBestFromMenu = endingFromMenu;
     endingFromMenu = false;
@@ -270,8 +268,8 @@ void UpdateEndingScreen(void)
 
     if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
     {
-        finishScreen = 1;
         PlaySound(fxCoin);
+        TransitionToScreen(TITLE);
     }
 }
 
@@ -371,9 +369,4 @@ void UnloadEndingScreen(void)
     UnloadTexture(ratingStarEmptyTex);
     ratingStarTex = (Texture2D){ 0 };
     ratingStarEmptyTex = (Texture2D){ 0 };
-}
-
-int FinishEndingScreen(void)
-{
-    return finishScreen;
 }

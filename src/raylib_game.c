@@ -77,8 +77,6 @@ static GameScreen transToScreen = UNKNOWN;
 // Module Functions Declaration
 //----------------------------------------------------------------------------------
 static void ChangeToScreen(int screen);     // Change to screen, no transition effect
-
-static void TransitionToScreen(int screen); // Request transition to next screen
 static void UpdateTransition(void);         // Update transition effect
 static void DrawTransition(void);           // Draw transition effect (full-screen rectangle)
 
@@ -232,9 +230,11 @@ static void ChangeToScreen(int screen)
     currentScreen = screen;
 }
 
-// Request transition to next screen
-static void TransitionToScreen(int screen)
+// Request transition to next screen (callable from any screen Update)
+void TransitionToScreen(GameScreen screen)
 {
+    if (onTransition) return;
+
     onTransition = true;
     transFadeOut = false;
     transFromScreen = currentScreen;
@@ -317,50 +317,14 @@ static void UpdateDrawFrame(void)
 
     if (!onTransition)
     {
-        switch(currentScreen)
+        switch (currentScreen)
         {
-            case TITLE:
-            {
-                UpdateTitleScreen();
-
-                if (FinishTitleScreen() == 1) TransitionToScreen(OPTIONS);
-                else if (FinishTitleScreen() == 2) TransitionToScreen(GAMEPLAY);
-                else if (FinishTitleScreen() == 3) TransitionToScreen(ENDING);
+            case TITLE: UpdateTitleScreen(); break;
+            case OPTIONS: UpdateOptionsScreen(); break;
+            case GAMEPLAY: UpdateGameplayScreen(); break;
+            case ENDING: UpdateEndingScreen(); break;
 #if defined(_DEBUG)
-                else if (FinishTitleScreen() == 4) TransitionToScreen(COVER);
-#endif
-
-            } break;
-            case OPTIONS:
-            {
-                UpdateOptionsScreen();
-
-                if (FinishOptionsScreen()) TransitionToScreen(TITLE);
-
-            } break;
-            case GAMEPLAY:
-            {
-                UpdateGameplayScreen();
-
-                if (FinishGameplayScreen() == 1) TransitionToScreen(ENDING);
-                else if (FinishGameplayScreen() == 2) TransitionToScreen(TITLE);
-
-            } break;
-            case ENDING:
-            {
-                UpdateEndingScreen();
-
-                if (FinishEndingScreen() == 1) TransitionToScreen(TITLE);
-
-            } break;
-#if defined(_DEBUG)
-            case COVER:
-            {
-                UpdateCoverScreen();
-
-                if (FinishCoverScreen() == 1) TransitionToScreen(TITLE);
-
-            } break;
+            case COVER: UpdateCoverScreen(); break;
 #endif
             default: break;
         }

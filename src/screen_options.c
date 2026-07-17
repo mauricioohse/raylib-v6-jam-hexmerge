@@ -30,7 +30,6 @@
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
 static int framesCounter = 0;
-static int finishScreen = 0;
 
 //----------------------------------------------------------------------------------
 // Options Screen Functions Definition
@@ -41,7 +40,6 @@ void InitOptionsScreen(void)
 {
     // TODO: Initialize OPTIONS screen variables here!
     framesCounter = 0;
-    finishScreen = 0;
 }
 
 // Options Screen Update logic
@@ -60,10 +58,4 @@ void DrawOptionsScreen(void)
 void UnloadOptionsScreen(void)
 {
     // TODO: Unload OPTIONS screen variables here!
-}
-
-// Options Screen should finish?
-int FinishOptionsScreen(void)
-{
-    return finishScreen;
 }
