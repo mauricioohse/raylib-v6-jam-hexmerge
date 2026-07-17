@@ -41,16 +41,6 @@
 //----------------------------------------------------------------------------------
 GameScreen currentScreen = TITLE;
 Font font = { 0 };
-Music music = { 0 };
-Music musicStarPower = { 0 };
-Sound fxCoin = { 0 };
-Sound fxFail = { 0 };
-Sound fxPaint = { 0 };
-Sound fxWin = { 0 };
-Sound fxLife = { 0 };
-Sound fxCheckpoint = { 0 };
-Sound fxZoom = { 0 };
-Sound fxBeeZoom = { 0 };
 #define ZOOM_ALIAS_COUNT 4
 static Sound fxZoomAlias[ZOOM_ALIAS_COUNT] = { 0 };
 static int fxZoomAliasIndex = 0;
@@ -96,34 +86,18 @@ int main(void)
 
     HexAssetsLoad();
 
-    // Load global data (assets that must be available in all screens, i.e. font)
     font = LoadFont("resources/mecha.png");
-    music = LoadMusicStream("resources/beehold_theme.wav");
-    music.looping = true;
-    musicStarPower = LoadMusicStream("resources/star_power.wav");
-    fxCoin = LoadSound("resources/coin.wav");
-    fxFail = LoadSound("resources/fail.wav");
-    fxPaint = LoadSound("resources/paint.wav");
-    fxWin = LoadSound("resources/win.wav");
-    fxLife = LoadSound("resources/life.wav");
-    fxCheckpoint = LoadSound("resources/checkpoint.wav");
-    fxZoom = LoadSound("resources/zoom.wav");
-    SetSoundVolume(fxZoom, 0.08f);
     for (int i = 0; i < ZOOM_ALIAS_COUNT; i++)
     {
-        fxZoomAlias[i] = LoadSoundAlias(fxZoom);
+        fxZoomAlias[i] = LoadSoundAlias(assets.fxZoom);
         SetSoundVolume(fxZoomAlias[i], 0.08f);
     }
-    fxBeeZoom = LoadSound("resources/bee_zoom.wav");
-    SetSoundVolume(fxBeeZoom, 0.18f);
     beeAnim = CreateAnimation(assets.bee, 2, 4, 30);
 
     HexSocialInit();
 
     SetMasterVolume((float)volumeLevel/10.0f);
-    SetMusicVolume(music, 0.20f);
-    SetMusicVolume(musicStarPower, 0.55f);
-    PlayMusicStream(music);
+    PlayMusicStream(assets.music);
     SetExitKey(KEY_NULL);       // ESC used for pause menu, not window close
 
     // Setup and init first screen
@@ -161,7 +135,7 @@ void PlayWaspZoom(void)
 
 void PlayBeeZoom(void)
 {
-    PlaySound(fxBeeZoom);
+    PlaySound(assets.fxBeeZoom);
 }
 
 //----------------------------------------------------------------------------------
@@ -282,7 +256,7 @@ static void UpdateDrawFrame(void)
 {
     // Update
     //----------------------------------------------------------------------------------
-    UpdateMusicStream(music);       // NOTE: Music keeps playing between screens
+    UpdateMusicStream(assets.music);       // NOTE: Music keeps playing between screens
 
     if (!onTransition)
     {

@@ -516,38 +516,38 @@ void UpdateCoverScreen(void)
     if (IsKeyPressed(KEY_S))
     {
         pendingSave = COVER_SAVE_PNG;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
     if (IsKeyPressed(KEY_F))
     {
         pendingSave = COVER_SAVE_GIF;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
 
     if (IsKeyPressed(KEY_T))
     {
         showTitle = !showTitle;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
     }
     if (IsKeyPressed(KEY_R))
     {
         showHeroBee = !showHeroBee;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
     }
     if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT))
     {
         gridScale -= COVER_GRID_SCALE_STEP;
         if (gridScale < COVER_GRID_SCALE_MIN) gridScale = COVER_GRID_SCALE_MIN;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
     }
     if (IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD))
     {
         // = is the unshifted + key on US layouts
         gridScale += COVER_GRID_SCALE_STEP;
         if (gridScale > COVER_GRID_SCALE_MAX) gridScale = COVER_GRID_SCALE_MAX;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
     }
 
     for (int key = KEY_ONE; key <= KEY_NINE; key++)
@@ -556,7 +556,7 @@ void UpdateCoverScreen(void)
         {
             currentLevelIndex = key - KEY_ONE;
             LoadCoverLevel();
-            PlaySound(fxCoin);
+            PlaySound(assets.fxCoin);
             return;
         }
     }
@@ -564,7 +564,7 @@ void UpdateCoverScreen(void)
     {
         currentLevelIndex = 9;
         LoadCoverLevel();
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
     if (IsKeyPressed(KEY_COMMA))
@@ -572,25 +572,25 @@ void UpdateCoverScreen(void)
         if (currentLevelIndex > 0) currentLevelIndex--;
         else currentLevelIndex = HexLevelCount() - 1;
         LoadCoverLevel();
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
     if (IsKeyPressed(KEY_PERIOD))
     {
         currentLevelIndex = (currentLevelIndex + 1)%HexLevelCount();
         LoadCoverLevel();
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
     if (IsKeyPressed(KEY_G))
     {
         moveModeRelative = !moveModeRelative;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
     }
     if (IsKeyPressed(KEY_H))
     {
         FillBoardShowcase();
-        PlaySound(fxPaint);
+        PlaySound(assets.fxPaint);
     }
 
     HexBeeInput steer = HEX_BEE_INPUT_NONE;

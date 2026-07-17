@@ -67,16 +67,6 @@ void DrawAnimationTint(Animation* animation, Vector2 position, Color tint);
 //----------------------------------------------------------------------------------
 extern GameScreen currentScreen;
 extern Font font;
-extern Music music;
-extern Music musicStarPower;
-extern Sound fxCoin;
-extern Sound fxFail;
-extern Sound fxPaint;
-extern Sound fxWin;
-extern Sound fxLife;
-extern Sound fxCheckpoint;
-extern Sound fxZoom;
-extern Sound fxBeeZoom;
 extern Animation beeAnim;
 void PlayWaspZoom(void);    // quiet overlapping buzz when a wasp hops
 void PlayBeeZoom(void);     // subtle hop buzz when the bee launches

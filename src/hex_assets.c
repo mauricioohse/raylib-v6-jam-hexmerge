@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   Beehold - Global texture bag
+*   Beehold - Global asset bag (textures + audio)
 *
 **********************************************************************************************/
 
@@ -14,6 +14,7 @@ void HexAssetsLoad(void)
 {
     memset(&assets, 0, sizeof(assets));
 
+    //---- Textures ----
     assets.hexfield = LoadTexture("resources/hexfield.png");
     assets.hexpond = LoadTexture("resources/hexpond.png");
     assets.wasp = LoadTexture("resources/wasp.png");
@@ -42,4 +43,23 @@ void HexAssetsLoad(void)
     SetTextureFilter(assets.iconDiscord, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(assets.iconX, TEXTURE_FILTER_BILINEAR);
     SetTextureFilter(assets.iconTwitch, TEXTURE_FILTER_BILINEAR);
+
+    //---- Audio ----
+    assets.music = LoadMusicStream("resources/beehold_theme.wav");
+    assets.music.looping = true;
+    assets.musicStarPower = LoadMusicStream("resources/star_power.wav");
+
+    assets.fxCoin = LoadSound("resources/coin.wav");
+    assets.fxFail = LoadSound("resources/fail.wav");
+    assets.fxPaint = LoadSound("resources/paint.wav");
+    assets.fxWin = LoadSound("resources/win.wav");
+    assets.fxLife = LoadSound("resources/life.wav");
+    assets.fxCheckpoint = LoadSound("resources/checkpoint.wav");
+    assets.fxZoom = LoadSound("resources/zoom.wav");
+    SetSoundVolume(assets.fxZoom, 0.08f);
+    assets.fxBeeZoom = LoadSound("resources/bee_zoom.wav");
+    SetSoundVolume(assets.fxBeeZoom, 0.18f);
+
+    SetMusicVolume(assets.music, 0.20f);
+    SetMusicVolume(assets.musicStarPower, 0.55f);
 }

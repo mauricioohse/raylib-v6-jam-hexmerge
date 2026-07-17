@@ -110,7 +110,7 @@ static void TrySubmitName(void)
     // Keep current table visible; quiet-refetch after a short delay, then every 3s
     pollFrames = 0;
     refetchDelayFrames = GLOBAL_REFETCH_DELAY_FRAMES;
-    PlaySound(fxCoin);
+    PlaySound(assets.fxCoin);
 }
 
 static void DrawGlobalBoard(int sw, int sh)
@@ -256,13 +256,13 @@ void UpdateEndingScreen(void)
 
     if (HexSocialUpdate())
     {
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
 
     if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
     {
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         TransitionToScreen(TITLE);
     }
 }

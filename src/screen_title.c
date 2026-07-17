@@ -284,21 +284,21 @@ void UpdateTitleScreen(void)
 
     if (HexSocialUpdate())
     {
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
 
     if (Clicked(moveBtn))
     {
         controllerMode = !controllerMode;   // toggle WASD ↔ A/D
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
 
     if (Clicked(startBtn) || IsKeyPressed(KEY_ENTER))
     {
         endingFromMenu = false;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         TransitionToScreen(GAMEPLAY);
         return;
     }
@@ -306,7 +306,7 @@ void UpdateTitleScreen(void)
     if (Clicked(scoresBtn))
     {
         endingFromMenu = true;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         TransitionToScreen(ENDING);
         return;
     }
@@ -314,7 +314,7 @@ void UpdateTitleScreen(void)
 #if defined(_DEBUG)
     if (IsKeyPressed(KEY_Y))
     {
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         TransitionToScreen(COVER);
         return;
     }
@@ -326,7 +326,7 @@ void UpdateTitleScreen(void)
         {
             volumeLevel--;
             ApplyVolume();
-            PlaySound(fxCoin);
+            PlaySound(assets.fxCoin);
         }
     }
     else if (Clicked(volUpBtn) || IsKeyPressed(KEY_RIGHT))
@@ -335,7 +335,7 @@ void UpdateTitleScreen(void)
         {
             volumeLevel++;
             ApplyVolume();
-            PlaySound(fxCoin);
+            PlaySound(assets.fxCoin);
         }
     }
 }

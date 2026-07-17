@@ -130,13 +130,13 @@ static void SetGamePaused(bool paused)
     gamePaused = paused;
     if (paused)
     {
-        PauseMusicStream(music);
-        if (starMusicPlaying) PauseMusicStream(musicStarPower);
+        PauseMusicStream(assets.music);
+        if (starMusicPlaying) PauseMusicStream(assets.musicStarPower);
     }
     else
     {
-        if (starMusicPlaying) ResumeMusicStream(musicStarPower);
-        else ResumeMusicStream(music);
+        if (starMusicPlaying) ResumeMusicStream(assets.musicStarPower);
+        else ResumeMusicStream(assets.music);
     }
 }
 
@@ -199,9 +199,9 @@ static void StopStarMusic(void)
 {
     if (starMusicPlaying)
     {
-        StopMusicStream(musicStarPower);
+        StopMusicStream(assets.musicStarPower);
         starMusicPlaying = false;
-        if (!gamePaused) ResumeMusicStream(music);
+        if (!gamePaused) ResumeMusicStream(assets.music);
     }
 }
 
@@ -211,12 +211,12 @@ static void SyncStarMusic(bool powered)
     {
         if (!starMusicPlaying)
         {
-            PauseMusicStream(music);
-            musicStarPower.looping = true;
-            PlayMusicStream(musicStarPower);
+            PauseMusicStream(assets.music);
+            assets.musicStarPower.looping = true;
+            PlayMusicStream(assets.musicStarPower);
             starMusicPlaying = true;
         }
-        UpdateMusicStream(musicStarPower);
+        UpdateMusicStream(assets.musicStarPower);
     }
     else
     {
@@ -295,7 +295,7 @@ static void TryActivateCheckpoint(void)
     if (currentLevelIndex < checkpointLevel) return;
 
     checkpointLevel = currentLevelIndex;
-    PlaySound(fxCheckpoint);
+    PlaySound(assets.fxCheckpoint);
     checkpointBannerTimer = 2.0f;
 }
 
@@ -334,7 +334,7 @@ static void FinishRun(bool won)
     }
 
     endingFromMenu = false;
-    PlaySound(won? fxWin : fxLife);
+    PlaySound(won? assets.fxWin : assets.fxLife);
     TransitionToScreen(ENDING);
 }
 
@@ -351,7 +351,7 @@ static void BeginLevelClear(bool isFinal)
 
     if (!isFinal) lives = PLAYER_MAX_LIVES;
 
-    PlaySound(fxWin);
+    PlaySound(assets.fxWin);
 }
 
 static void EndLevelClear(void)
@@ -388,7 +388,7 @@ static bool ApplyDamage(void)
     levelTookDamage = true;
 
     lives--;
-    PlaySound(fxLife);
+    PlaySound(assets.fxLife);
 
     if (lives <= 0)
     {
@@ -446,7 +446,7 @@ void InitGameplayScreen(void)
     levelClearTimer = 0.0f;
     runActive = true;
     ResetRunStats();
-    SetMusicPitch(music, 1.0f);
+    SetMusicPitch(assets.music, 1.0f);
 
     LayoutPauseMenu();
     HexBackgroundInit(&fallBg, assets.hexfield, HEX_BG_GAMEPLAY);
@@ -462,7 +462,7 @@ void UpdateGameplayScreen(void)
     if (!levelClearActive && (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P)))
     {
         SetGamePaused(!gamePaused);
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
     }
 
     if (gamePaused)
@@ -473,7 +473,7 @@ void UpdateGameplayScreen(void)
             StopStarMusic();
             runActive = false;
             levelClearActive = false;
-            PlaySound(fxCoin);
+            PlaySound(assets.fxCoin);
             TransitionToScreen(TITLE);
             return;
         }
@@ -484,7 +484,7 @@ void UpdateGameplayScreen(void)
             {
                 volumeLevel--;
                 ApplyVolume();
-                PlaySound(fxCoin);
+                PlaySound(assets.fxCoin);
             }
         }
         else if (Clicked(pauseVolUpBtn) || IsKeyPressed(KEY_RIGHT))
@@ -493,7 +493,7 @@ void UpdateGameplayScreen(void)
             {
                 volumeLevel++;
                 ApplyVolume();
-                PlaySound(fxCoin);
+                PlaySound(assets.fxCoin);
             }
         }
         return;
@@ -544,7 +544,7 @@ void UpdateGameplayScreen(void)
             ResetRunStats();
             LoadCurrentLevel(true, true);
             TryActivateCheckpoint();
-            PlaySound(fxCoin);
+            PlaySound(assets.fxCoin);
             return;
         }
     }
@@ -556,7 +556,7 @@ void UpdateGameplayScreen(void)
         ResetRunStats();
         LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
     // < / , previous   > / . next
@@ -569,7 +569,7 @@ void UpdateGameplayScreen(void)
         ResetRunStats();
         LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
     if (IsKeyPressed(KEY_PERIOD))
@@ -580,13 +580,13 @@ void UpdateGameplayScreen(void)
         ResetRunStats();
         LoadCurrentLevel(true, true);
         TryActivateCheckpoint();
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
         return;
     }
     if (IsKeyPressed(KEY_G))
     {
         moveModeRelative = !moveModeRelative;
-        PlaySound(fxCoin);
+        PlaySound(assets.fxCoin);
     }
     if (IsKeyPressed(KEY_H))
     {
@@ -607,7 +607,7 @@ void UpdateGameplayScreen(void)
             level.flowers.flowers[i].animTimer = 0.0f;
         }
         levelPaused = false;
-        PlaySound(fxPaint);
+        PlaySound(assets.fxPaint);
     }
 #endif
 
@@ -654,14 +654,14 @@ void UpdateGameplayScreen(void)
     if (runActive) levelTimer += dt;
 
     int filled = HexLevelUpdate(&level, dt);
-    if (filled == HEX_TRAIL_TWIN_FAIL) PlaySound(fxFail);
+    if (filled == HEX_TRAIL_TWIN_FAIL) PlaySound(assets.fxFail);
     else if (filled == HEX_TRAIL_FIRE_FAIL)
     {
-        PlaySound(fxFail);
+        PlaySound(assets.fxFail);
         fireFailDelay = 0.55f;   // match twin failShake duration
         return;
     }
-    else if (filled > 0) PlaySound(fxPaint);
+    else if (filled > 0) PlaySound(assets.fxPaint);
 
     SyncStarMusic(HexLevelStarPowered(&level));
 
@@ -827,6 +827,6 @@ void UnloadGameplayScreen(void)
 {
     StopStarMusic();
     gamePaused = false;
-    SetMusicPitch(music, 1.0f);
-    ResumeMusicStream(music);
+    SetMusicPitch(assets.music, 1.0f);
+    ResumeMusicStream(assets.music);
 }

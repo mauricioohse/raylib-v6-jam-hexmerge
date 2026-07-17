@@ -1,6 +1,6 @@
 /**********************************************************************************************
 *
-*   Beehold - Global texture bag (loaded once at startup)
+*   Beehold - Global asset bag (textures + audio, loaded once at startup)
 *
 **********************************************************************************************/
 
@@ -11,6 +11,7 @@
 
 typedef struct HexAssets
 {
+    // Textures
     Texture2D hexfield;
     Texture2D hexpond;
     Texture2D wasp;
@@ -26,11 +27,25 @@ typedef struct HexAssets
     Texture2D iconDiscord;
     Texture2D iconX;
     Texture2D iconTwitch;
+
+    // Music
+    Music music;
+    Music musicStarPower;
+
+    // SFX
+    Sound fxCoin;
+    Sound fxFail;
+    Sound fxPaint;
+    Sound fxWin;
+    Sound fxLife;
+    Sound fxCheckpoint;
+    Sound fxZoom;
+    Sound fxBeeZoom;
 } HexAssets;
 
 extern HexAssets assets;
 
-// Load every game texture once. Call after InitWindow.
+// Load every game texture + audio once. Call after InitWindow / InitAudioDevice.
 void HexAssetsLoad(void);
 
 #endif // HEX_ASSETS_H
