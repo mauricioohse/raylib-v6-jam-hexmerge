@@ -9,6 +9,7 @@
 **********************************************************************************************/
 
 #include "hex_grid.h"
+#include "hex_assets.h"
 
 #include <math.h>
 #include <string.h>
@@ -117,7 +118,7 @@ static int GetOrCreateEdge(HexGrid *grid, int va, int vb, int face)
     return index;
 }
 
-void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, Texture2D pondTexture, int radius)
+void HexGridInit(HexGrid *grid, Vector2 origin, int radius)
 {
     memset(grid, 0, sizeof(*grid));
     if (radius < 1) radius = 1;
@@ -125,8 +126,6 @@ void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, Texture2D 
     grid->radius = radius;
     grid->size = HEX_SIZE;
     grid->origin = origin;
-    grid->hexTexture = hexTexture;
-    grid->pondTexture = pondTexture;
 
     int vmap[VMAP_DIM][VMAP_DIM][2];
     memset(vmap, -1, sizeof(vmap));
@@ -213,12 +212,12 @@ void HexGridDraw(const HexGrid *grid)
             c.y += cosf(GetTime()*48.0 + (double)i*1.7)*shake*0.7f;
         }
 
-        Texture2D tex = grid->hexTexture;
+        Texture2D tex = assets.hexfield;
         Color tint = WHITE;
 
-        if (face->kind == HEX_FACE_WATER && grid->pondTexture.id != 0)
+        if (face->kind == HEX_FACE_WATER && assets.hexpond.id != 0)
         {
-            tex = grid->pondTexture;
+            tex = assets.hexpond;
             tint = face->filled? HEX_POND_FILLED : WHITE;
         }
         else if (face->starJail)
@@ -257,12 +256,12 @@ void HexGridDraw(const HexGrid *grid)
     }
 }
 
-void HexGridDrawFire(const HexGrid *grid, Texture2D fireTexture)
+void HexGridDrawFire(const HexGrid *grid)
 {
-    if (fireTexture.id == 0) return;
+    if (assets.fire.id == 0) return;
 
-    float frameW = (float)fireTexture.width;
-    float frameH = (float)fireTexture.height/(float)FIRE_FRAME_COUNT;
+    float frameW = (float)assets.fire.width;
+    float frameH = (float)assets.fire.height/(float)FIRE_FRAME_COUNT;
 
     // Three flames: main center + two smaller side flickers, phase-offset for variety
     static const struct { float ox; float oy; float scale; int frameOff; } FLAMES[FIRE_FLAME_COUNT] = {
@@ -305,7 +304,7 @@ void HexGridDrawFire(const HexGrid *grid, Texture2D fireTexture)
                     255
                 };
             }
-            DrawTexturePro(fireTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
+            DrawTexturePro(assets.fire, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
         }
     }
 }

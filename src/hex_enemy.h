@@ -68,7 +68,7 @@ bool HexEnemyUpdate(HexEnemy *enemy, const HexGrid *grid, Vector2 beePos, float 
 void HexEnemySendToJail(HexEnemy *enemy, const HexGrid *grid, int jailFace);
 
 Vector2 HexEnemyPosition(const HexEnemy *enemy, const HexGrid *grid);
-void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture, bool starPower);
+void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, bool starPower);
 
 // Touch check against a point (the bee). Jailed wasps never count as a hit.
 bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, float radius);

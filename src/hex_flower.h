@@ -48,14 +48,11 @@ typedef struct HexFlowerField
 {
     HexFlower flowers[HEX_FLOWER_MAX];
     int count;
-    Texture2D texture;
-    Texture2D bubbleTexture;
     float bubbleTime;
 } HexFlowerField;
 
 // faces[i] / twinPairs[i] describe each seed (twinPairs may be NULL => all normal).
-void HexFlowerFieldInit(HexFlowerField *field, Texture2D texture, Texture2D bubbleTexture,
-                        const int *faces, const int *twinPairs, int faceCount);
+void HexFlowerFieldInit(HexFlowerField *field, const int *faces, const int *twinPairs, int faceCount);
 
 // After faces are filled: start sprouting any seed whose face is now filled.
 void HexFlowerFieldOnFill(HexFlowerField *field, const HexGrid *grid);

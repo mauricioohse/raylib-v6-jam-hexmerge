@@ -78,8 +78,6 @@ typedef struct HexGrid
     int radius;
     float size;
     Vector2 origin;
-    Texture2D hexTexture;
-    Texture2D pondTexture;  // dedicated water/pond face art
 } HexGrid;
 
 typedef enum HexBeeInput
@@ -108,10 +106,10 @@ typedef struct HexBee
     int arrivalCount;
 } HexBee;
 
-void HexGridInit(HexGrid *grid, Vector2 origin, Texture2D hexTexture, Texture2D pondTexture, int radius);
+void HexGridInit(HexGrid *grid, Vector2 origin, int radius);
 void HexGridUpdate(HexGrid *grid, float dt);
 void HexGridDraw(const HexGrid *grid);
-void HexGridDrawFire(const HexGrid *grid, Texture2D fireTexture);
+void HexGridDrawFire(const HexGrid *grid);
 
 int HexEdgeOtherVertex(const HexGrid *grid, int edge, int vertex);
 float HexEdgeLength(const HexGrid *grid, int edge);

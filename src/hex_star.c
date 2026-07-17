@@ -5,15 +5,15 @@
 **********************************************************************************************/
 
 #include "hex_star.h"
+#include "hex_assets.h"
 
 #include <string.h>
 
 #define STAR_FRAME_TIME 0.12f
 
-void HexStarFieldInit(HexStarField *field, Texture2D texture, const int *faces, int faceCount)
+void HexStarFieldInit(HexStarField *field, const int *faces, int faceCount)
 {
     memset(field, 0, sizeof(*field));
-    field->texture = texture;
 
     for (int i = 0; i < faceCount; i++)
     {
@@ -83,10 +83,10 @@ bool HexStarFieldTryCollect(HexStarField *field, const HexGrid *grid, int beeEdg
 
 void HexStarFieldDraw(const HexStarField *field, const HexGrid *grid)
 {
-    if ((field == NULL) || (grid == NULL) || (field->texture.id == 0)) return;
+    if ((field == NULL) || (grid == NULL) || (assets.star.id == 0)) return;
 
-    float frameW = (float)field->texture.width;
-    float frameH = (float)field->texture.height/(float)HEX_STAR_FRAME_COUNT;
+    float frameW = (float)assets.star.width;
+    float frameH = (float)assets.star.height/(float)HEX_STAR_FRAME_COUNT;
     float drawW = frameW*HEX_STAR_SCALE;
     float drawH = frameH*HEX_STAR_SCALE;
 
@@ -99,7 +99,7 @@ void HexStarFieldDraw(const HexStarField *field, const HexGrid *grid)
         Vector2 c = grid->faces[s->face].center;
         Rectangle src = { 0, frameH*(float)s->animFrame, frameW, frameH };
         Rectangle dst = { c.x - drawW*0.5f, c.y - drawH*0.5f, drawW, drawH };
-        DrawTexturePro(field->texture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+        DrawTexturePro(assets.star, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
     }
 }
 

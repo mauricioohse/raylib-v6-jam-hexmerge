@@ -88,8 +88,7 @@ static void DrawCoverArt(int canvasW, int canvasH);
 //----------------------------------------------------------------------------------
 static void LoadCoverLevel(void)
 {
-    HexLevelLoad(&level, currentLevelIndex, assets.hexfield, assets.hexpond,
-                 assets.flower, assets.bubbles, assets.star, COVER_BEE_SPEED);
+    HexLevelLoad(&level, currentLevelIndex, COVER_BEE_SPEED);
     levelPaused = true;
     coverBeeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
 }
@@ -122,12 +121,12 @@ static void DrawCoverGrid(const HexGrid *grid)
         const HexFace *face = &grid->faces[i];
         Vector2 c = face->center;
 
-        Texture2D tex = grid->hexTexture;
+        Texture2D tex = assets.hexfield;
         Color tint = WHITE;
 
-        if (face->kind == HEX_FACE_WATER && grid->pondTexture.id != 0)
+        if (face->kind == HEX_FACE_WATER && assets.hexpond.id != 0)
         {
-            tex = grid->pondTexture;
+            tex = assets.hexpond;
             tint = face->filled? (Color){ 255, 240, 160, 255 } : WHITE;
         }
         else if (face->starJail)
@@ -155,14 +154,14 @@ static void DrawCoverGrid(const HexGrid *grid)
 static void DrawCoverLevel(void)
 {
     DrawCoverGrid(&level.grid);
-    HexGridDrawFire(&level.grid, assets.fire);
+    HexGridDrawFire(&level.grid);
     HexBeeDrawLiveTrail(&level.bee, &level.grid);
     HexFlowerFieldDraw(&level.flowers, &level.grid);
     HexStarFieldDraw(&level.stars, &level.grid);
 
     bool powered = HexLevelStarPowered(&level);
     for (int i = 0; i < level.enemyCount; i++)
-        HexEnemyDraw(&level.enemies[i], &level.grid, assets.wasp, powered);
+        HexEnemyDraw(&level.enemies[i], &level.grid, powered);
 }
 
 static void DrawCoverTitle(int canvasW, int canvasH)

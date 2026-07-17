@@ -302,8 +302,7 @@ static void TryActivateCheckpoint(void)
 static void LoadCurrentLevel(bool resetDeaths, bool resetTimer)
 {
     StopStarMusic();
-    HexLevelLoad(&level, currentLevelIndex, assets.hexfield, assets.hexpond,
-                 assets.flower, assets.bubbles, assets.star, BEE_SPEED);
+    HexLevelLoad(&level, currentLevelIndex, BEE_SPEED);
     levelPaused = true;
     if (resetTimer) levelTimer = 0.0f;
     if (resetDeaths) levelDeaths = 0;
@@ -695,7 +694,7 @@ void DrawGameplayScreen(void)
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
     HexBackgroundDraw(&fallBg);
 
-    HexLevelDraw(&level, assets.wasp, assets.fire);
+    HexLevelDraw(&level);
 
     Vector2 beePos = HexBeePosition(&level.bee, &level.grid);
     if (HexLevelStarPowered(&level))

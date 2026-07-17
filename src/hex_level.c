@@ -491,9 +491,7 @@ static int FaceLeftmostVertex(const HexGrid *grid, int face)
     return best;
 }
 
-void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D pondTexture,
-                  Texture2D flowerTexture, Texture2D bubbleTexture, Texture2D starTexture,
-                  float beeSpeed)
+void HexLevelLoad(HexLevel *level, int index, float beeSpeed)
 {
     memset(level, 0, sizeof(*level));
     if (index < 0) index = 0;
@@ -504,7 +502,7 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
     level->jailFace = -1;
 
     Vector2 origin = { (float)GetScreenWidth()*0.5f, (float)GetScreenHeight()*0.5f };
-    HexGridInit(&level->grid, origin, hexTexture, pondTexture, level->def->radius);
+    HexGridInit(&level->grid, origin, level->def->radius);
 
     int beeFace = HexFindFace(&level->grid, level->def->beeStart.q, level->def->beeStart.r);
     int startVertex = FaceLeftmostVertex(&level->grid, beeFace);
@@ -546,7 +544,7 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
             seedCount++;
         }
     }
-    HexFlowerFieldInit(&level->flowers, flowerTexture, bubbleTexture, seedFaces, twinPairs, seedCount);
+    HexFlowerFieldInit(&level->flowers, seedFaces, twinPairs, seedCount);
 
     int starFaces[HEX_LEVEL_MAX_STARS] = { 0 };
     int starCount = 0;
@@ -556,7 +554,7 @@ void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D po
         if (face < 0) continue;
         starFaces[starCount++] = face;
     }
-    HexStarFieldInit(&level->stars, starTexture, starFaces, starCount);
+    HexStarFieldInit(&level->stars, starFaces, starCount);
 
     if (starCount > 0)
     {
@@ -682,10 +680,10 @@ bool HexLevelStarPowered(const HexLevel *level)
     return HexStarFieldPowered(&level->stars);
 }
 
-void HexLevelDraw(const HexLevel *level, Texture2D waspTexture, Texture2D fireTexture)
+void HexLevelDraw(const HexLevel *level)
 {
     HexGridDraw(&level->grid);
-    HexGridDrawFire(&level->grid, fireTexture);
+    HexGridDrawFire(&level->grid);
     HexBeeDrawLiveTrail(&level->bee, &level->grid);
     HexFlowerFieldDraw(&level->flowers, &level->grid);
     HexStarFieldDraw(&level->stars, &level->grid);
@@ -706,7 +704,7 @@ void HexLevelDraw(const HexLevel *level, Texture2D waspTexture, Texture2D fireTe
     bool powered = HexStarFieldPowered(&level->stars);
     for (int i = 0; i < level->enemyCount; i++)
     {
-        HexEnemyDraw(&level->enemies[i], &level->grid, waspTexture, powered);
+        HexEnemyDraw(&level->enemies[i], &level->grid, powered);
     }
 }
 

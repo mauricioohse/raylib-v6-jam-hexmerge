@@ -77,9 +77,7 @@ typedef struct HexLevel
 const HexLevelDef *HexLevelGetDef(int index);
 int HexLevelCount(void);
 
-void HexLevelLoad(HexLevel *level, int index, Texture2D hexTexture, Texture2D pondTexture,
-                  Texture2D flowerTexture, Texture2D bubbleTexture, Texture2D starTexture,
-                  float beeSpeed);
+void HexLevelLoad(HexLevel *level, int index, float beeSpeed);
 
 // Soft death: keep filled faces / flower progress / collected stars; clear wet trail,
 // respawn bee at start, and re-place enemies. powerTimer is cleared.
@@ -87,7 +85,7 @@ void HexLevelRespawnKeepProgress(HexLevel *level, float beeSpeed);
 
 // Returns faces filled this frame, HEX_TRAIL_TWIN_FAIL, or HEX_TRAIL_FIRE_FAIL.
 int HexLevelUpdate(HexLevel *level, float dt);
-void HexLevelDraw(const HexLevel *level, Texture2D waspTexture, Texture2D fireTexture);
+void HexLevelDraw(const HexLevel *level);
 bool HexLevelWon(const HexLevel *level);
 bool HexLevelBeeHit(const HexLevel *level, float hitRadius);
 bool HexLevelStarPowered(const HexLevel *level);

@@ -33,11 +33,10 @@ typedef struct HexStarField
 {
     HexStar stars[HEX_STAR_MAX];
     int count;
-    Texture2D texture;
     float powerTimer;       // >0 while bee is star-powered
 } HexStarField;
 
-void HexStarFieldInit(HexStarField *field, Texture2D texture, const int *faces, int faceCount);
+void HexStarFieldInit(HexStarField *field, const int *faces, int faceCount);
 void HexStarFieldUpdate(HexStarField *field, float dt);
 
 // If bee is on an edge of an uncollected star face, collect it and start/refresh power.

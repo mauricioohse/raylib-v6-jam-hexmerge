@@ -5,6 +5,7 @@
 **********************************************************************************************/
 
 #include "hex_flower.h"
+#include "hex_assets.h"
 
 #include <math.h>
 #include <string.h>
@@ -25,12 +26,9 @@ int HexFindFace(const HexGrid *grid, int q, int r)
     return -1;
 }
 
-void HexFlowerFieldInit(HexFlowerField *field, Texture2D texture, Texture2D bubbleTexture,
-                        const int *faces, const int *twinPairs, int faceCount)
+void HexFlowerFieldInit(HexFlowerField *field, const int *faces, const int *twinPairs, int faceCount)
 {
     memset(field, 0, sizeof(*field));
-    field->texture = texture;
-    field->bubbleTexture = bubbleTexture;
 
     for (int i = 0; i < faceCount; i++)
     {
@@ -183,7 +181,7 @@ bool HexFlowerTwinsAllowFill(const HexFlowerField *field, const HexGrid *grid, c
 //----------------------------------------------------------------------------------
 static void DrawBubbleTrail(const HexFlowerField *field, const HexGrid *grid, int faceA, int faceB)
 {
-    if (field->bubbleTexture.id == 0) return;
+    if (assets.bubbles.id == 0) return;
     if ((faceA < 0) || (faceB < 0) || (faceA >= grid->faceCount) || (faceB >= grid->faceCount)) return;
 
     Vector2 a = grid->faces[faceA].center;
@@ -193,8 +191,8 @@ static void DrawBubbleTrail(const HexFlowerField *field, const HexGrid *grid, in
     float len = sqrtf(dx*dx + dy*dy);
     if (len < 1.0f) return;
 
-    float frameW = (float)field->bubbleTexture.width;
-    float frameH = (float)field->bubbleTexture.height/(float)HEX_BUBBLE_FRAME_COUNT;
+    float frameW = (float)assets.bubbles.width;
+    float frameH = (float)assets.bubbles.height/(float)HEX_BUBBLE_FRAME_COUNT;
     float t = field->bubbleTime;
 
     int steps = (int)(len/14.0f);
@@ -220,7 +218,7 @@ static void DrawBubbleTrail(const HexFlowerField *field, const HexGrid *grid, in
 
         Rectangle src = { 0, frameH*(float)frame, frameW, frameH };
         Rectangle dst = { px - drawW*0.5f, py - drawH*0.5f, drawW, drawH };
-        DrawTexturePro(field->bubbleTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+        DrawTexturePro(assets.bubbles, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
     }
 }
 
@@ -247,10 +245,10 @@ void HexFlowerFieldDraw(const HexFlowerField *field, const HexGrid *grid)
         if (faceB >= 0) DrawBubbleTrail(field, grid, faceA, faceB);
     }
 
-    if (field->texture.id == 0) return;
+    if (assets.flower.id == 0) return;
 
-    float frameW = (float)field->texture.width;
-    float frameH = (float)field->texture.height/(float)HEX_FLOWER_FRAME_COUNT;
+    float frameW = (float)assets.flower.width;
+    float frameH = (float)assets.flower.height/(float)HEX_FLOWER_FRAME_COUNT;
     float drawW = frameW*HEX_FLOWER_SCALE;
     float drawH = frameH*HEX_FLOWER_SCALE;
 
@@ -281,7 +279,7 @@ void HexFlowerFieldDraw(const HexFlowerField *field, const HexGrid *grid)
                 255
             };
         }
-        DrawTexturePro(field->texture, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
+        DrawTexturePro(assets.flower, src, dst, (Vector2){ 0, 0 }, 0.0f, tint);
     }
 }
 

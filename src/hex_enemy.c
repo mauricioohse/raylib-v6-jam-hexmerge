@@ -5,6 +5,7 @@
 **********************************************************************************************/
 
 #include "hex_enemy.h"
+#include "hex_assets.h"
 
 #include <math.h>
 #include <string.h>
@@ -291,12 +292,12 @@ Vector2 HexEnemyPosition(const HexEnemy *enemy, const HexGrid *grid)
     return HexEdgePoint(grid, enemy->edge, enemy->fromVertex, enemy->t);
 }
 
-void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture, bool starPower)
+void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, bool starPower)
 {
     Vector2 pos = HexEnemyPosition(enemy, grid);
 
-    float frameW = (float)texture.width;
-    float frameH = (float)texture.height/(float)ENEMY_FRAME_COUNT;
+    float frameW = (float)assets.wasp.width;
+    float frameH = (float)assets.wasp.height/(float)ENEMY_FRAME_COUNT;
     Rectangle src = { 0, frameH*(float)enemy->animFrame, frameW, frameH };
     Rectangle dst = { pos.x, pos.y, frameW*ENEMY_SCALE, frameH*ENEMY_SCALE };
     Vector2 origin = { dst.width*0.5f, dst.height*0.5f };
@@ -311,7 +312,7 @@ void HexEnemyDraw(const HexEnemy *enemy, const HexGrid *grid, Texture2D texture,
     if (enemy->jailTimer > 0.0f) tint = ENEMY_JAIL_TINT;
     else if (starPower) tint = ENEMY_FLEE_TINT;
 
-    DrawTexturePro(texture, src, dst, origin, rotation, tint);
+    DrawTexturePro(assets.wasp, src, dst, origin, rotation, tint);
 }
 
 bool HexEnemyTouches(const HexEnemy *enemy, const HexGrid *grid, Vector2 pos, float radius)
