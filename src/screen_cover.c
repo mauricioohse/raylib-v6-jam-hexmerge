@@ -16,6 +16,7 @@
 #include "hex_level.h"
 #include "hex_background.h"
 #include "hex_trail.h"
+#include "hex_assets.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -67,14 +68,6 @@ typedef enum CoverSaveKind
 //----------------------------------------------------------------------------------
 static HexLevel level = { 0 };
 static int currentLevelIndex = COVER_DEFAULT_LEVEL;
-static Texture2D hexTexture = { 0 };
-static Texture2D pondTexture = { 0 };
-static Texture2D waspTexture = { 0 };
-static Texture2D flowerTexture = { 0 };
-static Texture2D bubbleTexture = { 0 };
-static Texture2D starTexture = { 0 };
-static Texture2D fireTexture = { 0 };
-static Texture2D fallHexTexture = { 0 };
 static HexBackground fallBg = { 0 };
 static Animation coverBeeAnim = { 0 };
 static bool moveModeRelative = true;   // A/D so S is free for save
@@ -95,8 +88,8 @@ static void DrawCoverArt(int canvasW, int canvasH);
 //----------------------------------------------------------------------------------
 static void LoadCoverLevel(void)
 {
-    HexLevelLoad(&level, currentLevelIndex, hexTexture, pondTexture,
-                 flowerTexture, bubbleTexture, starTexture, COVER_BEE_SPEED);
+    HexLevelLoad(&level, currentLevelIndex, assets.hexfield, assets.hexpond,
+                 assets.flower, assets.bubbles, assets.star, COVER_BEE_SPEED);
     levelPaused = true;
     coverBeeAnim.rotation = HexBeeRotationDeg(&level.bee, &level.grid);
 }
@@ -162,14 +155,14 @@ static void DrawCoverGrid(const HexGrid *grid)
 static void DrawCoverLevel(void)
 {
     DrawCoverGrid(&level.grid);
-    HexGridDrawFire(&level.grid, fireTexture);
+    HexGridDrawFire(&level.grid, assets.fire);
     HexBeeDrawLiveTrail(&level.bee, &level.grid);
     HexFlowerFieldDraw(&level.flowers, &level.grid);
     HexStarFieldDraw(&level.stars, &level.grid);
 
     bool powered = HexLevelStarPowered(&level);
     for (int i = 0; i < level.enemyCount; i++)
-        HexEnemyDraw(&level.enemies[i], &level.grid, waspTexture, powered);
+        HexEnemyDraw(&level.enemies[i], &level.grid, assets.wasp, powered);
 }
 
 static void DrawCoverTitle(int canvasW, int canvasH)
@@ -234,7 +227,7 @@ static void DrawHeroBee(int canvasW, int canvasH)
 
 static void DrawCornerWasps(int canvasW, int canvasH)
 {
-    if (waspTexture.id == 0) return;
+    if (assets.wasp.id == 0) return;
 
     Vector2 target = HeroBeeCenter(canvasW, canvasH);
 
@@ -252,8 +245,8 @@ static void DrawCornerWasps(int canvasW, int canvasH)
         { (float)canvasW - m, cropBot - m },
     };
 
-    float frameW = (float)waspTexture.width;
-    float frameH = (float)waspTexture.height/(float)COVER_WASP_FRAMES;
+    float frameW = (float)assets.wasp.width;
+    float frameH = (float)assets.wasp.height/(float)COVER_WASP_FRAMES;
     float drawW = frameW*COVER_WASP_SCALE;
     float drawH = frameH*COVER_WASP_SCALE;
 
@@ -269,7 +262,7 @@ static void DrawCornerWasps(int canvasW, int canvasH)
         Rectangle src = { 0, frameH*(float)frame, frameW, frameH };
         Rectangle dst = { pos.x, pos.y, drawW, drawH };
         Vector2 origin = { drawW*0.5f, drawH*0.5f };
-        DrawTexturePro(waspTexture, src, dst, origin, rotation, COVER_WASP_TINT);
+        DrawTexturePro(assets.wasp, src, dst, origin, rotation, COVER_WASP_TINT);
     }
 }
 
@@ -496,20 +489,8 @@ void InitCoverScreen(void)
     heroFrameOverride = -1;
     gridScale = COVER_GRID_SCALE_DEFAULT;
 
-    hexTexture = LoadTexture("resources/hexfield.png");
-    pondTexture = LoadTexture("resources/hexpond.png");
-    waspTexture = LoadTexture("resources/wasp.png");
-    flowerTexture = LoadTexture("resources/flower.png");
-    bubbleTexture = LoadTexture("resources/bubbles.png");
-    starTexture = LoadTexture("resources/star.png");
-    fireTexture = LoadTexture("resources/fire.png");
-    fallHexTexture = LoadTexture("resources/hexfield.png");
-    SetTextureFilter(waspTexture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(flowerTexture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(starTexture, TEXTURE_FILTER_POINT);
-
-    HexBackgroundInit(&fallBg, fallHexTexture, HEX_BG_TITLE);
-    coverBeeAnim = CreateAnimation("resources/bee.png", 2.0f, 4, 30);
+    HexBackgroundInit(&fallBg, assets.hexfield, HEX_BG_TITLE);
+    coverBeeAnim = CreateAnimation(assets.bee, 2.0f, 4, 30);
 
     LoadCoverLevel();
 }
@@ -676,24 +657,6 @@ void DrawCoverScreen(void)
 
 void UnloadCoverScreen(void)
 {
-    UnloadTexture(hexTexture);
-    UnloadTexture(pondTexture);
-    UnloadTexture(waspTexture);
-    UnloadTexture(flowerTexture);
-    UnloadTexture(bubbleTexture);
-    UnloadTexture(starTexture);
-    UnloadTexture(fireTexture);
-    UnloadTexture(fallHexTexture);
-    UnloadTexture(coverBeeAnim.text);
-    hexTexture = (Texture2D){ 0 };
-    pondTexture = (Texture2D){ 0 };
-    waspTexture = (Texture2D){ 0 };
-    flowerTexture = (Texture2D){ 0 };
-    bubbleTexture = (Texture2D){ 0 };
-    starTexture = (Texture2D){ 0 };
-    fireTexture = (Texture2D){ 0 };
-    fallHexTexture = (Texture2D){ 0 };
-    coverBeeAnim.text = (Texture2D){ 0 };
 }
 
 #endif // _DEBUG

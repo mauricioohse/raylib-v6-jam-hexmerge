@@ -12,6 +12,7 @@
 #include "screens.h"
 #include "hex_scores.h"
 #include "hex_social.h"
+#include "hex_assets.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -21,8 +22,6 @@
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
 static int framesCounter = 0;
-static Texture2D ratingStarTex = { 0 };
-static Texture2D ratingStarEmptyTex = { 0 };
 static HexRunResult viewRun = { 0 };
 static HexRunResult submitRun = { 0 };   // snapshot of the finished run only (never best-run)
 static bool viewingBestFromMenu = false;
@@ -211,11 +210,6 @@ void InitEndingScreen(void)
         HexScoresNamePromptShow(nameBuf);
     }
 
-    ratingStarTex = LoadTexture("resources/rating_star.png");
-    ratingStarEmptyTex = LoadTexture("resources/rating_star_empty.png");
-    SetTextureFilter(ratingStarTex, TEXTURE_FILTER_POINT);
-    SetTextureFilter(ratingStarEmptyTex, TEXTURE_FILTER_POINT);
-
     float sw = (float)GetScreenWidth();
     float iconSize = HEX_SOCIAL_ICON_SIZE;
     float gap = HEX_SOCIAL_ICON_GAP;
@@ -317,14 +311,14 @@ void DrawEndingScreen(void)
         int start = 0;
         if (n > maxVisible) start = n - maxVisible;
 
-        float starSize = (float)((ratingStarTex.id != 0)? ratingStarTex.width : 16)*RATING_STAR_SCALE;
+        float starSize = (float)((assets.ratingStar.id != 0)? assets.ratingStar.width : 16)*RATING_STAR_SCALE;
         for (int i = start; i < n; i++)
         {
             char label[16];
             snprintf(label, sizeof(label), "%2d", i + 1);
             DrawText(label, listX, y, 20, RAYWHITE);
             float starY = (float)y + (20.0f - starSize)*0.5f;
-            HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, viewRun.levels[i].stars,
+            HexScoresDrawLevelStars(assets.ratingStar, assets.ratingStarEmpty, viewRun.levels[i].stars,
                                     (float)(listX + 40), starY, RATING_STAR_SCALE);
             y += 22;
         }
@@ -365,8 +359,4 @@ void DrawEndingScreen(void)
 void UnloadEndingScreen(void)
 {
     HexScoresNamePromptHide();
-    UnloadTexture(ratingStarTex);
-    UnloadTexture(ratingStarEmptyTex);
-    ratingStarTex = (Texture2D){ 0 };
-    ratingStarEmptyTex = (Texture2D){ 0 };
 }

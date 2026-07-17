@@ -14,6 +14,7 @@
 #include "hex_scores.h"
 #include "hex_trail.h"
 #include "hex_background.h"
+#include "hex_assets.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -38,17 +39,6 @@ static int framesCounter = 0;
 
 static HexLevel level = { 0 };
 static int currentLevelIndex = 0;
-static Texture2D hexTexture = { 0 };
-static Texture2D pondTexture = { 0 };
-static Texture2D waspTexture = { 0 };
-static Texture2D heartsTexture = { 0 };
-static Texture2D flowerTexture = { 0 };
-static Texture2D bubbleTexture = { 0 };
-static Texture2D starTexture = { 0 };
-static Texture2D fireTexture = { 0 };
-static Texture2D speakerTexture = { 0 };
-static Texture2D ratingStarTex = { 0 };
-static Texture2D ratingStarEmptyTex = { 0 };
 static int lives = PLAYER_MAX_LIVES;
 static float levelTimer = 0.0f;     // per-level clock; survives deaths (no suicide-reset)
 static bool runActive = false;
@@ -97,15 +87,15 @@ static int SpeakerFrame(void)
 
 static void DrawSpeakerIcon(float x, float y)
 {
-    float frameW = (float)speakerTexture.width;
-    float frameH = (float)speakerTexture.height/(float)SPEAKER_FRAME_COUNT;
+    float frameW = (float)assets.speaker.width;
+    float frameH = (float)assets.speaker.height/(float)SPEAKER_FRAME_COUNT;
     float drawW = frameW*SPEAKER_SCALE;
     float drawH = frameH*SPEAKER_SCALE;
     int frame = SpeakerFrame();
 
     Rectangle src = { 0, frameH*(float)frame, frameW, frameH };
     Rectangle dst = { x, y, drawW, drawH };
-    DrawTexturePro(speakerTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+    DrawTexturePro(assets.speaker, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
 }
 
 static void DrawMenuButton(Rectangle r, const char *label, bool hovered)
@@ -153,14 +143,13 @@ static void SetGamePaused(bool paused)
 //----------------------------------------------------------------------------------
 // Animation helpers
 //----------------------------------------------------------------------------------
-Animation CreateAnimation(const char *filepath, float scale, int frameCnt, int speed)
+Animation CreateAnimation(Texture2D texture, float scale, int frameCnt, int speed)
 {
     Animation rtn = { 0 };
-    rtn.filepath = filepath;
     rtn.scale = scale;
     rtn.frameCnt = frameCnt;
     rtn.speed = speed;
-    rtn.text = LoadTexture(filepath);
+    rtn.text = texture;
     rtn.frame = 0;
     rtn.countdown = speed;
 
@@ -313,7 +302,8 @@ static void TryActivateCheckpoint(void)
 static void LoadCurrentLevel(bool resetDeaths, bool resetTimer)
 {
     StopStarMusic();
-    HexLevelLoad(&level, currentLevelIndex, hexTexture, pondTexture, flowerTexture, bubbleTexture, starTexture, BEE_SPEED);
+    HexLevelLoad(&level, currentLevelIndex, assets.hexfield, assets.hexpond,
+                 assets.flower, assets.bubbles, assets.star, BEE_SPEED);
     levelPaused = true;
     if (resetTimer) levelTimer = 0.0f;
     if (resetDeaths) levelDeaths = 0;
@@ -418,8 +408,8 @@ static bool ApplyDamage(void)
 
 static void DrawLives(void)
 {
-    float frameW = (float)heartsTexture.width;
-    float frameH = (float)heartsTexture.height/2.0f;
+    float frameW = (float)assets.hearts.width;
+    float frameH = (float)assets.hearts.height/2.0f;
     float drawW = frameW*HEART_SCALE;
     float drawH = frameH*HEART_SCALE;
     float gap = 4.0f;
@@ -432,7 +422,7 @@ static void DrawLives(void)
         int frame = (i < lives)? 0 : 1;     // 0 = full, 1 = empty/grey
         Rectangle src = { 0, frameH*(float)frame, frameW, frameH };
         Rectangle dst = { x0 + (float)i*(drawW + gap), y, drawW, drawH };
-        DrawTexturePro(heartsTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+        DrawTexturePro(assets.hearts, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
     }
 }
 
@@ -458,26 +448,8 @@ void InitGameplayScreen(void)
     ResetRunStats();
     SetMusicPitch(music, 1.0f);
 
-    hexTexture = LoadTexture("resources/hexfield.png");
-    pondTexture = LoadTexture("resources/hexpond.png");
-    waspTexture = LoadTexture("resources/wasp.png");
-    heartsTexture = LoadTexture("resources/hearts.png");
-    flowerTexture = LoadTexture("resources/flower.png");
-    bubbleTexture = LoadTexture("resources/bubbles.png");
-    starTexture = LoadTexture("resources/star.png");
-    fireTexture = LoadTexture("resources/fire.png");
-    speakerTexture = LoadTexture("resources/speaker.png");
-    ratingStarTex = LoadTexture("resources/rating_star.png");
-    ratingStarEmptyTex = LoadTexture("resources/rating_star_empty.png");
-    SetTextureFilter(bubbleTexture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(starTexture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(fireTexture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(speakerTexture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(ratingStarTex, TEXTURE_FILTER_POINT);
-    SetTextureFilter(ratingStarEmptyTex, TEXTURE_FILTER_POINT);
-
     LayoutPauseMenu();
-    HexBackgroundInit(&fallBg, hexTexture, HEX_BG_GAMEPLAY);
+    HexBackgroundInit(&fallBg, assets.hexfield, HEX_BG_GAMEPLAY);
     LoadCurrentLevel(true, true);
     TryActivateCheckpoint();
 }
@@ -723,7 +695,7 @@ void DrawGameplayScreen(void)
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){ 24, 28, 36, 255 });
     HexBackgroundDraw(&fallBg);
 
-    HexLevelDraw(&level, waspTexture, fireTexture);
+    HexLevelDraw(&level, assets.wasp, assets.fire);
 
     Vector2 beePos = HexBeePosition(&level.bee, &level.grid);
     if (HexLevelStarPowered(&level))
@@ -777,12 +749,12 @@ void DrawGameplayScreen(void)
         DrawText(cleared, (sw - MeasureText(cleared, titleSize))/2, sh/2 - 110, titleSize,
                  (Color){ 255, 179, 71, 255 });
 
-        float starSize = (float)((ratingStarTex.id != 0)? ratingStarTex.width : 32)*RATING_STAR_DRAW_SCALE;
+        float starSize = (float)((assets.ratingStar.id != 0)? assets.ratingStar.width : 32)*RATING_STAR_DRAW_SCALE;
         float starGap = 8.0f;
         float starsW = HEX_LEVEL_STARS_MAX*starSize + (HEX_LEVEL_STARS_MAX - 1)*starGap;
         float starsX = ((float)sw - starsW)*0.5f;
         float starsY = (float)sh*0.5f - 40.0f;
-        HexScoresDrawLevelStars(ratingStarTex, ratingStarEmptyTex, levelClearStars,
+        HexScoresDrawLevelStars(assets.ratingStar, assets.ratingStarEmpty, levelClearStars,
                                 starsX, starsY, RATING_STAR_DRAW_SCALE);
 
         char clearTimeBuf[16];
@@ -857,26 +829,4 @@ void UnloadGameplayScreen(void)
     gamePaused = false;
     SetMusicPitch(music, 1.0f);
     ResumeMusicStream(music);
-    UnloadTexture(hexTexture);
-    hexTexture = (Texture2D){ 0 };
-    UnloadTexture(pondTexture);
-    pondTexture = (Texture2D){ 0 };
-    UnloadTexture(waspTexture);
-    waspTexture = (Texture2D){ 0 };
-    UnloadTexture(heartsTexture);
-    heartsTexture = (Texture2D){ 0 };
-    UnloadTexture(flowerTexture);
-    flowerTexture = (Texture2D){ 0 };
-    UnloadTexture(bubbleTexture);
-    bubbleTexture = (Texture2D){ 0 };
-    UnloadTexture(starTexture);
-    starTexture = (Texture2D){ 0 };
-    UnloadTexture(fireTexture);
-    fireTexture = (Texture2D){ 0 };
-    UnloadTexture(speakerTexture);
-    speakerTexture = (Texture2D){ 0 };
-    UnloadTexture(ratingStarTex);
-    ratingStarTex = (Texture2D){ 0 };
-    UnloadTexture(ratingStarEmptyTex);
-    ratingStarEmptyTex = (Texture2D){ 0 };
 }

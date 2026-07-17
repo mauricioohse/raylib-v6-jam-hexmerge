@@ -16,7 +16,6 @@
 #define HEX_SOCIAL_ICON_GAP    16.0f
 
 void HexSocialInit(void);
-void HexSocialUnload(void);
 
 // Title: Twitch bottom-left; Discord + X bottom-center.
 void HexSocialLayoutTitle(float y);

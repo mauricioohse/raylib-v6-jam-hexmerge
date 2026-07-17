@@ -38,6 +38,7 @@ PROJECT_SOURCE_FILES  ?= \
     screen_options.c \
     screen_gameplay.c \
     screen_ending.c \
+    hex_assets.c \
     hex_grid.c \
     hex_trail.c \
     hex_enemy.c \

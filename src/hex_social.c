@@ -5,33 +5,15 @@
 **********************************************************************************************/
 
 #include "hex_social.h"
+#include "hex_assets.h"
 
-static Texture2D discordTex = { 0 };
-static Texture2D xTex = { 0 };
-static Texture2D twitchTex = { 0 };
 static Rectangle discordBtn = { 0 };
 static Rectangle xBtn = { 0 };
 static Rectangle twitchBtn = { 0 };
 
 void HexSocialInit(void)
 {
-    discordTex = LoadTexture("resources/icon_discord.png");
-    xTex = LoadTexture("resources/icon_x.png");
-    twitchTex = LoadTexture("resources/icon_twitch.png");
-    SetTextureFilter(discordTex, TEXTURE_FILTER_BILINEAR);
-    SetTextureFilter(xTex, TEXTURE_FILTER_BILINEAR);
-    SetTextureFilter(twitchTex, TEXTURE_FILTER_BILINEAR);
     HexSocialLayoutTitle((float)GetScreenHeight() - 56.0f);
-}
-
-void HexSocialUnload(void)
-{
-    UnloadTexture(discordTex);
-    discordTex = (Texture2D){ 0 };
-    UnloadTexture(xTex);
-    xTex = (Texture2D){ 0 };
-    UnloadTexture(twitchTex);
-    twitchTex = (Texture2D){ 0 };
 }
 
 void HexSocialLayoutAt(float x, float y)
@@ -106,7 +88,7 @@ static void DrawIcon(Texture2D tex, Rectangle dst, bool hovered)
 void HexSocialDraw(void)
 {
     Vector2 mouse = GetMousePosition();
-    DrawIcon(discordTex, discordBtn, CheckCollisionPointRec(mouse, discordBtn));
-    DrawIcon(xTex, xBtn, CheckCollisionPointRec(mouse, xBtn));
-    DrawIcon(twitchTex, twitchBtn, CheckCollisionPointRec(mouse, twitchBtn));
+    DrawIcon(assets.iconDiscord, discordBtn, CheckCollisionPointRec(mouse, discordBtn));
+    DrawIcon(assets.iconX, xBtn, CheckCollisionPointRec(mouse, xBtn));
+    DrawIcon(assets.iconTwitch, twitchBtn, CheckCollisionPointRec(mouse, twitchBtn));
 }

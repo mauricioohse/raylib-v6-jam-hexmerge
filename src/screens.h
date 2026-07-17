@@ -45,7 +45,6 @@ typedef enum GameScreen {
 
 typedef struct
 {
-    const char *filepath;
     Texture2D text;
     Rectangle src;
     Rectangle dst;
@@ -58,7 +57,7 @@ typedef struct
     int speed;     // Number of spritesheet frames shown by second
 } Animation;
 
-Animation CreateAnimation(const char* filepath, float scale, int frameCnt, int speed);
+Animation CreateAnimation(Texture2D texture, float scale, int frameCnt, int speed);
 void UpdateAnimation(Animation* anim);
 void DrawAnimation(Animation* animation, Vector2 position);
 void DrawAnimationTint(Animation* animation, Vector2 position, Color tint);

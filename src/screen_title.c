@@ -12,6 +12,7 @@
 #include "screens.h"
 #include "hex_background.h"
 #include "hex_social.h"
+#include "hex_assets.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -57,9 +58,6 @@ static Rectangle moveBtn = { 0 };
 static Rectangle scoresBtn = { 0 };
 static Rectangle volDownBtn = { 0 };
 static Rectangle volUpBtn = { 0 };
-static Texture2D speakerTexture = { 0 };
-static Texture2D fallHexTexture = { 0 };
-static Texture2D flyBeeTexture = { 0 };
 static HexBackground fallBg = { 0 };
 
 static FlyBee flyBees[FLY_BEE_MAX] = { 0 };
@@ -99,15 +97,15 @@ static int SpeakerFrame(void)
 
 static void DrawSpeakerIcon(float x, float y)
 {
-    float frameW = (float)speakerTexture.width;
-    float frameH = (float)speakerTexture.height/(float)SPEAKER_FRAME_COUNT;
+    float frameW = (float)assets.speaker.width;
+    float frameH = (float)assets.speaker.height/(float)SPEAKER_FRAME_COUNT;
     float drawW = frameW*SPEAKER_SCALE;
     float drawH = frameH*SPEAKER_SCALE;
     int frame = SpeakerFrame();
 
     Rectangle src = { 0, frameH*(float)frame, frameW, frameH };
     Rectangle dst = { x, y, drawW, drawH };
-    DrawTexturePro(speakerTexture, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
+    DrawTexturePro(assets.speaker, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
 }
 
 static void DrawMenuButton(Rectangle r, const char *label, bool hovered)
@@ -149,7 +147,7 @@ static void ResetFlyBeeSpawnTimer(void)
 
 static void SpawnFlyBee(bool fromEdge)
 {
-    if (flyBeeTexture.id == 0) return;
+    if (assets.bee.id == 0) return;
     if (FlyBeeCount() >= FLY_BEE_MAX) return;
 
     int slot = -1;
@@ -162,9 +160,9 @@ static void SpawnFlyBee(bool fromEdge)
     float sw = (float)GetScreenWidth();
     float sh = (float)GetScreenHeight();
     float scale = RandRange(FLY_BEE_SCALE_MIN, FLY_BEE_SCALE_MAX);
-    float frameH = (float)flyBeeTexture.height/(float)FLY_BEE_FRAMES;
+    float frameH = (float)assets.bee.height/(float)FLY_BEE_FRAMES;
     float drawH = frameH*scale;
-    float drawW = (float)flyBeeTexture.width*scale;
+    float drawW = (float)assets.bee.width*scale;
 
     bool goRight = (GetRandomValue(0, 1) == 0);
     float speed = RandRange(FLY_BEE_SPEED_MIN, FLY_BEE_SPEED_MAX);
@@ -219,7 +217,7 @@ static void UpdateFlyBees(float dt)
             bee->animFrame = (bee->animFrame + 1)%FLY_BEE_FRAMES;
         }
 
-        float drawW = (float)flyBeeTexture.width*bee->scale;
+        float drawW = (float)assets.bee.width*bee->scale;
         if ((bee->speedX > 0.0f) && (bee->pos.x > sw + drawW)) bee->active = false;
         if ((bee->speedX < 0.0f) && (bee->pos.x < -drawW)) bee->active = false;
     }
@@ -227,10 +225,10 @@ static void UpdateFlyBees(float dt)
 
 static void DrawFlyBees(void)
 {
-    if (flyBeeTexture.id == 0) return;
+    if (assets.bee.id == 0) return;
 
-    float frameW = (float)flyBeeTexture.width;
-    float frameH = (float)flyBeeTexture.height/(float)FLY_BEE_FRAMES;
+    float frameW = (float)assets.bee.width;
+    float frameH = (float)assets.bee.height/(float)FLY_BEE_FRAMES;
 
     for (int i = 0; i < FLY_BEE_MAX; i++)
     {
@@ -244,7 +242,7 @@ static void DrawFlyBees(void)
         Rectangle src = { 0, frameH*(float)bee->animFrame, frameW, frameH };
         Rectangle dst = { bee->pos.x + drawW*0.5f, bee->pos.y + drawH*0.5f, drawW, drawH };
         Vector2 origin = { drawW*0.5f, drawH*0.5f };
-        DrawTexturePro(flyBeeTexture, src, dst, origin, rotation, bee->tint);
+        DrawTexturePro(assets.bee, src, dst, origin, rotation, bee->tint);
     }
 }
 
@@ -255,14 +253,8 @@ void InitTitleScreen(void)
 {
     framesCounter = 0;
 
-    speakerTexture = LoadTexture("resources/speaker.png");
-    SetTextureFilter(speakerTexture, TEXTURE_FILTER_POINT);
+    HexBackgroundInit(&fallBg, assets.hexfield, HEX_BG_TITLE);
 
-    fallHexTexture = LoadTexture("resources/hexfield.png");
-    HexBackgroundInit(&fallBg, fallHexTexture, HEX_BG_TITLE);
-
-    flyBeeTexture = LoadTexture("resources/bee.png");
-    SetTextureFilter(flyBeeTexture, TEXTURE_FILTER_POINT);
     for (int i = 0; i < FLY_BEE_MAX; i++) flyBees[i].active = false;
     int beeSeed = GetRandomValue(2, 4);
     for (int i = 0; i < beeSeed; i++) SpawnFlyBee(false);
@@ -443,10 +435,4 @@ void DrawTitleScreen(void)
 
 void UnloadTitleScreen(void)
 {
-    UnloadTexture(speakerTexture);
-    speakerTexture = (Texture2D){ 0 };
-    UnloadTexture(fallHexTexture);
-    fallHexTexture = (Texture2D){ 0 };
-    UnloadTexture(flyBeeTexture);
-    flyBeeTexture = (Texture2D){ 0 };
 }

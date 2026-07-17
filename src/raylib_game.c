@@ -12,6 +12,7 @@
 
 #include "raylib.h"
 #include "screens.h"    // NOTE: Declares global (extern) variables and screens functions
+#include "hex_assets.h"
 #include "hex_social.h"
 
 #if defined(PLATFORM_WEB)
@@ -93,6 +94,8 @@ int main(void)
 
     InitAudioDevice();      // Initialize audio device
 
+    HexAssetsLoad();
+
     // Load global data (assets that must be available in all screens, i.e. font)
     font = LoadFont("resources/mecha.png");
     music = LoadMusicStream("resources/beehold_theme.wav");
@@ -113,7 +116,7 @@ int main(void)
     }
     fxBeeZoom = LoadSound("resources/bee_zoom.wav");
     SetSoundVolume(fxBeeZoom, 0.18f);
-    beeAnim = CreateAnimation("resources/bee.png", 2, 4, 30);
+    beeAnim = CreateAnimation(assets.bee, 2, 4, 30);
 
     HexSocialInit();
 
@@ -140,41 +143,7 @@ int main(void)
     }
 #endif
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    // Unload current screen data before closing
-    switch (currentScreen)
-    {
-        case TITLE: UnloadTitleScreen(); break;
-        case OPTIONS: UnloadOptionsScreen(); break;
-        case GAMEPLAY: UnloadGameplayScreen(); break;
-        case ENDING: UnloadEndingScreen(); break;
-#if defined(_DEBUG)
-        case COVER: UnloadCoverScreen(); break;
-#endif
-        default: break;
-    }
-
-    // Unload global data loaded
-    UnloadFont(font);
-    UnloadMusicStream(music);
-    UnloadMusicStream(musicStarPower);
-    UnloadSound(fxCoin);
-    UnloadSound(fxFail);
-    UnloadSound(fxPaint);
-    UnloadSound(fxWin);
-    UnloadSound(fxLife);
-    UnloadSound(fxCheckpoint);
-    for (int i = 0; i < ZOOM_ALIAS_COUNT; i++) UnloadSoundAlias(fxZoomAlias[i]);
-    UnloadSound(fxZoom);
-    UnloadSound(fxBeeZoom);
-    HexSocialUnload();
-
-    CloseAudioDevice();     // Close audio context
-
-    CloseWindow();          // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
-
+    // Process exit: OS reclaims resources; no explicit unload.
     return 0;
 }
 
